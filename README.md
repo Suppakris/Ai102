@@ -1,3 +1,4 @@
+```text
 📁 Project Structure
 pdf-to-slides/
 │
@@ -52,6 +53,7 @@ pdf-to-slides/
 │
 ├── .gitignore
 └── README.md
+```
 
 🚀 Quick Start (Local Development)
 Prerequisites
@@ -239,6 +241,7 @@ CORS error in browser                                         Make sure BASE_URL
 📌 Important Notes
 __init__.py files must exist in every app/ subfolder — even if empty. They are required Python packaging markers. Do not delete them.
 .env files are git-ignored for security. Never commit real API keys.
+
 uploads/ and outputs/ folders are auto-created at runtime and git-ignored.
 Free Groq tier supports ~14,400 requests/day on LLaMA 3 8B.
 PDFs are capped at 20 pages per conversion to stay within Groq limits.
