@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: pdf-to-slides-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false          # You set this manually in Render dashboard
+      - key: BASE_URL
+        sync: false          # Set to your Render URL e.g. https://pdf-to-slides-api.onrender.com
+    plan: free
