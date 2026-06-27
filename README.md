@@ -54,7 +54,7 @@ pdf-to-slides/
 ├── .gitignore
 └── README.md
 ```
-
+```text
 🚀 Quick Start (Local Development)
 Prerequisites
 
@@ -63,12 +63,14 @@ Python  3.10+      https://python.org
 Node.js 18+        https://nodejs.org
 Git     any        https://git-scm.comGroq 
 API Key free       https://console.groq.com
-
+```
+```text
 1. Clone the repository
 
 bashgit clone https://github.com/YOUR_USERNAME/pdf-to-slides.git
 cd pdf-to-slides
-
+```
+```text
 2. Backend Setup
 
 bashcd backend
@@ -113,7 +115,8 @@ json{ "status": "running", "message": "PDF to Slides API is live" }
 ✅ Visit http://localhost:8000/api/health — you should see:
 
 json{ "status": "ok", "groq_key_set": true }
-
+```
+```text
 3. Frontend Setup
 
 Open a new terminal (keep backend running):
@@ -151,8 +154,9 @@ Click Generate Slides
 Wait ~10–30 seconds for AI to process
 Preview your slides and click Download .pptx
 Open in PowerPoint, Google Slides, or LibreOffice
-
- Deployment (Free)
+```
+```text
+Deployment (Free)
 
 Backend → Render
 
@@ -163,8 +167,6 @@ git commit -m "deploy"
 git push
 
 Step 2 — Create a Web Service on Render
-
-
 Go to https://render.com and sign in
 Click New → Web Service
 Connect your GitHub repo → select pdf-to-slides
@@ -188,7 +190,9 @@ Click Create Web Service — Render will build and deploy automatically.
 
 
 ⚠️ Render Free Tier note: The service spins down after 15 minutes of inactivity and takes ~30 seconds to wake up on the next request. This is normal on the free plan.
+```
 
+```text
 Frontend → Vercel
 
 Step 1 — Deploy
@@ -215,9 +219,10 @@ Step 3 — Redeploy
 Go to Deployments tab → click the 3 dots → Redeploy so the env variable takes effect.
 
 ✅ Your app is live!
+```
 
+```text
 ⚙️ Tech Stack
-
 Layer             Technology                        Purpose
 Frontend          React + Vite                      UI  
 Styling           Plain CSS (custom dark theme)     Design
@@ -228,7 +233,9 @@ Slide Generation  python-pptx                       Build branded .pptx
 HTTP Client       Axios                             Frontend → backend calls
 Deployment FE     Vercel                            Free hosting
 Deployment BE     Render                            Free hosting
+```
 
+```text
 ❓ Troubleshooting
 Problem                                                       Fix
 ProblemFixModuleNotFoundError: No module named 'app'          Run uvicorn from inside backend/ folder, not from backend/app/
@@ -237,7 +244,9 @@ Attribute "app" not found in module "app.main"                Your main.py is em
 Frontend blank white page                                     Check all src/ files have content (0 bytes = empty file, paste content manually)
 groq_key_set: false                                           Your .env file is missing or GROQ_API_KEY is not set
 CORS error in browser                                         Make sure BASE_URL in backend .env matches your frontend URL
+```
 
+```text
 📌 Important Notes
 __init__.py files must exist in every app/ subfolder — even if empty. They are required Python packaging markers. Do not delete them.
 .env files are git-ignored for security. Never commit real API keys.
@@ -248,3 +257,4 @@ PDFs are capped at 20 pages per conversion to stay within Groq limits.
 
 📄 License
 MIT — free to use, modify, and distribute.
+```
