@@ -55,7 +55,10 @@ def add_title_slide(prs: Presentation, title: str, subtitle: str = ""):
     p.font.name = "Calibri"
 
     if subtitle:
-        from pptx.util import Pt
+        # NOTE: do NOT re-import Pt here. A local `from pptx.util import Pt`
+        # makes Pt a function-local name for the WHOLE function, so the
+        # `Pt(40)` call above would raise UnboundLocalError. Pt is already
+        # imported at module level.
         p2 = tf.add_paragraph()
         p2.text = subtitle
         p2.font.size = Pt(18)
