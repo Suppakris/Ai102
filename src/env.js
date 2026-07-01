@@ -4,8 +4,6 @@ import { z } from "zod";
 export const env = createEnv({
   server: {
     DATABASE_URL: z.string().url(),
-    // Direct (non-pooled) Postgres URL for migrations. Optional at runtime.
-    DIRECT_URL: z.string().url().optional(),
     TAVILY_API_KEY: z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
@@ -28,7 +26,6 @@ export const env = createEnv({
 
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
-    DIRECT_URL: process.env.DIRECT_URL,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     UNSPLASH_ACCESS_KEY: process.env.UNSPLASH_ACCESS_KEY,

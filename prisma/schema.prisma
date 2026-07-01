@@ -13,15 +13,10 @@ generator client_migrate {
 }
 
 datasource db {
-  provider  = "postgresql"
-  // Pooled (PgBouncer) connection — used at runtime by serverless (Vercel).
-  // This is the ONLY one needed in the Vercel environment.
-  url       = env("DATABASE_URL")
-  // Direct (non-pooled) connection — used ONLY by migration commands
-  // (`prisma db push` / `migrate`). Set it in your local .env when running
-  // migrations. If you don't want the split, set it to the same value as
-  // DATABASE_URL. Not needed on Vercel at runtime.
-  directUrl = env("DIRECT_URL")
+  // Prisma 7: connection URLs are NOT allowed here. The runtime connection
+  // is configured via a driver adapter in src/server/db.ts (env.DATABASE_URL);
+  // the migration URL lives in prisma.config.ts.
+  provider = "postgresql"
 }
 
 model Account {
