@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePresentationState } from "@/states/presentation-state";
 import { AlignmentSection } from "./sections/AlignmentSection";
+import { ApiKeySection } from "./sections/ApiKeySection";
 import { FormatsSection } from "./sections/FormatsSection";
 import { PageBackgroundSection } from "./sections/PageBackgroundSection";
 import { PremiumFeaturesSection } from "./sections/PremiumFeaturesSection";
@@ -56,6 +57,7 @@ export function GlobalSettings() {
           </TabsList>
 
           <TabsContent value="cards" className="mt-6 space-y-4">
+            <ApiKeySection />
             <FormatsSection />
             <WidthSection />
             <AlignmentSection />

@@ -131,6 +131,10 @@ interface PresentationState {
   language: string;
   modelProvider: "openai" | "ollama" | "lmstudio";
   modelId: string;
+  // BYOK: user-supplied API key + OpenAI-compatible base URL (set in Settings).
+  // Empty strings fall back to the server env key / default OpenAI endpoint.
+  apiKey: string;
+  baseUrl: string;
   pageStyle: string;
   presentationInput: string;
   imageModel: ImageModelList;
@@ -259,6 +263,8 @@ interface PresentationState {
   setLanguage: (lang: string) => void;
   setModelProvider: (provider: "openai" | "ollama" | "lmstudio") => void;
   setModelId: (id: string) => void;
+  setApiKey: (key: string) => void;
+  setBaseUrl: (url: string) => void;
   setPageStyle: (style: string) => void;
   setPresentationInput: (input: string) => void;
   setOutline: (topics: string[]) => void;
@@ -548,6 +554,8 @@ export const usePresentationState = create<PresentationState>()(
       language: "en-US",
       modelProvider: "openai",
       modelId: "gpt-4o-mini",
+      apiKey: "",
+      baseUrl: "",
       pageStyle: "default",
       presentationInput: "",
       outline: [],
@@ -1069,6 +1077,8 @@ export const usePresentationState = create<PresentationState>()(
       setLanguage: (lang) => set({ language: lang }),
       setModelProvider: (provider) => set({ modelProvider: provider }),
       setModelId: (id) => set({ modelId: id }),
+      setApiKey: (key) => set({ apiKey: key }),
+      setBaseUrl: (url) => set({ baseUrl: url }),
       setTheme: (theme, customData, type) => {
         set((state) => {
           let nextCustomThemeData: ThemeProperties | null;
@@ -1405,6 +1415,10 @@ export const usePresentationState = create<PresentationState>()(
         imageSearchResults: state.imageSearchResults,
         imageSource: state.imageSource,
         language: state.language,
+        apiKey: state.apiKey,
+        baseUrl: state.baseUrl,
+        modelId: state.modelId,
+        modelProvider: state.modelProvider,
         numSlides: state.numSlides,
         outline: state.outline,
         outlineItemIds: state.outlineItemIds,

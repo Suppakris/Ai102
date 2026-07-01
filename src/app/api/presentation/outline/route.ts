@@ -28,6 +28,8 @@ interface OutlineMessageMetadata {
   language?: string;
   modelId?: string;
   modelProvider?: "openai" | "ollama" | "lmstudio";
+  apiKey?: string;
+  baseUrl?: string;
   webSearch?: boolean;
   autoTheme?: boolean;
   textContent?: "minimal" | "concise" | "detailed" | "extensive";
@@ -208,6 +210,7 @@ export async function POST(req: Request) {
     const language = metadata.language ?? "";
     const modelProvider = metadata.modelProvider ?? "openai";
     const modelId = metadata.modelId;
+    const modelOptions = { apiKey: metadata.apiKey, baseUrl: metadata.baseUrl };
     const webSearch = Boolean(metadata.webSearch);
     const autoTheme = metadata.autoTheme ?? false;
 
@@ -268,7 +271,7 @@ export async function POST(req: Request) {
       day: "numeric",
     });
     try {
-      assertModelIsConfigured(modelProvider, modelId);
+      assertModelIsConfigured(modelProvider, modelId, modelOptions);
     } catch (error) {
       routeLogger.error("Outline request rejected: invalid model configuration", error, {
         requestId,
@@ -309,7 +312,7 @@ export async function POST(req: Request) {
     }
 
     const agent = createAgent({
-      model: modelPicker(modelProvider, modelId),
+      model: modelPicker(modelProvider, modelId, modelOptions),
       tools: webSearch ? [search_tool] : [],
       systemPrompt:
         buildOutlineSystemPrompt({

@@ -3,6 +3,19 @@ import { createLogger } from "@/lib/observability/logger";
 import { ChatOpenAI } from "@langchain/openai";
 
 type ModelProvider = "openai" | "ollama" | "lmstudio";
+
+/**
+ * Optional per-request overrides for the OpenAI-compatible client.
+ * Lets users bring their own key (BYOK) and point at any OpenAI-compatible
+ * endpoint — e.g. Groq's free tier at https://api.groq.com/openai/v1 —
+ * without setting a server-side OPENAI_API_KEY. Ignored for local providers
+ * (ollama / lmstudio), which use their own fixed localhost endpoints.
+ */
+export interface ModelOptions {
+  apiKey?: string;
+  baseUrl?: string;
+}
+
 const modelLogger = createLogger("model-picker");
 const OLLAMA_BASE_URL = "http://localhost:11434";
 const OLLAMA_TAGS_URL = `${OLLAMA_BASE_URL}/api/tags`;
@@ -268,6 +281,7 @@ async function ensureLMStudioModelIsReady(modelId: string): Promise<void> {
 export function assertModelIsConfigured(
   modelProviderOrModel: string,
   modelId?: string,
+  options?: ModelOptions,
 ) {
   const selection = resolveModelSelection(modelProviderOrModel, modelId);
   const selectedOpenAIModel = selection.modelId || "gpt-4o-mini";
@@ -289,14 +303,18 @@ export function assertModelIsConfigured(
     throw new Error("An LM Studio model must be selected before continuing.");
   }
 
-  if (selection.provider === "openai" && !env.OPENAI_API_KEY?.trim()) {
+  if (
+    selection.provider === "openai" &&
+    !options?.apiKey?.trim() &&
+    !env.OPENAI_API_KEY?.trim()
+  ) {
     modelLogger.error("Model configuration failed", undefined, {
       provider: selection.provider,
       modelId: selectedOpenAIModel,
       reason: "missing_openai_api_key",
     });
     throw new Error(
-      `OPENAI_API_KEY is required when using the OpenAI model "${selectedOpenAIModel}".`,
+      `An API key is required. Add your key in Settings (Groq is free), or set OPENAI_API_KEY on the server, to use the model "${selectedOpenAIModel}".`,
     );
   }
 
@@ -332,7 +350,11 @@ export async function ensureModelIsReady(
  * Centralized model picker for LangChain-based presentation routes.
  * Supports OpenAI and OpenAI-compatible local endpoints.
  */
-export function modelPicker(modelProviderOrModel: string, modelId?: string) {
+export function modelPicker(
+  modelProviderOrModel: string,
+  modelId?: string,
+  options?: ModelOptions,
+) {
   const selection = resolveModelSelection(modelProviderOrModel, modelId);
 
   if (selection.provider === "lmstudio") {
@@ -376,16 +398,24 @@ export function modelPicker(modelProviderOrModel: string, modelId?: string) {
   }
 
   const selectedOpenAIModel = selection.modelId || "gpt-4o-mini";
-  const openAIApiKey = env.OPENAI_API_KEY?.trim();
+  // A user-supplied key (BYOK, from Settings) takes precedence over the
+  // server env key. A user-supplied base URL repoints the client at any
+  // OpenAI-compatible endpoint (e.g. Groq's free tier).
+  const userApiKey = options?.apiKey?.trim();
+  const userBaseUrl = options?.baseUrl?.trim();
+  const openAIApiKey = userApiKey || env.OPENAI_API_KEY?.trim();
 
   modelLogger.info("Creating OpenAI model client", {
     provider: selection.provider,
     modelId: selectedOpenAIModel,
     hasApiKey: Boolean(openAIApiKey),
+    usingUserKey: Boolean(userApiKey),
+    baseUrl: userBaseUrl || "default",
   });
 
   return new ChatOpenAI({
     model: selectedOpenAIModel,
     ...(openAIApiKey ? { apiKey: openAIApiKey } : {}),
+    ...(userBaseUrl ? { configuration: { baseURL: userBaseUrl } } : {}),
   });
 }

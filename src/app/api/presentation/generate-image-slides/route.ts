@@ -18,6 +18,8 @@ interface ImageSlidesRequest {
   language: string;
   modelId?: string;
   modelProvider?: "openai" | "ollama" | "lmstudio";
+  apiKey?: string;
+  baseUrl?: string;
   presentationId?: string;
 }
 
@@ -120,8 +122,11 @@ export async function POST(req: Request) {
       language,
       modelId,
       modelProvider = "openai",
+      apiKey,
+      baseUrl,
       presentationId,
     } = (await req.json()) as ImageSlidesRequest;
+    const modelOptions = { apiKey, baseUrl };
 
     if (!title || !outline || !Array.isArray(outline) || !language) {
       routeLogger.warn(
@@ -152,7 +157,7 @@ export async function POST(req: Request) {
       presentationId,
     });
     try {
-      assertModelIsConfigured(modelProvider, modelId);
+      assertModelIsConfigured(modelProvider, modelId, modelOptions);
     } catch (error) {
       routeLogger.error(
         "Image slide generation request rejected: invalid model configuration",
@@ -195,7 +200,7 @@ export async function POST(req: Request) {
         { status: 503 },
       );
     }
-    const model = modelPicker(modelProvider, modelId);
+    const model = modelPicker(modelProvider, modelId, modelOptions);
     const chain = RunnableSequence.from([prompt, model]);
 
     routeLogger.info("Image slide generation started", {
