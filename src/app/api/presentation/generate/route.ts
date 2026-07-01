@@ -16,6 +16,10 @@ import {
 } from "@/lib/presentation/generation-prompt";
 import { auth } from "@/server/auth";
 
+// Vercel Hobby caps serverless functions at 60s. Deck generation on a free
+// (rate-limited) provider can run long, so claim the full budget.
+export const maxDuration = 60;
+
 type SlidesRequest = Omit<PresentationGenerationPromptInput, "currentDate"> & {
   modelId?: string;
   modelProvider?: "openai" | "ollama" | "lmstudio";

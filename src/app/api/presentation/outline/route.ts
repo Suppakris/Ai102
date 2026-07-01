@@ -19,6 +19,10 @@ import {
 import { createAgent } from "langchain";
 import { NextResponse } from "next/server";
 
+// Vercel Hobby caps serverless functions at 60s. Deck generation on a free
+// (rate-limited) provider can run long, so claim the full budget.
+export const maxDuration = 60;
+
 interface OutlineRequest {
   messages?: UIMessage[];
 }
