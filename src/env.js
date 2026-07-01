@@ -4,6 +4,8 @@ import { z } from "zod";
 export const env = createEnv({
   server: {
     DATABASE_URL: z.string().url(),
+    // Direct (non-pooled) Postgres URL for migrations. Optional at runtime.
+    DIRECT_URL: z.string().url().optional(),
     TAVILY_API_KEY: z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
@@ -15,21 +17,18 @@ export const env = createEnv({
     TOGETHER_AI_API_KEY: z.string().optional(),
     FAL_API_KEY: z.string().optional(),
     PINECONE_API_KEY: z.string().optional(),
-    GOOGLE_CLIENT_ID: z.string(),
-    GOOGLE_CLIENT_SECRET: z.string(),
+    // Auth is stubbed out (see src/server/auth.ts) — these are no longer
+    // required. Kept optional so restoring real auth is just filling them in.
+    GOOGLE_CLIENT_ID: z.string().optional(),
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
     UNSPLASH_ACCESS_KEY: z.string().optional(),
-    NEXTAUTH_URL: z.preprocess(
-      (str) => process.env.VERCEL_URL ?? str,
-      process.env.VERCEL ? z.string() : z.string().url(),
-    ),
-    NEXTAUTH_SECRET:
-      process.env.NODE_ENV === "production"
-        ? z.string()
-        : z.string().optional(),
+    NEXTAUTH_URL: z.string().optional(),
+    NEXTAUTH_SECRET: z.string().optional(),
   },
 
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
+    DIRECT_URL: process.env.DIRECT_URL,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     UNSPLASH_ACCESS_KEY: process.env.UNSPLASH_ACCESS_KEY,
