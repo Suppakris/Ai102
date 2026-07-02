@@ -110,10 +110,10 @@ export function ApiKeySection() {
         />
       </div>
 
-     <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Your key is stored only in this browser and sent directly with each
-        generation request. Free keys:{" "}
-        
+        generation request. Free keys: {" "}
+        <a
           href="https://console.groq.com/keys"
           target="_blank"
           rel="noopener noreferrer"
@@ -121,8 +121,8 @@ export function ApiKeySection() {
         >
           Groq
         </a>{" "}
-        or{" "}
-        
+        or {" "}
+        <a
           href="https://openrouter.ai/keys"
           target="_blank"
           rel="noopener noreferrer"

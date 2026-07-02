@@ -12,6 +12,7 @@
 // history) and set the Google/NEXTAUTH env vars again.
 // ─────────────────────────────────────────────────────────────
 import { db } from "@/server/db";
+import { env } from "@/env";
 import { type DefaultSession, type Session } from "next-auth";
 
 declare module "next-auth" {
@@ -56,7 +57,11 @@ import { Prisma } from "@/prisma/client";
 
 let ensured = false;
 async function ensureDemoUser(): Promise<void> {
-  if (ensured) return;
+  if (ensured || !env.DATABASE_URL) {
+    ensured = true;
+    return;
+  }
+
   try {
     await db.user.upsert({
       where: { id: DEMO_USER_ID },
