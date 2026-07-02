@@ -52,6 +52,8 @@ const demoSession: Session = {
 // The demo user must exist as a real DB row, otherwise anything that
 // foreign-keys to userId (presentations, documents) fails to insert.
 // Idempotent, and guarded so it only runs once per server instance.
+import { Prisma } from "@prisma/client";
+
 let ensured = false;
 async function ensureDemoUser(): Promise<void> {
   if (ensured) return;
@@ -69,8 +71,14 @@ async function ensureDemoUser(): Promise<void> {
     });
     ensured = true;
   } catch (error) {
-    // Never let auth() throw (e.g. DB unreachable at build time) — the
-    // real DB operations downstream will surface any genuine problem.
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      // Another concurrent request already created it — fine.
+      ensured = true;
+      return;
+    }
     console.warn("[auth-stub] could not ensure demo user:", error);
   }
 }
