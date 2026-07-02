@@ -75,8 +75,7 @@ An open-source, AI-powered presentation generator alternative to Gamma.app that 
 | **Framework**      | Next.js, React, TypeScript                 |
 | **Styling**        | Tailwind CSS                               |
 | **Database**       | PostgreSQL with Prisma ORM                 |
-| **AI Integration** | OpenAI API, Together AI, Ollama, LM Studio |
-| **Authentication** | NextAuth.js                                |
+| **AI Integration** | NVIDIA: Nemotron 3 Super (free), Together AI, Ollama, LM Studio |
 | **UI Components**  | Radix UI                                   |
 | **Text Editor**    | Plate Editor                               |
 | **File Uploads**   | UploadThing                                |
@@ -91,9 +90,8 @@ Before you begin, ensure you have the following installed:
 - Node.js 18.x or higher
 - npm, yarn, or pnpm package manager
 - PostgreSQL database
-- Google Client ID and Secret (for authentication)
 - Optional provider keys depending on the features you want to use:
-  - OpenAI API key (for cloud text generation)
+  - NVIDIA: Nemotron 3 Super (free) (for cloud text generation)
   - Together AI API key (for image generation)
   - FAL API key (for additional image generation flows)
   - Tavily API key (for web search)
@@ -121,14 +119,6 @@ Before you begin, ensure you have the following installed:
    ```env
    # Database
    DATABASE_URL="postgresql://username:password@localhost:5432/presentation_ai"
-
-   # Authentication
-   NEXTAUTH_SECRET=""
-   NEXTAUTH_URL="http://localhost:3000"
-
-   # Google OAuth Provider
-   GOOGLE_CLIENT_ID=""
-   GOOGLE_CLIENT_SECRET=""
 
    # AI Providers
    OPENAI_API_KEY=""
@@ -182,7 +172,6 @@ pnpm lint      # Run Biome linting
 
 Follow these steps to create your first AI-generated presentation:
 
-1. Sign in to the app
 1. Navigate to the presentation dashboard
 1. Enter your presentation topic
 1. Choose a text model (OpenAI, Ollama, or LM Studio)
