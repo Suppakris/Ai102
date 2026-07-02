@@ -52,7 +52,7 @@ const demoSession: Session = {
 // The demo user must exist as a real DB row, otherwise anything that
 // foreign-keys to userId (presentations, documents) fails to insert.
 // Idempotent, and guarded so it only runs once per server instance.
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/prisma/client";
 
 let ensured = false;
 async function ensureDemoUser(): Promise<void> {
