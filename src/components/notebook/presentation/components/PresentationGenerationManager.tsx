@@ -41,6 +41,8 @@ interface PresentationOutlineMessageMetadata {
   language: string;
   modelId: string;
   modelProvider: "openai" | "ollama" | "lmstudio";
+  apiKey?: string;
+  baseUrl?: string;
   webSearch: boolean;
   autoTheme: boolean;
   presentationId: string | null;
