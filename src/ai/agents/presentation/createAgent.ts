@@ -8,7 +8,7 @@ import {
 import { checkpointer } from "@/ai/lib/postgres";
 import { pastedContentMiddleware } from "@/ai/lib/processPastedContent";
 import { presentationTools } from "@/ai/tools/presentation/tools";
-import { modelPicker } from "@/lib/modelPicker";
+import { DEFAULT_OLLAMA_MODEL, modelPicker } from "@/lib/modelPicker";
 
 // Create the graph
 export function createPresentationGraph() {
@@ -35,7 +35,7 @@ export function createPresentationGraph() {
     trimMessageHistory,
   ];
 
-  const llm = modelPicker("gpt-4o-mini");
+  const llm = modelPicker(DEFAULT_OLLAMA_MODEL);
   const agent = createAgent({
     model: llm.withConfig({
       parallel_tool_calls: false,

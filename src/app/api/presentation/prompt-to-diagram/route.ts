@@ -7,7 +7,7 @@ import { consumeStream, createUIMessageStreamResponse } from "ai";
 import { NextResponse } from "next/server";
 
 import { templates } from "@/constants/antv-templates";
-import { modelPicker } from "@/lib/modelPicker";
+import { DEFAULT_OLLAMA_MODEL, modelPicker } from "@/lib/modelPicker";
 import { logger } from "@/lib/observability/server/logger";
 import {
   buildInfographicLayoutInstruction,
@@ -18,7 +18,7 @@ import {
 } from "@/lib/presentation/infographic-layout";
 import { auth } from "@/server/auth";
 
-const INFOGRAPHIC_MODEL = "google/gemini-3-flash-preview";
+const INFOGRAPHIC_MODEL = DEFAULT_OLLAMA_MODEL;
 
 type PromptToDiagramRequest = {
   prompt: string;

@@ -40,9 +40,7 @@ interface PresentationOutlineMessageMetadata {
   numberOfCards: number;
   language: string;
   modelId: string;
-  modelProvider: "openai" | "ollama" | "lmstudio";
-  apiKey?: string;
-  baseUrl?: string;
+  modelProvider: "ollama";
   webSearch: boolean;
   autoTheme: boolean;
   presentationId: string | null;
@@ -111,8 +109,6 @@ export function PresentationGenerationManager() {
     language,
     modelId,
     modelProvider,
-    apiKey,
-    baseUrl,
     presentationInput,
     shouldStartOutlineGeneration,
     shouldStartPresentationGeneration,
@@ -498,7 +494,7 @@ export function PresentationGenerationManager() {
           generationLogger.info("Presentation outline generation started", {
             presentationId: currentPresentationId,
             modelProvider,
-            modelId: modelId || "gpt-4o-mini",
+            modelId: modelId || "llama3.2:3b",
             numSlides,
             language,
             webSearchEnabled,
@@ -515,8 +511,6 @@ export function PresentationGenerationManager() {
               language,
               modelId,
               modelProvider,
-              apiKey,
-              baseUrl,
               webSearch: webSearchEnabled,
               autoTheme: autoThemeEnabled,
               presentationId: currentPresentationId,
@@ -725,8 +719,6 @@ export function PresentationGenerationManager() {
         language,
         modelId,
         modelProvider,
-        apiKey,
-        baseUrl,
         tone,
         currentPresentationTitle,
         searchResults: stateSearchResults,
@@ -769,7 +761,7 @@ export function PresentationGenerationManager() {
         title: currentPresentationTitle ?? presentationInput ?? "",
         outlineItems: outline.length,
         modelProvider,
-        modelId: modelId || "gpt-4o-mini",
+        modelId: modelId || "llama3.2:3b",
         imageSource,
         templateCount: selectedSlideTemplates.length,
       });
@@ -783,8 +775,6 @@ export function PresentationGenerationManager() {
           tone: tone,
           modelId,
           modelProvider,
-          apiKey,
-          baseUrl,
           textContent,
           audience,
           scenario,
@@ -806,8 +796,6 @@ export function PresentationGenerationManager() {
         language,
         modelId,
         modelProvider,
-        apiKey,
-        baseUrl,
         currentPresentationTitle,
         setThumbnailUrl,
       } = usePresentationState.getState();
@@ -828,7 +816,7 @@ export function PresentationGenerationManager() {
         title: currentPresentationTitle ?? presentationInput ?? "",
         outlineItems: outline.length,
         modelProvider,
-        modelId: modelId || "gpt-4o-mini",
+        modelId: modelId || "llama3.2:3b",
       });
 
       void generateImageSlides(presentationInput ?? "", {
@@ -839,8 +827,6 @@ export function PresentationGenerationManager() {
           language,
           modelId,
           modelProvider,
-          apiKey,
-          baseUrl,
         },
       });
     }

@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 interface ModelInfo {
   id: string;
   name: string;
-  provider: "ollama" | "lmstudio";
+  provider: "ollama";
 }
 
 const localModelLogger = createLogger("client:local-models");
@@ -37,17 +37,14 @@ function getSavedLocalModel(): ModelInfo | null {
     return null;
   }
 
-  if (
-    selectedModel.modelProvider !== "ollama" &&
-    selectedModel.modelProvider !== "lmstudio"
-  ) {
+  if (selectedModel.modelProvider !== "ollama") {
     return null;
   }
 
   return {
-    id: `${selectedModel.modelProvider}-${selectedModel.modelId}`,
+    id: `ollama-${selectedModel.modelId}`,
     name: selectedModel.modelId,
-    provider: selectedModel.modelProvider,
+    provider: "ollama",
   };
 }
 
@@ -74,10 +71,7 @@ async function fetchLocalModels(): Promise<ModelInfo[]> {
 
     if (models.length === 0) {
       localModelLogger.warn(
-        "No live local models detected; falling back to downloadable Ollama suggestions",
-        {
-          downloadableModels: downloadableModels.map((model) => model.name),
-        },
+        "No live Ollama models detected; install one on the server with `ollama pull`",
       );
     }
 
@@ -89,61 +83,6 @@ async function fetchLocalModels(): Promise<ModelInfo[]> {
     return [];
   }
 }
-
-export const downloadableModels: ModelInfo[] = [
-  {
-    id: "ollama-llama3.1:8b",
-    name: "llama3.1:8b",
-    provider: "ollama",
-  },
-  {
-    id: "ollama-llama3.1:70b",
-    name: "llama3.1:70b",
-    provider: "ollama",
-  },
-  {
-    id: "ollama-llama3.2:3b",
-    name: "llama3.2:3b",
-    provider: "ollama",
-  },
-  {
-    id: "ollama-llama3.2:8b",
-    name: "llama3.2:8b",
-    provider: "ollama",
-  },
-  {
-    id: "ollama-mistral:7b",
-    name: "mistral:7b",
-    provider: "ollama",
-  },
-  {
-    id: "ollama-codellama:7b",
-    name: "codellama:7b",
-    provider: "ollama",
-  },
-  {
-    id: "ollama-qwen2.5:7b",
-    name: "qwen2.5:7b",
-    provider: "ollama",
-  },
-  {
-    id: "ollama-gemma2:9b",
-    name: "gemma2:9b",
-    provider: "ollama",
-  },
-  {
-    id: "ollama-phi3:3.8b",
-    name: "phi3:3.8b",
-    provider: "ollama",
-  },
-  {
-    id: "ollama-neural-chat:7b",
-    name: "neural-chat:7b",
-    provider: "ollama",
-  },
-];
-
-export const fallbackModels: ModelInfo[] = downloadableModels;
 
 const MODELS_CACHE_KEY = "presentation-models-cache";
 const SELECTED_MODEL_KEY = "presentation-selected-model";
@@ -263,8 +202,6 @@ export function useLocalModels() {
 
       return {
         localModels,
-        downloadableModels,
-        showDownloadable: downloadableModels.length > 0,
       };
     },
   });

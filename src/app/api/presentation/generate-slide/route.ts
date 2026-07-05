@@ -1,5 +1,9 @@
 import { createUIMessageStreamResponse } from "ai";
-import { assertModelIsConfigured, modelPicker } from "@/lib/modelPicker";
+import {
+  assertModelIsConfigured,
+  DEFAULT_OLLAMA_MODEL,
+  modelPicker,
+} from "@/lib/modelPicker";
 import { createLogger } from "@/lib/observability/logger";
 import { toUIMessageStream } from "@ai-sdk/langchain";
 import { auth } from "@/server/auth";
@@ -173,7 +177,7 @@ Create a detailed, artistic prompt that:
 Now generate the single image slide.
 `;
 
-const model = modelPicker("gpt-4o-mini");
+const model = modelPicker(DEFAULT_OLLAMA_MODEL);
 
 function getImageStyleGuidance(style?: string): string {
   switch (style) {
@@ -238,19 +242,19 @@ export async function POST(req: Request) {
       imageStyle: imageStyle || "3D",
       textDensity: textDensity || "Balanced",
       promptLength: prompt.length,
-      modelProvider: "openai",
-      modelId: "gpt-4o-mini",
+      modelProvider: "ollama",
+      modelId: DEFAULT_OLLAMA_MODEL,
     });
     try {
-      assertModelIsConfigured("gpt-4o-mini");
+      assertModelIsConfigured(DEFAULT_OLLAMA_MODEL);
     } catch (error) {
       routeLogger.error(
         "Single slide generation request rejected: invalid model configuration",
         error,
         {
           requestId,
-          modelProvider: "openai",
-          modelId: "gpt-4o-mini",
+          modelProvider: "ollama",
+          modelId: DEFAULT_OLLAMA_MODEL,
         },
       );
       return NextResponse.json(

@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 
 import {
   assertModelIsConfigured,
+  DEFAULT_OLLAMA_MODEL,
   ensureModelIsReady,
   modelPicker,
 } from "@/lib/modelPicker";
@@ -22,9 +23,7 @@ export const maxDuration = 60;
 
 type SlidesRequest = Omit<PresentationGenerationPromptInput, "currentDate"> & {
   modelId?: string;
-  modelProvider?: "openai" | "ollama" | "lmstudio";
-  apiKey?: string;
-  baseUrl?: string;
+  modelProvider?: "ollama";
   presentationId?: string;
 };
 
@@ -43,8 +42,7 @@ export async function POST(req: Request) {
     }
 
     const request = (await req.json()) as SlidesRequest;
-    const { modelId, modelProvider = "openai", apiKey, baseUrl } = request;
-    const modelOptions = { apiKey, baseUrl };
+    const { modelId, modelProvider = "ollama" } = request;
 
     if (
       !request.title ||
@@ -84,7 +82,7 @@ export async function POST(req: Request) {
       language: request.language,
       tone: request.tone,
       modelProvider,
-      modelId: modelId || "gpt-4o-mini",
+      modelId: modelId || DEFAULT_OLLAMA_MODEL,
       imageSource: request.imageSource || "automatic",
       templateCount,
       searchResultGroupCount: request.searchResults?.length ?? 0,
@@ -94,7 +92,7 @@ export async function POST(req: Request) {
     });
 
     try {
-      assertModelIsConfigured(modelProvider, modelId, modelOptions);
+      assertModelIsConfigured(modelProvider, modelId);
     } catch (error) {
       routeLogger.error(
         "Presentation generation request rejected: invalid model configuration",
@@ -102,7 +100,7 @@ export async function POST(req: Request) {
         {
           requestId,
           modelProvider,
-          modelId: modelId || "gpt-4o-mini",
+          modelId: modelId || DEFAULT_OLLAMA_MODEL,
         },
       );
       return NextResponse.json(
@@ -125,7 +123,7 @@ export async function POST(req: Request) {
         {
           requestId,
           modelProvider,
-          modelId: modelId || "gpt-4o-mini",
+          modelId: modelId || DEFAULT_OLLAMA_MODEL,
         },
       );
       return NextResponse.json(
@@ -139,7 +137,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const model = modelPicker(modelProvider, modelId, modelOptions);
+    const model = modelPicker(modelProvider, modelId);
     const chain = RunnableSequence.from([
       presentationGenerationPromptTemplate,
       model,
@@ -150,7 +148,7 @@ export async function POST(req: Request) {
       title: request.title,
       totalSlides,
       modelProvider,
-      modelId: modelId || "gpt-4o-mini",
+      modelId: modelId || DEFAULT_OLLAMA_MODEL,
     });
 
     const stream = await chain.stream(

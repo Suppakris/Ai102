@@ -1,6 +1,7 @@
 import { createUIMessageStreamResponse } from "ai";
 import {
   assertModelIsConfigured,
+  DEFAULT_OLLAMA_MODEL,
   ensureModelIsReady,
   modelPicker,
 } from "@/lib/modelPicker";
@@ -21,9 +22,7 @@ interface ImageSlidesRequest {
   outline: string[];
   language: string;
   modelId?: string;
-  modelProvider?: "openai" | "ollama" | "lmstudio";
-  apiKey?: string;
-  baseUrl?: string;
+  modelProvider?: "ollama";
   presentationId?: string;
 }
 
@@ -125,12 +124,9 @@ export async function POST(req: Request) {
       outline,
       language,
       modelId,
-      modelProvider = "openai",
-      apiKey,
-      baseUrl,
+      modelProvider = "ollama",
       presentationId,
     } = (await req.json()) as ImageSlidesRequest;
-    const modelOptions = { apiKey, baseUrl };
 
     if (!title || !outline || !Array.isArray(outline) || !language) {
       routeLogger.warn(
@@ -157,11 +153,11 @@ export async function POST(req: Request) {
       totalSlides,
       language,
       modelProvider,
-      modelId: modelId || "gpt-4o-mini",
+      modelId: modelId || DEFAULT_OLLAMA_MODEL,
       presentationId,
     });
     try {
-      assertModelIsConfigured(modelProvider, modelId, modelOptions);
+      assertModelIsConfigured(modelProvider, modelId);
     } catch (error) {
       routeLogger.error(
         "Image slide generation request rejected: invalid model configuration",
@@ -169,7 +165,7 @@ export async function POST(req: Request) {
         {
           requestId,
           modelProvider,
-          modelId: modelId || "gpt-4o-mini",
+          modelId: modelId || DEFAULT_OLLAMA_MODEL,
         },
       );
       return NextResponse.json(
@@ -191,7 +187,7 @@ export async function POST(req: Request) {
         {
           requestId,
           modelProvider,
-          modelId: modelId || "gpt-4o-mini",
+          modelId: modelId || DEFAULT_OLLAMA_MODEL,
         },
       );
       return NextResponse.json(
@@ -204,7 +200,7 @@ export async function POST(req: Request) {
         { status: 503 },
       );
     }
-    const model = modelPicker(modelProvider, modelId, modelOptions);
+    const model = modelPicker(modelProvider, modelId);
     const chain = RunnableSequence.from([prompt, model]);
 
     routeLogger.info("Image slide generation started", {
@@ -212,7 +208,7 @@ export async function POST(req: Request) {
       title,
       totalSlides,
       modelProvider,
-      modelId: modelId || "gpt-4o-mini",
+      modelId: modelId || DEFAULT_OLLAMA_MODEL,
     });
     const stream = await chain.stream({
       TITLE: title,

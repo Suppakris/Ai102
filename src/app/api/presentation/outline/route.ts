@@ -5,6 +5,7 @@ import {
 } from "@/lib/ai/uiMessageParts";
 import {
   assertModelIsConfigured,
+  DEFAULT_OLLAMA_MODEL,
   ensureModelIsReady,
   modelPicker,
 } from "@/lib/modelPicker";
@@ -31,9 +32,7 @@ interface OutlineMessageMetadata {
   numberOfCards?: number;
   language?: string;
   modelId?: string;
-  modelProvider?: "openai" | "ollama" | "lmstudio";
-  apiKey?: string;
-  baseUrl?: string;
+  modelProvider?: "ollama";
   webSearch?: boolean;
   autoTheme?: boolean;
   textContent?: "minimal" | "concise" | "detailed" | "extensive";
@@ -212,9 +211,8 @@ export async function POST(req: Request) {
       (latestUserMessage?.metadata as OutlineMessageMetadata | undefined) ?? {};
     const numberOfCards = metadata.numberOfCards ?? 0;
     const language = metadata.language ?? "";
-    const modelProvider = metadata.modelProvider ?? "openai";
+    const modelProvider = metadata.modelProvider ?? "ollama";
     const modelId = metadata.modelId;
-    const modelOptions = { apiKey: metadata.apiKey, baseUrl: metadata.baseUrl };
     const webSearch = Boolean(metadata.webSearch);
     const autoTheme = metadata.autoTheme ?? false;
 
@@ -231,7 +229,7 @@ export async function POST(req: Request) {
       promptLength: prompt.length,
       language,
       modelProvider,
-      modelId: modelId || "gpt-4o-mini",
+      modelId: modelId || DEFAULT_OLLAMA_MODEL,
       webSearch,
     });
 
@@ -275,12 +273,12 @@ export async function POST(req: Request) {
       day: "numeric",
     });
     try {
-      assertModelIsConfigured(modelProvider, modelId, modelOptions);
+      assertModelIsConfigured(modelProvider, modelId);
     } catch (error) {
       routeLogger.error("Outline request rejected: invalid model configuration", error, {
         requestId,
         modelProvider,
-        modelId: modelId || "gpt-4o-mini",
+        modelId: modelId || DEFAULT_OLLAMA_MODEL,
       });
       return NextResponse.json(
         {
@@ -301,7 +299,7 @@ export async function POST(req: Request) {
         {
           requestId,
           modelProvider,
-          modelId: modelId || "gpt-4o-mini",
+          modelId: modelId || DEFAULT_OLLAMA_MODEL,
         },
       );
       return NextResponse.json(
@@ -316,7 +314,7 @@ export async function POST(req: Request) {
     }
 
     const agent = createAgent({
-      model: modelPicker(modelProvider, modelId, modelOptions),
+      model: modelPicker(modelProvider, modelId),
       tools: webSearch ? [search_tool] : [],
       systemPrompt:
         buildOutlineSystemPrompt({
@@ -335,7 +333,7 @@ export async function POST(req: Request) {
     routeLogger.info("Presentation outline generation started", {
       requestId,
       modelProvider,
-      modelId: modelId || "gpt-4o-mini",
+      modelId: modelId || DEFAULT_OLLAMA_MODEL,
       numberOfCards,
       webSearch,
     });
@@ -351,7 +349,7 @@ export async function POST(req: Request) {
     routeLogger.info("Presentation outline stream created", {
       requestId,
       modelProvider,
-      modelId: modelId || "gpt-4o-mini",
+      modelId: modelId || DEFAULT_OLLAMA_MODEL,
     });
     span.event("allweone.api.response_stream_created");
     return createUIMessageStreamResponse({

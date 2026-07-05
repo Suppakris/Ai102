@@ -11,6 +11,8 @@ export const env = createEnv({
 
     OPENAI_API_KEY: z.string().optional(),
     OLLAMA_BASE_URL: z.string().optional(),
+    OLLAMA_DEFAULT_MODEL: z.string().optional(),
+    UPLOADTHING_TOKEN: z.string().optional(),
     GOOGLE_CUSTOM_SEARCH_API_KEY: z.string().optional(),
     SEARCH_ENGINE_CX: z.string().optional(),
     TOGETHER_AI_API_KEY: z.string().optional(),
@@ -34,6 +36,8 @@ export const env = createEnv({
     NODE_ENV: process.env.NODE_ENV,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     OLLAMA_BASE_URL: process.env.OLLAMA_BASE_URL,
+    OLLAMA_DEFAULT_MODEL: process.env.OLLAMA_DEFAULT_MODEL,
+    UPLOADTHING_TOKEN: process.env.UPLOADTHING_TOKEN,
     GOOGLE_CUSTOM_SEARCH_API_KEY: process.env.GOOGLE_CUSTOM_SEARCH_API_KEY,
     SEARCH_ENGINE_CX: process.env.SEARCH_ENGINE_CX,
     TOGETHER_AI_API_KEY: process.env.TOGETHER_AI_API_KEY,

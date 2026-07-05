@@ -2,30 +2,21 @@ import { env } from "@/env";
 import { createLogger } from "@/lib/observability/logger";
 import { ChatOpenAI } from "@langchain/openai";
 
-type ModelProvider = "openai" | "ollama" | "lmstudio";
-
-/**
- * Optional per-request overrides for the OpenAI-compatible client.
- * Lets users bring their own key (BYOK) and point at any OpenAI-compatible
- * endpoint — e.g. Groq's free tier at https://api.groq.com/openai/v1 —
- * without setting a server-side OPENAI_API_KEY. Ignored for local providers
- * (ollama / lmstudio), which use their own fixed localhost endpoints.
- */
-export interface ModelOptions {
-  apiKey?: string;
-  baseUrl?: string;
-}
-
 const modelLogger = createLogger("model-picker");
 const OLLAMA_BASE_URL = env.OLLAMA_BASE_URL || "http://localhost:11434";
 const OLLAMA_TAGS_URL = `${OLLAMA_BASE_URL}/api/tags`;
 const OLLAMA_PULL_URL = `${OLLAMA_BASE_URL}/api/pull`;
-const LM_STUDIO_BASE_URL = "http://localhost:1234";
-const LM_STUDIO_API_BASE_URL = `${LM_STUDIO_BASE_URL}/v1`;
-const LM_STUDIO_MODELS_URLS = [
-  `${LM_STUDIO_API_BASE_URL}/models`,
-  `${LM_STUDIO_BASE_URL}/api/v0/models`,
-] as const;
+
+/**
+ * The Ollama model used whenever a request does not carry an explicit model
+ * selection (internal features like diagrams and single-slide regeneration,
+ * or stale clients still sending a removed cloud provider).
+ */
+export const DEFAULT_OLLAMA_MODEL =
+  env.OLLAMA_DEFAULT_MODEL?.trim() || "llama3.2:3b";
+
+/** Provider names older clients may still send from persisted state. */
+const LEGACY_PROVIDERS = new Set(["openai", "lmstudio"]);
 
 interface OllamaTagsResponse {
   models?: Array<{ name?: string }>;
@@ -38,57 +29,28 @@ interface OllamaPullProgressChunk {
   total?: number;
 }
 
-function extractLMStudioModelIds(payload: unknown): string[] {
-  const candidateArrays: unknown[][] = [
-    Array.isArray((payload as { data?: unknown[] } | null)?.data)
-      ? ((payload as { data: unknown[] }).data ?? [])
-      : [],
-    Array.isArray((payload as { models?: unknown[] } | null)?.models)
-      ? ((payload as { models: unknown[] }).models ?? [])
-      : [],
-    Array.isArray(payload) ? payload : [],
-  ];
-
-  const modelIds = candidateArrays.flatMap((candidates) =>
-    candidates.flatMap((candidate) => {
-      if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
-        return [];
-      }
-
-      const record = candidate as Record<string, unknown>;
-      const modelId = [record.id, record.model, record.modelKey, record.name].find(
-        (value) => typeof value === "string" && value.trim().length > 0,
-      );
-
-      return typeof modelId === "string" ? [modelId.trim()] : [];
-    }),
-  );
-
-  return [...new Set(modelIds)];
-}
-
-function isModelProvider(value: string): value is ModelProvider {
-  return value === "openai" || value === "ollama" || value === "lmstudio";
-}
-
-function resolveModelSelection(
+function resolveModelId(
   modelProviderOrModel: string,
   modelId?: string,
-): {
-  provider: ModelProvider;
-  modelId?: string;
-} {
-  if (isModelProvider(modelProviderOrModel)) {
-    return {
-      provider: modelProviderOrModel,
-      modelId,
-    };
+): string {
+  if (modelProviderOrModel === "ollama") {
+    return modelId?.trim() || DEFAULT_OLLAMA_MODEL;
   }
 
-  return {
-    provider: "openai",
-    modelId: modelProviderOrModel,
-  };
+  if (LEGACY_PROVIDERS.has(modelProviderOrModel)) {
+    modelLogger.warn(
+      "Received a removed model provider; falling back to the default Ollama model",
+      {
+        legacyProvider: modelProviderOrModel,
+        legacyModelId: modelId,
+        modelId: DEFAULT_OLLAMA_MODEL,
+      },
+    );
+    return DEFAULT_OLLAMA_MODEL;
+  }
+
+  // A bare model id (no provider) — treat it as an Ollama model.
+  return modelProviderOrModel.trim() || DEFAULT_OLLAMA_MODEL;
 }
 
 async function fetchInstalledOllamaModels(): Promise<Set<string>> {
@@ -123,46 +85,6 @@ async function fetchInstalledOllamaModels(): Promise<Set<string>> {
   );
 
   return installedModels;
-}
-
-async function fetchInstalledLMStudioModels(): Promise<Set<string>> {
-  let lastError: Error | null = null;
-  let receivedResponse = false;
-
-  for (const url of LM_STUDIO_MODELS_URLS) {
-    try {
-      const response = await fetch(url, {
-        method: "GET",
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        throw new Error(`LM Studio responded with ${response.status}`);
-      }
-
-      receivedResponse = true;
-      const modelIds = extractLMStudioModelIds(await response.json());
-
-      modelLogger.info("Fetched LM Studio model catalog", {
-        provider: "lmstudio",
-        source: url,
-        count: modelIds.length,
-      });
-
-      return new Set(modelIds);
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-    }
-  }
-
-  if (receivedResponse) {
-    return new Set();
-  }
-
-  throw new Error(
-    lastError?.message ??
-      "LM Studio is not available. Start LM Studio and try again.",
-  );
 }
 
 async function ensureOllamaModelIsReady(modelId: string): Promise<void> {
@@ -270,74 +192,15 @@ async function ensureOllamaModelIsReady(modelId: string): Promise<void> {
   });
 }
 
-async function ensureLMStudioModelIsReady(modelId: string): Promise<void> {
-  const availableModels = await fetchInstalledLMStudioModels();
-
-  if (availableModels.has(modelId)) {
-    modelLogger.info("LM Studio model is available", {
-      provider: "lmstudio",
-      modelId,
-    });
-    return;
-  }
-
-  if (availableModels.size === 0) {
-    throw new Error(
-      `LM Studio is running but no models are currently available. Load "${modelId}" in LM Studio and try again.`,
-    );
-  }
-
-  throw new Error(
-    `LM Studio model "${modelId}" is not available. Load it in LM Studio and make sure the local server is running.`,
-  );
-}
-
 export function assertModelIsConfigured(
   modelProviderOrModel: string,
   modelId?: string,
-  options?: ModelOptions,
 ) {
-  const selection = resolveModelSelection(modelProviderOrModel, modelId);
-  const selectedOpenAIModel = selection.modelId || "gpt-4o-mini";
-  const selectedLocalModel = selection.modelId?.trim();
-
-  if (selection.provider === "ollama" && !selectedLocalModel) {
-    modelLogger.error("Model configuration failed", undefined, {
-      provider: selection.provider,
-      reason: "missing_model_id",
-    });
-    throw new Error("An Ollama model must be selected before continuing.");
-  }
-
-  if (selection.provider === "lmstudio" && !selectedLocalModel) {
-    modelLogger.error("Model configuration failed", undefined, {
-      provider: selection.provider,
-      reason: "missing_model_id",
-    });
-    throw new Error("An LM Studio model must be selected before continuing.");
-  }
-
-  if (
-    selection.provider === "openai" &&
-    !options?.apiKey?.trim() &&
-    !env.OPENAI_API_KEY?.trim()
-  ) {
-    modelLogger.error("Model configuration failed", undefined, {
-      provider: selection.provider,
-      modelId: selectedOpenAIModel,
-      reason: "missing_openai_api_key",
-    });
-    throw new Error(
-      `An API key is required. Add your key in Settings (Groq is free), or set OPENAI_API_KEY on the server, to use the model "${selectedOpenAIModel}".`,
-    );
-  }
+  const resolvedModelId = resolveModelId(modelProviderOrModel, modelId);
 
   modelLogger.info("Model configuration validated", {
-    provider: selection.provider,
-    modelId:
-      selection.provider === "openai"
-        ? selectedOpenAIModel
-        : selectedLocalModel || undefined,
+    provider: "ollama",
+    modelId: resolvedModelId,
   });
 }
 
@@ -345,91 +208,29 @@ export async function ensureModelIsReady(
   modelProviderOrModel: string,
   modelId?: string,
 ) {
-  const selection = resolveModelSelection(modelProviderOrModel, modelId);
-  if (!selection.modelId) {
-    return;
-  }
-
-  if (selection.provider === "ollama") {
-    await ensureOllamaModelIsReady(selection.modelId);
-    return;
-  }
-
-  if (selection.provider === "lmstudio") {
-    await ensureLMStudioModelIsReady(selection.modelId);
-  }
+  const resolvedModelId = resolveModelId(modelProviderOrModel, modelId);
+  await ensureOllamaModelIsReady(resolvedModelId);
 }
 
 /**
  * Centralized model picker for LangChain-based presentation routes.
- * Supports OpenAI and OpenAI-compatible local endpoints.
+ * Ollama-only: every selection resolves to a model served from
+ * OLLAMA_BASE_URL's OpenAI-compatible endpoint.
  */
-export function modelPicker(
-  modelProviderOrModel: string,
-  modelId?: string,
-  options?: ModelOptions,
-) {
-  const selection = resolveModelSelection(modelProviderOrModel, modelId);
+export function modelPicker(modelProviderOrModel: string, modelId?: string) {
+  const resolvedModelId = resolveModelId(modelProviderOrModel, modelId);
 
-  if (selection.provider === "lmstudio") {
-    if (!selection.modelId) {
-      throw new Error("An LM Studio model must be selected before continuing.");
-    }
-
-    modelLogger.info("Creating LM Studio model client", {
-      provider: selection.provider,
-      modelId: selection.modelId,
-      baseUrl: LM_STUDIO_API_BASE_URL,
-    });
-
-    return new ChatOpenAI({
-      model: selection.modelId,
-      apiKey: "lmstudio",
-      configuration: {
-        baseURL: LM_STUDIO_API_BASE_URL,
-      },
-    });
-  }
-
-  if (selection.provider === "ollama") {
-    if (!selection.modelId) {
-      throw new Error("An Ollama model must be selected before continuing.");
-    }
-
-    modelLogger.info("Creating Ollama model client", {
-      provider: selection.provider,
-      modelId: selection.modelId,
-      baseUrl: `${OLLAMA_BASE_URL}/v1`,
-    });
-
-    return new ChatOpenAI({
-      model: selection.modelId,
-      apiKey: "ollama",
-      configuration: {
-        baseURL: `${OLLAMA_BASE_URL}/v1`,
-      },
-    });
-  }
-
-  const selectedOpenAIModel = selection.modelId || "gpt-4o-mini";
-  // A user-supplied key (BYOK, from Settings) takes precedence over the
-  // server env key. A user-supplied base URL repoints the client at any
-  // OpenAI-compatible endpoint (e.g. Groq's free tier).
-  const userApiKey = options?.apiKey?.trim();
-  const userBaseUrl = options?.baseUrl?.trim();
-  const openAIApiKey = userApiKey || env.OPENAI_API_KEY?.trim();
-
-  modelLogger.info("Creating OpenAI model client", {
-    provider: selection.provider,
-    modelId: selectedOpenAIModel,
-    hasApiKey: Boolean(openAIApiKey),
-    usingUserKey: Boolean(userApiKey),
-    baseUrl: userBaseUrl || "default",
+  modelLogger.info("Creating Ollama model client", {
+    provider: "ollama",
+    modelId: resolvedModelId,
+    baseUrl: `${OLLAMA_BASE_URL}/v1`,
   });
 
   return new ChatOpenAI({
-    model: selectedOpenAIModel,
-    ...(openAIApiKey ? { apiKey: openAIApiKey } : {}),
-    ...(userBaseUrl ? { configuration: { baseURL: userBaseUrl } } : {}),
+    model: resolvedModelId,
+    apiKey: "ollama",
+    configuration: {
+      baseURL: `${OLLAMA_BASE_URL}/v1`,
+    },
   });
 }

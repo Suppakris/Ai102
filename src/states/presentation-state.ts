@@ -104,7 +104,7 @@ type PendingPresentationCreateRequest = {
   attachments?: NotebookAttachment[];
   language: string;
   modelId: string;
-  modelProvider: "openai" | "ollama" | "lmstudio";
+  modelProvider: "ollama";
   numSlides: number;
   generationAspectRatio?: PresentationGenerationAspectRatio;
   outputFormat?: "flow" | "html";
@@ -129,12 +129,8 @@ interface PresentationState {
   themeDataByTheme: Record<string, ThemeProperties | null | undefined>;
   generatedThemeData: ThemeProperties | null;
   language: string;
-  modelProvider: "openai" | "ollama" | "lmstudio";
+  modelProvider: "ollama";
   modelId: string;
-  // BYOK: user-supplied API key + OpenAI-compatible base URL (set in Settings).
-  // Empty strings fall back to the server env key / default OpenAI endpoint.
-  apiKey: string;
-  baseUrl: string;
   pageStyle: string;
   presentationInput: string;
   imageModel: ImageModelList;
@@ -261,10 +257,8 @@ interface PresentationState {
   thumbnailUrl?: string;
   setThumbnailUrl: (url: string | undefined) => void;
   setLanguage: (lang: string) => void;
-  setModelProvider: (provider: "openai" | "ollama" | "lmstudio") => void;
+  setModelProvider: (provider: "ollama") => void;
   setModelId: (id: string) => void;
-  setApiKey: (key: string) => void;
-  setBaseUrl: (url: string) => void;
   setPageStyle: (style: string) => void;
   setPresentationInput: (input: string) => void;
   setOutline: (topics: string[]) => void;
@@ -552,10 +546,8 @@ export const usePresentationState = create<PresentationState>()(
       setThumbnailUrl: (url) => set({ thumbnailUrl: url }),
       numSlides: 5,
       language: "en-US",
-      modelProvider: "openai",
-      modelId: "gpt-4o-mini",
-      apiKey: "",
-      baseUrl: "",
+      modelProvider: "ollama",
+      modelId: "llama3.2:3b",
       pageStyle: "default",
       presentationInput: "",
       outline: [],
@@ -1077,8 +1069,6 @@ export const usePresentationState = create<PresentationState>()(
       setLanguage: (lang) => set({ language: lang }),
       setModelProvider: (provider) => set({ modelProvider: provider }),
       setModelId: (id) => set({ modelId: id }),
-      setApiKey: (key) => set({ apiKey: key }),
-      setBaseUrl: (url) => set({ baseUrl: url }),
       setTheme: (theme, customData, type) => {
         set((state) => {
           let nextCustomThemeData: ThemeProperties | null;
@@ -1397,6 +1387,17 @@ export const usePresentationState = create<PresentationState>()(
     {
       name: "presentation-state",
       storage: createJSONStorage(() => localStorage),
+      version: 1,
+      // v0 clients persisted removed cloud providers (openai/lmstudio);
+      // coerce them to the Ollama default so the UI and requests agree.
+      migrate: (persistedState) => {
+        const state = persistedState as Record<string, unknown>;
+        if (state.modelProvider !== "ollama") {
+          state.modelProvider = "ollama";
+          state.modelId = "llama3.2:3b";
+        }
+        return state;
+      },
       partialize: (state) => ({
         attachedFiles: state.attachedFiles,
         audience: state.audience,
@@ -1415,8 +1416,6 @@ export const usePresentationState = create<PresentationState>()(
         imageSearchResults: state.imageSearchResults,
         imageSource: state.imageSource,
         language: state.language,
-        apiKey: state.apiKey,
-        baseUrl: state.baseUrl,
         modelId: state.modelId,
         modelProvider: state.modelProvider,
         numSlides: state.numSlides,
