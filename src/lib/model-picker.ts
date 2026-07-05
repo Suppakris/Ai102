@@ -17,7 +17,7 @@ export interface ModelOptions {
 }
 
 const modelLogger = createLogger("model-picker");
-const OLLAMA_BASE_URL = "http://localhost:11434";
+const OLLAMA_BASE_URL = env.OLLAMA_BASE_URL || "http://localhost:11434";
 const OLLAMA_TAGS_URL = `${OLLAMA_BASE_URL}/api/tags`;
 const OLLAMA_PULL_URL = `${OLLAMA_BASE_URL}/api/pull`;
 const LM_STUDIO_BASE_URL = "http://localhost:1234";
