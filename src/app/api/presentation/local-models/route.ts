@@ -30,7 +30,7 @@ const OLLAMA_BASE_URL = env.OLLAMA_BASE_URL || "http://localhost:11434";
 const OLLAMA_TAGS_URL = `${OLLAMA_BASE_URL}/api/tags`;
 const LM_STUDIO_NATIVE_MODELS_URL = "http://localhost:1234/api/v1/models";
 const LM_STUDIO_OPENAI_MODELS_URL = "http://localhost:1234/v1/models";
-const LOCAL_FETCH_TIMEOUT_MS = 2_500;
+const LOCAL_FETCH_TIMEOUT_MS = 15_000;
 
 function createTimeoutSignal(timeoutMs: number): AbortSignal {
   const controller = new AbortController();
