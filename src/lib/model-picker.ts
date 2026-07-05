@@ -92,13 +92,27 @@ function resolveModelSelection(
 }
 
 async function fetchInstalledOllamaModels(): Promise<Set<string>> {
-  const response = await fetch(OLLAMA_TAGS_URL, {
-    method: "GET",
-    cache: "no-store",
-  });
+  let response: Response;
+  try {
+    response = await fetch(OLLAMA_TAGS_URL, { method: "GET", cache: "no-store" });
+  } catch (error) {
+    modelLogger.error("Ollama tags request threw", error, { url: OLLAMA_TAGS_URL });
+    throw new Error(
+      `Failed to reach Ollama at ${OLLAMA_TAGS_URL}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 
   if (!response.ok) {
-    throw new Error("Ollama is not available. Start Ollama and try again.");
+    const bodyText = await response.text().catch(() => "");
+    modelLogger.error("Ollama tags request failed", undefined, {
+      url: OLLAMA_TAGS_URL,
+      status: response.status,
+      statusText: response.statusText,
+      bodySnippet: bodyText.slice(0, 300),
+    });
+    throw new Error(
+      `Ollama is not available (status ${response.status}: ${response.statusText}). ${bodyText.slice(0, 200)}`,
+    );
   }
 
   const data = (await response.json()) as OllamaTagsResponse;
