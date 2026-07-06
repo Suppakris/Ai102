@@ -882,9 +882,25 @@ export function PresentationGenerationManager() {
           return;
         }
 
+        // Root image generation is async and can finish after a batch's
+        // text is already captured into completedDeckSlidesRef. Overwriting
+        // the whole deck with that ref verbatim would erase any image that
+        // had already completed and been applied to live state in the
+        // meantime -- merge those back in instead of discarding them.
+        const liveSlides = usePresentationState.getState().slides;
+        const finalSlides = completedDeckSlidesRef.current.map((slide) => {
+          if (slide.rootImage?.url) {
+            return slide;
+          }
+          const liveSlide = liveSlides.find((s) => s.id === slide.id);
+          return liveSlide?.rootImage?.url
+            ? { ...slide, rootImage: liveSlide.rootImage }
+            : slide;
+        });
+
         setSlides(
           applyGenerationAspectRatioToSlides(
-            completedDeckSlidesRef.current,
+            finalSlides,
             usePresentationState.getState().generationAspectRatio,
           ),
         );

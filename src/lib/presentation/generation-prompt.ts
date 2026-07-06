@@ -655,6 +655,7 @@ function buildCriticalRules(context: TemplatePromptContext): string {
 - Use supported tags and attributes only.
 - Do not generate <BUTTON> elements.
 - When you generate root level image, i.e <IMG /> elements, put it at last in each SECTION.
+- Every SECTION must include at least one heading and body/list content before any root image. Never generate a SECTION that contains only a root <IMG /> with nothing else.
 - Make sure you follow all the component level requirements and guidelines.
 - Use the outline to cover the intended ideas, but shape the final slide copy like a strong presentation rather than copying the outline literally.`;
 
