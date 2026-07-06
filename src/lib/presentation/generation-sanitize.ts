@@ -46,8 +46,34 @@ function getSlideTextFingerprint(slide: PlateSlide): string {
   return parts.join(" ").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
+/**
+ * Word-set Jaccard similarity. Catches "same slide, slightly reworded"
+ * repeats that an exact-fingerprint check misses (a small model rarely
+ * duplicates a slide byte-for-byte; it re-generates the same content with
+ * minor wording drift). Threshold is deliberately high so two genuinely
+ * different slides about the same topic never get merged.
+ */
+const NEAR_DUPLICATE_SIMILARITY = 0.9;
+
+function wordSet(fingerprint: string): Set<string> {
+  return new Set(fingerprint.split(" ").filter(Boolean));
+}
+
+function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 || b.size === 0) {
+    return 0;
+  }
+
+  let intersection = 0;
+  for (const word of a) {
+    if (b.has(word)) intersection++;
+  }
+
+  return intersection / (a.size + b.size - intersection);
+}
+
 export function sanitizeGeneratedSlides(slides: PlateSlide[]): PlateSlide[] {
-  const seenFingerprints = new Set<string>();
+  const seenWordSets: Set<string>[] = [];
   const sanitized: PlateSlide[] = [];
 
   for (const slide of slides) {
@@ -57,11 +83,16 @@ export function sanitizeGeneratedSlides(slides: PlateSlide[]): PlateSlide[] {
       continue;
     }
 
-    if (seenFingerprints.has(fingerprint)) {
+    const words = wordSet(fingerprint);
+    const isNearDuplicate = seenWordSets.some(
+      (seen) => jaccardSimilarity(words, seen) >= NEAR_DUPLICATE_SIMILARITY,
+    );
+
+    if (isNearDuplicate) {
       continue;
     }
 
-    seenFingerprints.add(fingerprint);
+    seenWordSets.push(words);
     sanitized.push(slide);
   }
 

@@ -212,6 +212,24 @@ async function addSlide(
     backgroundImageUrl,
   } = scanResult;
 
+  // In the editor a slide is min-height: content can grow it taller than
+  // its configured aspect ratio. Export maps element positions/sizes as
+  // percentages onto the fixed-ratio canvas, which vertically compresses
+  // the boxes of an overflowing slide -- but font sizes were converted
+  // with a fixed factor, so text taller than its compressed box spilled
+  // onto the elements below ("text over text"). pptxgenjs's fit:"shrink"
+  // doesn't save this: PowerPoint only applies it when re-rendering on
+  // edit, not on first open. Scale fonts by the same compression the
+  // boxes get so text stays inside its box.
+  const uniformHeightInches =
+    scanResult.width > 0
+      ? scanResult.height * (slideWidthInches / scanResult.width)
+      : slideHeightInches;
+  const fontScale =
+    uniformHeightInches > slideHeightInches
+      ? slideHeightInches / uniformHeightInches
+      : 1;
+
   // Set slide background color ONLY if it's a non-white, non-black color
   // (black "000000" is the default fallback which we don't want)
   // (white "FFFFFF" is the standard slide background)
@@ -261,7 +279,14 @@ async function addSlide(
 
   // Add all scanned elements (includes in-editor images from contentWalker)
   for (const element of elements) {
-    await addElement(slide, element, slideWidthInches, slideHeightInches, styles);
+    await addElement(
+      slide,
+      element,
+      slideWidthInches,
+      slideHeightInches,
+      styles,
+      fontScale,
+    );
   }
 }
 
@@ -356,6 +381,7 @@ async function addElement(
   slideWidthInches: number,
   slideHeightInches: number,
   styles: PresentationStyles,
+  fontScale: number,
 ): Promise<void> {
   const position = scalePosition(
     element.position,
@@ -365,10 +391,10 @@ async function addElement(
 
   switch (element.type) {
     case "text":
-      addTextElement(slide, element, position, styles);
+      addTextElement(slide, element, position, styles, fontScale);
       break;
     case "table":
-      addTable(slide, element, position, styles);
+      addTable(slide, element, position, styles, fontScale);
       break;
     case "image":
       await addImageElement(slide, element, position);
@@ -486,13 +512,14 @@ function addTextElement(
   element: TextExportElement,
   position: { x: number; y: number; w: number; h: number },
   styles: PresentationStyles,
+  fontScale: number,
 ): void {
   const { textContent, textStyles, nodeType } = element;
 
   if (!textContent.trim()) return;
 
   const fontSizePx = getMeasuredFontSizePx(textStyles.fontSize, nodeType);
-  const fontSizePt = fontSizePxToPptPoints(fontSizePx);
+  const fontSizePt = fontSizePxToPptPoints(fontSizePx * fontScale);
   const lineHeightPx = textStyles.lineHeight;
   const lineSpacingMultiple =
     lineHeightPx && Number.isFinite(lineHeightPx) && fontSizePx > 0
@@ -799,6 +826,7 @@ function addTable(
   element: TableExportElement,
   position: { x: number; y: number; w: number; h: number },
   styles: PresentationStyles,
+  fontScale: number,
 ): void {
   const rows = element.rows.map((row) =>
     row.cells.map((cell) => ({
@@ -813,7 +841,7 @@ function addTable(
         color: cell.textStyles?.color || styles.textColor,
         fontFace: cell.textStyles?.fontFamily || styles.bodyFont,
         fontSize: fontSizePxToPptPoints(
-          getMeasuredFontSizePx(cell.textStyles?.fontSize, "p"),
+          getMeasuredFontSizePx(cell.textStyles?.fontSize, "p") * fontScale,
         ),
         colspan: cell.colSpan,
         rowspan: cell.rowSpan,
