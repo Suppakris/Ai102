@@ -7,6 +7,10 @@ import PptxGenJS from "pptxgenjs";
 
 import { type PlateSlide } from "@/components/notebook/presentation/utils/parser";
 import {
+  calculateHeightFromRatio,
+  getSlideBaseWidth,
+} from "@/config/slideFormats";
+import {
   resolveExportImageSource,
   type ExportImageSource,
 } from "@/lib/image-proxy";
@@ -57,17 +61,50 @@ type ImageDimensions = {
 
 /**
  * PPTX has a single canvas size for the whole file (unlike the editor,
- * where each slide can have its own aspect ratio). Deriving it from the
- * first measurable slide instead of hardcoding 16:9 keeps the exported
- * file's proportions matching whatever ratio was actually chosen for the
- * deck (4:3, 1:1, 9:16, A4, ...), since every generated slide shares the
- * same ratio. Mixed/"Dynamic" decks still get one canvas size overall --
- * that's a PPTX format limitation, not something this can work around.
+ * where each slide can have its own aspect ratio). Deriving it from a
+ * slide's *configured* aspectRatio/formatCategory (the same source
+ * SlideWrapper uses on screen) instead of its rendered DOM box keeps the
+ * exported file's proportions matching whatever ratio was actually chosen
+ * for the deck (4:3, 1:1, 9:16, A4, ...) reliably -- a scanned DOM box can
+ * be taller/wider than intended when a slide's content (e.g. an oversized
+ * picture) grows it past its configured min-height, which would otherwise
+ * skew the whole deck's canvas off whatever slide happened to be scanned
+ * first.
  */
-function getDeckCanvasInches(scanResults: ScanResult[]): {
+function getDeckCanvasInches(
+  slides: PlateSlide[],
+  scanResults: ScanResult[],
+): {
   widthInches: number;
   heightInches: number;
 } {
+  const configuredSlide = slides.find(
+    (slide) => slide.aspectRatio && slide.aspectRatio.type !== "fluid",
+  );
+
+  if (configuredSlide?.aspectRatio) {
+    const baseWidthPx = getSlideBaseWidth(
+      configuredSlide.formatCategory ?? "presentation",
+      (configuredSlide.width as "S" | "M" | "L" | undefined) ?? "M",
+      configuredSlide.aspectRatio,
+    );
+    const heightConfig = calculateHeightFromRatio(
+      baseWidthPx,
+      configuredSlide.aspectRatio,
+    );
+
+    if (heightConfig.minHeightPx) {
+      return {
+        widthInches: DEFAULT_SLIDE_WIDTH_INCHES,
+        heightInches:
+          DEFAULT_SLIDE_WIDTH_INCHES * (heightConfig.minHeightPx / baseWidthPx),
+      };
+    }
+  }
+
+  // No fixed ratio configured (e.g. "Dynamic" deck) -- there's no single
+  // "correct" ratio to derive from configuration, so fall back to the
+  // first measurable rendered slide as a best-effort approximation.
   const reference = scanResults.find(
     (result) => result.width > 0 && result.height > 0,
   );
@@ -94,7 +131,10 @@ async function convertToPptx(
   slides: PlateSlide[],
 ): Promise<ArrayBuffer> {
   const pptx = new PptxGenJS();
-  const { widthInches, heightInches } = getDeckCanvasInches(scanResults);
+  const { widthInches, heightInches } = getDeckCanvasInches(
+    slides,
+    scanResults,
+  );
   pptx.defineLayout({ name: "DECK_LAYOUT", width: widthInches, height: heightInches });
   pptx.layout = "DECK_LAYOUT";
 
