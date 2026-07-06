@@ -1,4 +1,4 @@
-'''text
+```text
 # Ai102
 
 A local-first AI presentation generator — a customized, Ollama-only build derived from [ALLWEONE's presentation-ai](https://github.com/allweonedev/presentation-ai), stripped down for a college project. No cloud LLM required, no login wall.
@@ -22,7 +22,7 @@ A local-first AI presentation generator — a customized, Ollama-only build deri
 - [Known Issues](#-known-issues)
 - [Contributing](#-contributing)
 - [License](#-license)
-'''
+```
 
 ## 🎓 What's Different From Upstream
 
