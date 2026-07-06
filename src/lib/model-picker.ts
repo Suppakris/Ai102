@@ -17,14 +17,17 @@ export const DEFAULT_OLLAMA_MODEL =
 
 /**
  * Ollama loads most local models with a small default context window
- * (often 2048 tokens) regardless of what the model architecture supports.
- * A full presentation generation (long system prompt + an 8+ slide XML
- * deck) can easily exceed that, silently truncating the output mid-stream.
- * These are overridable per-deployment since available context size
- * depends on the host machine's RAM/VRAM.
+ * (often 2048 tokens) regardless of what the model architecture supports,
+ * which can truncate a long presentation generation mid-deck. Raising it
+ * helps that, but also makes each token slower to generate — on a slow or
+ * CPU-only host this can push a deck generation past the platform's hard
+ * request-duration limit (e.g. Vercel Hobby's 60s cap), turning a partial
+ * result into a total failure. There's no safe one-size-fits-all default
+ * since it depends entirely on the host machine's speed, so these are
+ * opt-in only: unset (the default), Ollama's own defaults apply unchanged.
  */
-const DEFAULT_OLLAMA_NUM_CTX = 8192;
-const DEFAULT_OLLAMA_MAX_OUTPUT_TOKENS = 4096;
+const OLLAMA_NUM_CTX = env.OLLAMA_NUM_CTX;
+const OLLAMA_MAX_OUTPUT_TOKENS = env.OLLAMA_MAX_OUTPUT_TOKENS;
 
 /** Provider names older clients may still send from persisted state. */
 const LEGACY_PROVIDERS = new Set(["openai", "lmstudio"]);
@@ -240,15 +243,19 @@ export function modelPicker(modelProviderOrModel: string, modelId?: string) {
   return new ChatOpenAI({
     model: resolvedModelId,
     apiKey: "ollama",
-    maxTokens: env.OLLAMA_MAX_OUTPUT_TOKENS ?? DEFAULT_OLLAMA_MAX_OUTPUT_TOKENS,
+    ...(OLLAMA_MAX_OUTPUT_TOKENS !== undefined && {
+      maxTokens: OLLAMA_MAX_OUTPUT_TOKENS,
+    }),
     configuration: {
       baseURL: `${OLLAMA_BASE_URL}/v1`,
     },
-    modelKwargs: {
-      options: {
-        num_ctx: env.OLLAMA_NUM_CTX ?? DEFAULT_OLLAMA_NUM_CTX,
+    ...(OLLAMA_NUM_CTX !== undefined && {
+      modelKwargs: {
+        options: {
+          num_ctx: OLLAMA_NUM_CTX,
+        },
       },
-    },
+    }),
   });
 }
 //0
