@@ -906,6 +906,11 @@ export function PresentationGenerationManager() {
           ),
         );
         finalizePresentationGeneration();
+        // The debounced autosave last fired during streaming, BEFORE the
+        // sanitize pass above — without an explicit save here the cleaned
+        // deck never reaches the DB, and dropped empty/duplicate slides
+        // come back on the next reload.
+        save();
       })();
     }
   }, [shouldStartPresentationGeneration]);

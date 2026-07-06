@@ -77,6 +77,13 @@ export function sanitizeGeneratedSlides(slides: PlateSlide[]): PlateSlide[] {
   const sanitized: PlateSlide[] = [];
 
   for (const slide of slides) {
+    // Deliberate image slides (created via the image-slides feature) have
+    // no text by design — exempt them from the empty/duplicate checks.
+    if (slide.isImageSlide) {
+      sanitized.push(slide);
+      continue;
+    }
+
     const fingerprint = getSlideTextFingerprint(slide);
 
     if (!fingerprint) {
