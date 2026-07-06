@@ -24,8 +24,9 @@ import {
   type TextExportElement,
 } from "./types";
 
-const SLIDE_WIDTH_INCHES = 10;
-const SLIDE_HEIGHT_INCHES = 5.625;
+// Fallback canvas size (16:9) used only if no slide could be measured.
+const DEFAULT_SLIDE_WIDTH_INCHES = 10;
+const DEFAULT_SLIDE_HEIGHT_INCHES = 5.625;
 
 /**
  * Fixed reference width for font-size conversion, matching the Fabric
@@ -40,7 +41,7 @@ const FONT_REFERENCE_WIDTH_PX = 1280;
  * Pixels-per-inch at the reference width.
  * 1280px / 10in = 128 px/in.
  */
-const PX_PER_INCH = FONT_REFERENCE_WIDTH_PX / SLIDE_WIDTH_INCHES;
+const PX_PER_INCH = FONT_REFERENCE_WIDTH_PX / DEFAULT_SLIDE_WIDTH_INCHES;
 
 /**
  * Fixed conversion factor: CSS px → PPTX points.
@@ -55,6 +56,37 @@ type ImageDimensions = {
 };
 
 /**
+ * PPTX has a single canvas size for the whole file (unlike the editor,
+ * where each slide can have its own aspect ratio). Deriving it from the
+ * first measurable slide instead of hardcoding 16:9 keeps the exported
+ * file's proportions matching whatever ratio was actually chosen for the
+ * deck (4:3, 1:1, 9:16, A4, ...), since every generated slide shares the
+ * same ratio. Mixed/"Dynamic" decks still get one canvas size overall --
+ * that's a PPTX format limitation, not something this can work around.
+ */
+function getDeckCanvasInches(scanResults: ScanResult[]): {
+  widthInches: number;
+  heightInches: number;
+} {
+  const reference = scanResults.find(
+    (result) => result.width > 0 && result.height > 0,
+  );
+
+  if (!reference) {
+    return {
+      widthInches: DEFAULT_SLIDE_WIDTH_INCHES,
+      heightInches: DEFAULT_SLIDE_HEIGHT_INCHES,
+    };
+  }
+
+  return {
+    widthInches: DEFAULT_SLIDE_WIDTH_INCHES,
+    heightInches:
+      DEFAULT_SLIDE_WIDTH_INCHES * (reference.height / reference.width),
+  };
+}
+
+/**
  * Convert scanned slides to PPTX
  */
 async function convertToPptx(
@@ -62,7 +94,9 @@ async function convertToPptx(
   slides: PlateSlide[],
 ): Promise<ArrayBuffer> {
   const pptx = new PptxGenJS();
-  pptx.layout = "LAYOUT_16x9";
+  const { widthInches, heightInches } = getDeckCanvasInches(scanResults);
+  pptx.defineLayout({ name: "DECK_LAYOUT", width: widthInches, height: heightInches });
+  pptx.layout = "DECK_LAYOUT";
 
   // Process each slide
   for (let i = 0; i < scanResults.length; i++) {
@@ -71,7 +105,7 @@ async function convertToPptx(
 
     if (!scanResult || !slideData) continue;
 
-    await addSlide(pptx, scanResult, slideData);
+    await addSlide(pptx, scanResult, slideData, widthInches, heightInches);
   }
 
   // Generate the file
@@ -86,6 +120,8 @@ async function addSlide(
   pptx: PptxGenJS,
   scanResult: ScanResult,
   slideData: PlateSlide,
+  slideWidthInches: number,
+  slideHeightInches: number,
 ): Promise<void> {
   const slide = pptx.addSlide();
 
@@ -93,8 +129,6 @@ async function addSlide(
   // If this is an image slide, we just want the image to fill the slide completely
   // and ignore all other content
   if (slideData.isImageSlide && slideData.rootImage?.url) {
-    const slideWidthInches = 10;
-    const slideHeightInches = 5.625;
     const imageSource = await resolveExportImageSource(
       slideData.rootImage.url,
       slideData.rootImage,
@@ -138,13 +172,6 @@ async function addSlide(
     backgroundImageUrl,
   } = scanResult;
 
-  // Calculate conversion factors
-  const slideWidthInches = SLIDE_WIDTH_INCHES; // Standard 16:9 width
-  const slideHeightInches = SLIDE_HEIGHT_INCHES; // Standard 16:9 height
-
-  const scaleX = slideWidthInches / scanResult.width;
-  const scaleY = slideHeightInches / scanResult.height;
-
   // Set slide background color ONLY if it's a non-white, non-black color
   // (black "000000" is the default fallback which we don't want)
   // (white "FFFFFF" is the standard slide background)
@@ -184,13 +211,17 @@ async function addSlide(
 
   if (scannedRootImage?.url) {
     // Use DOM-scanned position for accurate placement
-    const position = scalePosition(scannedRootImage.position, scaleX, scaleY);
+    const position = scalePosition(
+      scannedRootImage.position,
+      slideWidthInches,
+      slideHeightInches,
+    );
     await addRootImage(slide, scannedRootImage, position);
   }
 
   // Add all scanned elements (includes in-editor images from contentWalker)
   for (const element of elements) {
-    await addElement(slide, element, scaleX, scaleY, styles);
+    await addElement(slide, element, slideWidthInches, slideHeightInches, styles);
   }
 }
 
@@ -282,11 +313,15 @@ function loadImageDimensions(url: string): Promise<ImageDimensions> {
 async function addElement(
   slide: PptxGenJS.Slide,
   element: ExportElement,
-  scaleX: number,
-  scaleY: number,
+  slideWidthInches: number,
+  slideHeightInches: number,
   styles: PresentationStyles,
 ): Promise<void> {
-  const position = scalePosition(element.position, scaleX, scaleY);
+  const position = scalePosition(
+    element.position,
+    slideWidthInches,
+    slideHeightInches,
+  );
 
   switch (element.type) {
     case "text":
@@ -318,13 +353,9 @@ async function addElement(
  */
 function scalePosition(
   position: ElementPosition,
-  _scaleX: number,
-  _scaleY: number,
+  slideWidthInches: number,
+  slideHeightInches: number,
 ): { x: number; y: number; w: number; h: number } {
-  // Standard 16:9 slide dimensions in inches
-  const slideWidthInches = SLIDE_WIDTH_INCHES;
-  const slideHeightInches = SLIDE_HEIGHT_INCHES;
-
   let x = (position.x / 100) * slideWidthInches;
   let y = (position.y / 100) * slideHeightInches;
   let w = (position.width / 100) * slideWidthInches;
