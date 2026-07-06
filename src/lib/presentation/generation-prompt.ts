@@ -58,6 +58,8 @@ You are a presentation XML expert. Generate a complete presentation from the use
 
 Your task is to create exactly {TOTAL_SLIDES} slides. Use the outline for coverage and sequence, then write stronger slide copy when the outline wording is too raw. Match the requested language, tone, audience, scenario, and text density.
 
+The human message below contains background info (title, user request, date, language, tone, etc.) so you know what to write about. That block describes the task; it is never the content of a slide. Do not create a slide that lists it, restates its field labels, or repeats the user's request verbatim — every slide must be original content about the topic itself.
+
 # XML SYNTAX GUIDANCE
 
 {XML_SYNTAX_GUIDANCE}
@@ -599,23 +601,21 @@ function buildUserContext(input: PresentationGenerationPromptInput): string {
 function formatRequestContext(
   input: PresentationGenerationPromptInput,
 ): string {
-  const rows = [
-    ["Title", input.title],
-    ["User Request", input.prompt || "No specific prompt provided"],
-    ["Date", input.currentDate],
-    ["Language", input.language],
-    ["Tone", input.tone],
-    ["Total Slides", input.outline.length.toString()],
-    ["Text Density", input.textContent || "concise"],
-    ...(input.audience ? [["Target Audience", input.audience]] : []),
-    ...(input.scenario ? [["Scenario", input.scenario]] : []),
+  const lines = [
+    `Title: ${input.title}`,
+    `User request: ${input.prompt || "No specific prompt provided"}`,
+    `Date: ${input.currentDate}`,
+    `Language: ${input.language}`,
+    `Tone: ${input.tone}`,
+    `Total slides: ${input.outline.length}`,
+    `Text density: ${input.textContent || "concise"}`,
+    ...(input.audience ? [`Target audience: ${input.audience}`] : []),
+    ...(input.scenario ? [`Scenario: ${input.scenario}`] : []),
   ];
 
-  return `# Presentation Context
-
-| Field | Value |
-|---|---|
-${rows.map(([label, value]) => `| ${label} | ${value} |`).join("\n")}`;
+  return `# Presentation Context (background info for you only — never copy these lines, labels, or values into a slide; they are not slide content)
+${lines.join("\n")}
+# End of background info. Generate original slides about the topic above.`;
 }
 
 function formatOutlineContext(outline: string[]): string {
