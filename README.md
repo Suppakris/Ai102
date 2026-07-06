@@ -135,10 +135,12 @@ Copy `.env.example` to `.env` and fill in what you need. `.env.example` is the s
 
 | Variable | Required? | Purpose |
 | --- | --- | --- |
-| `DATABASE_URL` | **Required** | Postgres connection string, used at runtime and for migrations. Use the direct connection (port 5432) for Supabase, not the pooler. |
+| `DATABASE_URL` | **Required** | Postgres connection string, used at runtime and for migrations. For Supabase, use the **Transaction pooler** (port 6543) — this app runs on Vercel serverless functions, and Session/Direct connections exhaust a pooler's max-clients limit fast since they're held for the life of the client instead of released per query. |
 | `FAL_API_KEY` | Optional | Primary AI image provider (FAL/Flux). Without it, image generation fails gracefully with a "not configured" error. |
 | `OLLAMA_BASE_URL` | Optional | Point at a remote/tunneled Ollama instance (e.g. via ngrok) instead of localhost. |
 | `OLLAMA_DEFAULT_MODEL` | Optional | Override the default model (`llama3.2:3b`). |
+| `OLLAMA_NUM_CTX` | Optional | Context window in tokens (default: 8192). Ollama defaults most models to a small context (often 2048) regardless of what the model supports, which can silently truncate a long presentation generation mid-deck. |
+| `OLLAMA_MAX_OUTPUT_TOKENS` | Optional | Max output tokens per generation request (default: 4096). |
 | `TOGETHER_AI_API_KEY` | Optional | Secondary image generation path (Together AI FLUX models). |
 | `UPLOADTHING_TOKEN` | Optional | Image storage for AI-generated images. |
 | `UNSPLASH_ACCESS_KEY` | Optional | Stock photo search. |
