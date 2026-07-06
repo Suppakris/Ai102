@@ -90,15 +90,27 @@ function hasGeneratedOutline(outline: string[]): boolean {
   return outline.some((item) => item.trim().length > 0);
 }
 
+// Small local models don't always follow the requested "# Topic" heading
+// level exactly (e.g. they may use "##" for every topic, or drift levels
+// partway through). Splitting on any 1-3 hash heading instead of exactly
+// "# " avoids collapsing a whole outline into a single item when that
+// happens, at the cost of also splitting on any true sub-headings a model
+// might emit within one topic — an acceptable trade since a missed split
+// (one giant item instead of many) is the worse failure mode here.
+const OUTLINE_HEADING_PATTERN = /^#{1,3}[ \t]+/m;
+const OUTLINE_HEADING_SPLIT_PATTERN = /^#{1,3}[ \t]+/gm;
+
 function parseOutlineItems(content: string): string[] {
-  if (!/^#\s+/m.test(content)) {
+  if (!OUTLINE_HEADING_PATTERN.test(content)) {
     return [];
   }
 
-  const sections = content.split(/^# /gm).filter(Boolean);
-  return sections.length > 0
-    ? sections.map((section) => `# ${section}`.trim())
-    : [];
+  const sections = content
+    .split(OUTLINE_HEADING_SPLIT_PATTERN)
+    .map((section) => section.trim())
+    .filter(Boolean);
+
+  return sections.map((section) => `# ${section}`);
 }
 
 function usesStockSearchForPresentation(

@@ -71,6 +71,14 @@ Current Date: {currentDate}
 - ALWAYS use bullet points formatted as "- point text"
 - Do not use bold, italic, or underline
 
+## Critical Formatting Rule:
+Every one of the {numberOfCards} topics MUST start on its own line with a
+single "# " (one hash, one space) followed by the topic title, and nothing
+else on that line. Never nest multiple topics under one heading, never put
+more than one topic's content between two "# " lines, and never use "##"
+or a numbered list for topic titles. The output must contain exactly
+{numberOfCards} lines that start with "# ".
+
 ## Output Format:
 Start with the title in XML tags, then generate markdown with each topic as a heading followed by bullet points.
 
