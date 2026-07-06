@@ -18,6 +18,10 @@ import { isWebSearchToolName } from "@/lib/ai/tool-names";
 import { createLogger } from "@/lib/observability/logger";
 import { useDebouncedSave } from "@/hooks/presentation/useDebouncedSave";
 import { applyGenerationAspectRatioToSlides } from "@/lib/presentation/aspect-ratio";
+import {
+  chunkOutlineForGeneration,
+  sliceTemplateHintsForBatch,
+} from "@/lib/presentation/generation-batching";
 import { buildPresentationCustomization } from "@/lib/presentation/customization";
 import { extractGeneratedPresentationTheme } from "@/lib/presentation/generated-theme";
 import {
@@ -31,7 +35,7 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import { usePresentationTheme } from "@/components/presentation/providers/PresentationThemeProvider";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { SlideParser } from "../utils/parser";
+import { type PlateSlide, SlideParser } from "../utils/parser";
 import {
   serializeTemplateHintsForPrompt,
   serializeTemplatesForPrompt,
@@ -165,6 +169,13 @@ export function PresentationGenerationManager() {
   // Track if title has already been extracted to avoid unnecessary processing
   const titleExtractedRef = useRef<boolean>(false);
   const latestGeneratedThemeDataRef = useRef<ThemeProperties | null>(null);
+  // Slides finalized from previously completed generation batches (batched
+  // generation resets the parser/completion per batch, so these must be
+  // merged back in on every RAF tick instead of being overwritten).
+  const completedDeckSlidesRef = useRef<PlateSlide[]>([]);
+  // Set by the presentation-generation onError handler so the batch loop
+  // stops requesting further batches after one fails.
+  const batchGenerationErroredRef = useRef<boolean>(false);
 
   // Function to update slides using requestAnimationFrame
   const updateSlidesWithRAF = (): void => {
@@ -204,7 +215,10 @@ export function PresentationGenerationManager() {
       }
     }
     setSlides(
-      applyGenerationAspectRatioToSlides(mergedSlides, generationAspectRatio),
+      applyGenerationAspectRatioToSlides(
+        [...completedDeckSlidesRef.current, ...mergedSlides],
+        generationAspectRatio,
+      ),
     );
     // Debounced save during generation to avoid excessive writes
     save();
@@ -540,49 +554,61 @@ export function PresentationGenerationManager() {
     void startOutlineGeneration();
   }, [shouldStartOutlineGeneration]);
 
+  // Persists the final theme/customization and clears generation flags.
+  // Runs once, after every generation batch has completed successfully —
+  // NOT per batch (batched generation calls generatePresentation multiple
+  // times per deck; only the very last one means the deck is actually done).
+  const finalizePresentationGeneration = () => {
+    generationLogger.info("Presentation generation completed", {
+      presentationId: currentPresentationId,
+      generatedSlides: usePresentationState.getState().slides.length,
+    });
+    setIsGeneratingPresentation(false);
+    setShouldStartPresentationGeneration(false);
+    const state = usePresentationState.getState();
+    if (currentPresentationId) {
+      updatePresentation({
+        id: currentPresentationId,
+        theme: getPersistablePresentationTheme({
+          fallbackTheme: resolvedTheme === "dark" ? "ebony" : "mystique",
+          theme: state.theme,
+        }),
+        customization: buildPresentationCustomization({
+          customThemeData: state.customThemeData,
+          themeDataByTheme: state.themeDataByTheme,
+          generatedThemeData: state.generatedThemeData,
+          theme: state.theme,
+          pageStyle: state.pageStyle,
+          presentationStyle: state.presentationStyle,
+          generationAspectRatio: state.generationAspectRatio,
+          textContent: state.textContent,
+          tone: state.tone,
+          audience: state.audience,
+          scenario: state.scenario,
+          pageBackground: state.pageBackground,
+          selectedSlideTemplates: state.selectedSlideTemplates,
+          outlineItemIds: state.outlineItemIds,
+          outlineTemplateOverrides: state.outlineTemplateOverrides,
+        }),
+      });
+    }
+  };
+
   const { completion: presentationCompletion, complete: generatePresentation } =
     useCompletion({
       api: "/api/presentation/generate",
       onFinish: (_prompt, _completion) => {
-        generationLogger.info("Presentation generation completed", {
+        generationLogger.info("Presentation generation batch completed", {
           presentationId: currentPresentationId,
           generatedSlides: usePresentationState.getState().slides.length,
         });
-        setIsGeneratingPresentation(false);
-        setShouldStartPresentationGeneration(false);
-        const state = usePresentationState.getState();
-        if (currentPresentationId) {
-          updatePresentation({
-            id: currentPresentationId,
-            theme: getPersistablePresentationTheme({
-              fallbackTheme: resolvedTheme === "dark" ? "ebony" : "mystique",
-              theme: state.theme,
-            }),
-            customization: buildPresentationCustomization({
-              customThemeData: state.customThemeData,
-              themeDataByTheme: state.themeDataByTheme,
-              generatedThemeData: state.generatedThemeData,
-              theme: state.theme,
-              pageStyle: state.pageStyle,
-              presentationStyle: state.presentationStyle,
-              generationAspectRatio: state.generationAspectRatio,
-              textContent: state.textContent,
-              tone: state.tone,
-              audience: state.audience,
-              scenario: state.scenario,
-              pageBackground: state.pageBackground,
-              selectedSlideTemplates: state.selectedSlideTemplates,
-              outlineItemIds: state.outlineItemIds,
-              outlineTemplateOverrides: state.outlineTemplateOverrides,
-            }),
-          });
-        }
       },
       onError: (error) => {
         generationLogger.error("Presentation generation failed", error, {
           presentationId: usePresentationState.getState().currentPresentationId,
         });
         toast.error("Failed to generate presentation: " + error.message);
+        batchGenerationErroredRef.current = true;
         resetGeneration();
         streamingParserRef.current.reset();
 
@@ -761,7 +787,9 @@ export function PresentationGenerationManager() {
             )
           : undefined;
 
-      // Reset the parser before starting a new generation
+      const batches = chunkOutlineForGeneration(outline);
+      completedDeckSlidesRef.current = [];
+      batchGenerationErroredRef.current = false;
       streamingParserRef.current.reset();
       setIsGeneratingPresentation(true);
       setThumbnailUrl(undefined);
@@ -769,30 +797,81 @@ export function PresentationGenerationManager() {
         presentationId: currentPresentationId,
         title: currentPresentationTitle ?? presentationInput ?? "",
         outlineItems: outline.length,
+        batchCount: batches.length,
         modelProvider,
         modelId: modelId || "llama3.2:3b",
         imageSource,
         templateCount: selectedSlideTemplates.length,
       });
-      void generatePresentation(presentationInput ?? "", {
-        body: {
-          title: currentPresentationTitle ?? presentationInput ?? "",
-          prompt: presentationInput ?? "",
-          outline,
-          searchResults: stateSearchResults,
-          language,
-          tone: tone,
-          modelId,
-          modelProvider,
-          textContent,
-          audience,
-          scenario,
-          imageSource,
-          templateContext,
-          outlineTemplateHints,
-          selectedTemplateCount: selectedSlideTemplates.length,
-        },
-      });
+
+      void (async () => {
+        for (const batch of batches) {
+          if (batchGenerationErroredRef.current) {
+            return;
+          }
+
+          streamingParserRef.current.reset();
+          generationLogger.info("Presentation generation batch started", {
+            presentationId: currentPresentationId,
+            batchStartIndex: batch.startIndex,
+            batchSlideCount: batch.outline.length,
+          });
+
+          const batchCompletion = await generatePresentation(
+            presentationInput ?? "",
+            {
+              body: {
+                title: currentPresentationTitle ?? presentationInput ?? "",
+                prompt: presentationInput ?? "",
+                outline: batch.outline,
+                searchResults: stateSearchResults,
+                language,
+                tone: tone,
+                modelId,
+                modelProvider,
+                textContent,
+                audience,
+                scenario,
+                imageSource,
+                templateContext,
+                outlineTemplateHints: sliceTemplateHintsForBatch(
+                  outlineTemplateHints,
+                  batch.startIndex,
+                  batch.outline.length,
+                ),
+                selectedTemplateCount: selectedSlideTemplates.length,
+              },
+            },
+          );
+
+          if (batchGenerationErroredRef.current || batchCompletion == null) {
+            return;
+          }
+
+          // Parse this batch's final text directly instead of relying on
+          // streamingParserRef's RAF-driven state, which may not have
+          // caught up yet at the exact moment this promise resolves.
+          const batchParser = new SlideParser();
+          batchParser.parseChunk(stripXmlCodeBlock(batchCompletion));
+          batchParser.finalize();
+          completedDeckSlidesRef.current = [
+            ...completedDeckSlidesRef.current,
+            ...batchParser.getAllSlides(),
+          ];
+        }
+
+        if (batchGenerationErroredRef.current) {
+          return;
+        }
+
+        setSlides(
+          applyGenerationAspectRatioToSlides(
+            completedDeckSlidesRef.current,
+            usePresentationState.getState().generationAspectRatio,
+          ),
+        );
+        finalizePresentationGeneration();
+      })();
     }
   }, [shouldStartPresentationGeneration]);
 
