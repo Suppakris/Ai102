@@ -17,16 +17,20 @@ export const DEFAULT_OLLAMA_MODEL =
 
 /**
  * Ollama loads most local models with a small default context window
- * (often 2048 tokens) regardless of what the model architecture supports,
- * which can truncate a long presentation generation mid-deck. Raising it
- * helps that, but also makes each token slower to generate — on a slow or
- * CPU-only host this can push a deck generation past the platform's hard
- * request-duration limit (e.g. Vercel Hobby's 60s cap), turning a partial
- * result into a total failure. There's no safe one-size-fits-all default
- * since it depends entirely on the host machine's speed, so these are
- * opt-in only: unset (the default), Ollama's own defaults apply unchanged.
+ * (often 2048 tokens) regardless of what the model architecture supports.
+ * This app's generation system prompt alone exceeds that, so at Ollama's
+ * default the model sees a *truncated* version of its own instructions —
+ * a direct cause of format-rule violations (blank slides, duplicated
+ * content, ignored density settings).
+ *
+ * An earlier attempt at raising this was reverted because it pushed a
+ * single full-deck request past Vercel Hobby's 60s cap. Generation has
+ * since been split into small per-batch requests (2 slides each,
+ * finishing in seconds), so the time cost of a larger context no longer
+ * threatens the request budget. Default to 8192; OLLAMA_NUM_CTX still
+ * overrides for hosts that need something else.
  */
-const OLLAMA_NUM_CTX = env.OLLAMA_NUM_CTX;
+const OLLAMA_NUM_CTX = env.OLLAMA_NUM_CTX ?? 8192;
 const OLLAMA_MAX_OUTPUT_TOKENS = env.OLLAMA_MAX_OUTPUT_TOKENS;
 
 /** Provider names older clients may still send from persisted state. */
@@ -249,13 +253,11 @@ export function modelPicker(modelProviderOrModel: string, modelId?: string) {
     configuration: {
       baseURL: `${OLLAMA_BASE_URL}/v1`,
     },
-    ...(OLLAMA_NUM_CTX !== undefined && {
-      modelKwargs: {
-        options: {
-          num_ctx: OLLAMA_NUM_CTX,
-        },
+    modelKwargs: {
+      options: {
+        num_ctx: OLLAMA_NUM_CTX,
       },
-    }),
+    },
   });
 }
 //0
