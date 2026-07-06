@@ -1412,7 +1412,6 @@ export const usePresentationState = create<PresentationState>()(
         themeDataByTheme: state.themeDataByTheme,
         generatedThemeData: state.generatedThemeData,
         extractorRagIds: state.extractorRagIds,
-        generationAspectRatio: state.generationAspectRatio,
         imageSearchResults: state.imageSearchResults,
         imageSource: state.imageSource,
         language: state.language,

@@ -9,8 +9,33 @@ import { toPng } from "html-to-image";
 import { PDFDocument } from "pdf-lib";
 
 import { type PlateSlide } from "@/components/notebook/presentation/utils/parser";
+import { proxyPresentationImageUrl } from "@/lib/image-proxy";
 import { getOptimalPixelRatio } from "./utils";
 
+function waitForImageLoad(image: HTMLImageElement): Promise<void> {
+  if (image.complete && image.naturalWidth > 0) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    const finish = () => {
+      image.removeEventListener("load", finish);
+      image.removeEventListener("error", finish);
+      resolve();
+    };
+
+    image.addEventListener("load", finish);
+    image.addEventListener("error", finish);
+  });
+}
+
+/**
+ * Route every image in the slide through the CORS-safe image proxy before
+ * rasterizing. Most slide images (AI-generated, Unsplash, etc.) live on
+ * external hosts that don't send permissive CORS headers, which taints the
+ * canvas and makes html-to-image throw instead of producing an image --
+ * the same problem the PPTX export already works around for root images.
+ */
 async function captureSlideAsPng(slideId: string): Promise<string | null> {
   const slideElement = document.querySelector(
     `#presentation-root-${slideId}`,
@@ -20,12 +45,49 @@ async function captureSlideAsPng(slideId: string): Promise<string | null> {
     return null;
   }
 
-  return toPng(slideElement, {
-    cacheBust: true,
-    quality: 1,
-    pixelRatio: getOptimalPixelRatio(),
-    skipFonts: true,
-  });
+  const imageElements = Array.from(slideElement.querySelectorAll("img"));
+  const replacements: Array<{
+    crossOrigin: string | null;
+    image: HTMLImageElement;
+    src: string;
+  }> = [];
+
+  try {
+    for (const imageElement of imageElements) {
+      const originalSrc = imageElement.currentSrc || imageElement.src;
+      const proxiedSrc = proxyPresentationImageUrl(originalSrc, {}, {
+        absolute: true,
+      });
+
+      if (!proxiedSrc || proxiedSrc === originalSrc) {
+        continue;
+      }
+
+      replacements.push({
+        crossOrigin: imageElement.crossOrigin,
+        image: imageElement,
+        src: imageElement.src,
+      });
+      imageElement.crossOrigin = "anonymous";
+      imageElement.src = proxiedSrc;
+    }
+
+    await Promise.all(
+      replacements.map((replacement) => waitForImageLoad(replacement.image)),
+    );
+
+    return await toPng(slideElement, {
+      cacheBust: true,
+      quality: 1,
+      pixelRatio: getOptimalPixelRatio(),
+      skipFonts: true,
+    });
+  } finally {
+    for (const replacement of replacements) {
+      replacement.image.crossOrigin = replacement.crossOrigin;
+      replacement.image.src = replacement.src;
+    }
+  }
 }
 
 /**
