@@ -12,15 +12,32 @@ import { type PlateSlide } from "@/components/notebook/presentation/utils/parser
 import { proxyPresentationImageUrl } from "@/lib/image-proxy";
 import { getOptimalPixelRatio } from "./utils";
 
+const IMAGE_LOAD_TIMEOUT_MS = 10_000;
+
+// No timeout here previously: if a proxied image never fired load/error
+// (a network hiccup, a stalled proxy request), this promise -- and the
+// whole export -- hung forever with no error surfaced anywhere, which
+// looked like "nothing happens" to the user. Time out and move on instead;
+// worst case that one image renders blank rather than blocking the export.
 function waitForImageLoad(image: HTMLImageElement): Promise<void> {
   if (image.complete && image.naturalWidth > 0) {
     return Promise.resolve();
   }
 
   return new Promise((resolve) => {
-    const finish = () => {
+    const timeout = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, IMAGE_LOAD_TIMEOUT_MS);
+
+    const cleanup = () => {
+      clearTimeout(timeout);
       image.removeEventListener("load", finish);
       image.removeEventListener("error", finish);
+    };
+
+    const finish = () => {
+      cleanup();
       resolve();
     };
 
