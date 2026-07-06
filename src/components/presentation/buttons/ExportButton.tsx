@@ -20,7 +20,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { raiseError } from "@/lib/raise-error";
 import { usePresentationState } from "@/states/presentation-state";
 import { scanAllSlides } from "../export/domSlideScanner";
+import { exportPresentationToPdf } from "../export/domToPdfConverter";
 import { exportPresentationToPptx } from "../export/domToPptxConverter";
+
+type ExportFormat = "pptx" | "pdf";
 
 const EXPORT_SUCCESS_TOAST_DURATION_MS = 10000;
 const FALLBACK_DOWNLOAD_LINK_TTL_MS = 60000;
@@ -44,6 +47,7 @@ function startDownload(blob: Blob, fileName: string) {
 export function ExportButton() {
     const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("pptx");
   const { toast } = useToast();
 
   const handleExport = async () => {
@@ -59,6 +63,8 @@ export function ExportButton() {
         raiseError(new Error("No slides to export"));
       }
 
+      const formatLabel = exportFormat === "pdf" ? "PDF" : "PowerPoint";
+
       // Show single toast with loader
       const { update, dismiss } = toast({
         title: "Exporting Presentation",
@@ -71,31 +77,50 @@ export function ExportButton() {
         duration: Infinity, // Keep open until we dismiss
       });
 
-      // Scan all slides in the DOM (now parallel)
-      const scanResults = await scanAllSlides(slides);
+      const result =
+        exportFormat === "pdf"
+          ? await exportPresentationToPdf(
+              slides,
+              currentPresentationTitle ?? "presentation",
+              (completedCount, total) => {
+                update({
+                  description: (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="size-4 animate-spin" />
+                      <span>{`Rendering slide ${completedCount}/${total}...`}</span>
+                    </div>
+                  ),
+                });
+              },
+            )
+          : await (async () => {
+              // Scan all slides in the DOM (now parallel)
+              const scanResults = await scanAllSlides(slides);
 
-      if (scanResults.length === 0) {
-        raiseError(
-          new Error(
-            "Failed to scan slides. Please ensure all slides are visible on the page.",
-          ),
-        );
-      }
+              if (scanResults.length === 0) {
+                raiseError(
+                  new Error(
+                    "Failed to scan slides. Please ensure all slides are visible on the page.",
+                  ),
+                );
+              }
 
-      update({
-        description: (
-          <div className="flex items-center gap-2">
-            <Loader2 className="size-4 animate-spin" />
-            <span>{"Generating PowerPoint..."}</span>
-          </div>
-        ),
-      });
+              update({
+                description: (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="size-4 animate-spin" />
+                    <span>{"Generating PowerPoint..."}</span>
+                  </div>
+                ),
+              });
 
-      const result = await exportPresentationToPptx(
-        scanResults,
-        slides,
-        currentPresentationTitle ?? "presentation",
-      );
+              return exportPresentationToPptx(
+                scanResults,
+                slides,
+                currentPresentationTitle ?? "presentation",
+              );
+            })();
+
       const downloadUrl = startDownload(result.blob, result.fileName);
 
       dismiss();
@@ -104,7 +129,7 @@ export function ExportButton() {
         title: "Export Complete",
         description: (
           <p>
-            {"PowerPoint download has started. If it did not start,"}{" "}
+            {`${formatLabel} download has started. If it did not start,`}{" "}
             <a
               className="font-medium text-foreground underline underline-offset-4"
               download={result.fileName}
@@ -166,13 +191,16 @@ export function ExportButton() {
             Export Format
           </Label>
           <RadioGroup
-            value="pptx"
+            value={exportFormat}
+            onValueChange={(value) => setExportFormat(value as ExportFormat)}
             className="grid gap-4"
           >
             <Label
               htmlFor="pptx"
               className={`flex cursor-pointer items-start space-x-4 rounded-xl border p-4 transition-all hover:bg-accent hover:text-accent-foreground ${
-                "border-primary bg-accent/50 ring ring-primary"
+                exportFormat === "pptx"
+                  ? "border-primary bg-accent/50 ring ring-primary"
+                  : "border-border"
               }`}
             >
               <RadioGroupItem value="pptx" id="pptx" className="mt-3" />
@@ -187,6 +215,31 @@ export function ExportButton() {
                     </span>
                     <p className="text-sm leading-snug text-muted-foreground">
                       Standard PowerPoint file
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Label>
+            <Label
+              htmlFor="pdf"
+              className={`flex cursor-pointer items-start space-x-4 rounded-xl border p-4 transition-all hover:bg-accent hover:text-accent-foreground ${
+                exportFormat === "pdf"
+                  ? "border-primary bg-accent/50 ring ring-primary"
+                  : "border-border"
+              }`}
+            >
+              <RadioGroupItem value="pdf" id="pdf" className="mt-3" />
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Download className="size-5" />
+                  </div>
+                  <div>
+                    <span className="block text-base font-semibold">
+                      PDF (.pdf)
+                    </span>
+                    <p className="text-sm leading-snug text-muted-foreground">
+                      One page per slide, image-based
                     </p>
                   </div>
                 </div>
@@ -211,7 +264,7 @@ export function ExportButton() {
                 Exporting…
               </>
             ) : (
-              "Export to PowerPoint"
+              `Export to ${exportFormat === "pdf" ? "PDF" : "PowerPoint"}`
             )}
           </Button>
         </DialogFooter>

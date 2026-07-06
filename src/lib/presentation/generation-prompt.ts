@@ -357,11 +357,11 @@ function getTextDensityGuidance(
 ): string {
   switch (textDensity) {
     case "minimal":
-      return "Text density is minimal: use short labels.";
+      return "Text density is minimal: use short labels of 1-4 words, no full sentences.";
     case "detailed":
-      return "Text density is detailed: add a specific support detail.";
+      return "Text density is detailed: write 2-3 full sentences per point (roughly 25-40 words), each adding one concrete supporting detail, example, or number. Do not compress a point down to a single short sentence.";
     case "extensive":
-      return "Text density is extensive: add context and implication while keeping each point presentation-friendly.";
+      return "Text density is extensive: write 3-5 full sentences per point (roughly 40-70 words), forming a short paragraph that adds context, implication, and supporting evidence. Never compress a point down to a single line or a short phrase.";
     case "concise":
       return "Text density is concise: use one direct sentence per point.";
   }

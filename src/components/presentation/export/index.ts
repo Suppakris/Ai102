@@ -8,6 +8,7 @@ export {
   extractTextStyles,
 } from "./cssVariableResolver";
 export { scanAllSlides } from "./domSlideScanner";
+export { exportPresentationToPdf } from "./domToPdfConverter";
 export { exportPresentationToPptx } from "./domToPptxConverter";
 export type {
   BackgroundRectExportElement,
