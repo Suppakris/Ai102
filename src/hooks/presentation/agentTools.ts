@@ -149,15 +149,20 @@ export function regenerateSlide(rest: Record<string, unknown>) {
   }
 
   const updatedSlides = slides.map((slide) => {
-    console.log("Slide", slide);
     if (slideIds.includes(slide.id)) {
       const slideString = slidesString[slideIds.indexOf(slide.id)] as string;
       const parsedSlide = parseSlideXml(slideString as string);
-      console.log("Parsed slide", parsedSlide);
       return {
         ...parsedSlide[0],
         id: slide.id, // Preserve the original slide ID
         rootImage: slide.rootImage,
+        // parseSlideXml parses a standalone <SECTION> fragment, which never
+        // carries aspectRatio/formatCategory -- preserve the slide's own
+        // existing values so a chat-regenerated slide doesn't silently
+        // revert to the default aspect ratio while the rest of the deck
+        // keeps whatever ratio was actually chosen for it.
+        aspectRatio: slide.aspectRatio,
+        formatCategory: slide.formatCategory,
       };
     }
 
@@ -192,13 +197,28 @@ export function createSlide(rest: Record<string, unknown>) {
     return "No valid slides to insert";
   }
 
+  // parseSlideXml parses standalone <SECTION> fragments, which never carry
+  // aspectRatio/formatCategory -- match whichever ratio the rest of the deck
+  // is already using (the slide these are inserted after, or the deck's
+  // first slide) instead of silently falling back to the app default.
+  const referenceSlide = afterSlideId
+    ? (slides.find((s) => s.id === afterSlideId) ?? slides[0])
+    : slides[0];
+  const slidesWithAspectRatio = referenceSlide
+    ? parsedNewSlides.map((slide) => ({
+        ...slide,
+        aspectRatio: referenceSlide.aspectRatio,
+        formatCategory: referenceSlide.formatCategory,
+      }))
+    : parsedNewSlides;
+
   const updated = [...slides];
   if (afterSlideId) {
     const idx = updated.findIndex((s) => s.id === afterSlideId);
-    if (idx >= 0) updated.splice(idx + 1, 0, ...parsedNewSlides);
-    else updated.push(...parsedNewSlides);
+    if (idx >= 0) updated.splice(idx + 1, 0, ...slidesWithAspectRatio);
+    else updated.push(...slidesWithAspectRatio);
   } else {
-    updated.push(...parsedNewSlides);
+    updated.push(...slidesWithAspectRatio);
   }
 
   setSlides(updated);
