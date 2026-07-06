@@ -22,6 +22,7 @@ import {
   chunkOutlineForGeneration,
   sliceTemplateHintsForBatch,
 } from "@/lib/presentation/generation-batching";
+import { sanitizeGeneratedSlides } from "@/lib/presentation/generation-sanitize";
 import { buildPresentationCustomization } from "@/lib/presentation/customization";
 import { extractGeneratedPresentationTheme } from "@/lib/presentation/generated-theme";
 import {
@@ -900,7 +901,7 @@ export function PresentationGenerationManager() {
 
         setSlides(
           applyGenerationAspectRatioToSlides(
-            finalSlides,
+            sanitizeGeneratedSlides(finalSlides),
             usePresentationState.getState().generationAspectRatio,
           ),
         );
