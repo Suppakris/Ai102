@@ -38,6 +38,25 @@ export function getRootImageObjectStyles(
   };
 }
 
+/**
+ * Cap image height against the slide's fixed ratio height (exposed as
+ * --slide-fixed-height by getSlideFormatStyles). Without a cap, a tall
+ * image grows the slide past its configured aspect ratio in the editor
+ * (height "auto" resolves to the image's intrinsic height; the fixed
+ * vertical-layout height ignores the ratio entirely), and exports then
+ * have to squash the overflowing slide back into the ratio canvas.
+ * On fluid slides the variable is unset and the fallback keeps these
+ * caps inert. objectFit is cover, so capping crops instead of distorting.
+ */
+const VERTICAL_IMAGE_SLIDE_FRACTION = 0.55;
+const SIDE_IMAGE_PADDING_ALLOWANCE_PX = 96;
+
+function capHeightPx(heightPx: number, fraction: number): string {
+  return `min(${heightPx}px, calc(var(--slide-fixed-height, 99999px) * ${fraction}))`;
+}
+
+const SIDE_IMAGE_MAX_HEIGHT = `calc(var(--slide-fixed-height, 99999px) - ${SIDE_IMAGE_PADDING_ALLOWANCE_PX}px)`;
+
 export function getRootImageSizeStyle(
   image: RootImageType,
   layoutType?: string,
@@ -47,14 +66,31 @@ export function getRootImageSizeStyle(
 
   if (!hasExplicitHeight && !hasExplicitWidth) {
     if (layoutType === "vertical") {
-      return { height: BASE_HEIGHT, width: "100%" };
+      return {
+        height: capHeightPx(BASE_HEIGHT, VERTICAL_IMAGE_SLIDE_FRACTION),
+        width: "100%",
+      };
     }
-    return { width: BASE_WIDTH_PERCENTAGE, height: "auto" };
+    return {
+      width: BASE_WIDTH_PERCENTAGE,
+      height: "auto",
+      maxHeight: SIDE_IMAGE_MAX_HEIGHT,
+    };
   }
 
   if (layoutType === "vertical") {
-    return { height: image.size?.h ?? BASE_HEIGHT, width: "100%" };
+    return {
+      height: capHeightPx(
+        image.size?.h ?? BASE_HEIGHT,
+        VERTICAL_IMAGE_SLIDE_FRACTION,
+      ),
+      width: "100%",
+    };
   }
 
-  return { width: image.size?.w ?? BASE_WIDTH_PERCENTAGE, height: "auto" };
+  return {
+    width: image.size?.w ?? BASE_WIDTH_PERCENTAGE,
+    height: "auto",
+    maxHeight: SIDE_IMAGE_MAX_HEIGHT,
+  };
 }

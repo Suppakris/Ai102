@@ -77,7 +77,13 @@ export function getSlideFormatStyles(
   return {
     ...(aspect.type !== "fluid" ? { width: `${baseWidth}px` } : {}),
     ...(heightConfig.minHeightCSS
-      ? { minHeight: heightConfig.minHeightCSS }
+      ? {
+          minHeight: heightConfig.minHeightCSS,
+          // Exposed so children (e.g. the root image) can cap their own
+          // size against the slide's fixed ratio height instead of
+          // growing the slide past its aspect ratio.
+          ["--slide-fixed-height" as string]: heightConfig.minHeightCSS,
+        }
       : {}),
   };
 }

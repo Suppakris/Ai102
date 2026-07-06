@@ -107,6 +107,22 @@ async function captureSlideAsPng(slideId: string): Promise<string | null> {
   }
 }
 
+// Hard per-slide ceiling: html-to-image internally re-fetches every image
+// (cacheBust) with no timeout of its own, so one stalled request used to
+// hang the whole export silently. The preload timeout above doesn't cover
+// those internal fetches — this does, converting any per-slide stall into
+// a skipped page instead of an export that never finishes.
+const SLIDE_CAPTURE_TIMEOUT_MS = 30_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    }),
+  ]);
+}
+
 /**
  * Export the presentation as a multi-page PDF (one rasterized page per slide).
  * Returns the blob and fileName for manual download handling.
@@ -121,20 +137,30 @@ export async function exportPresentationToPdf(
   let completed = 0;
 
   for (const slide of slides) {
-    const pngDataUrl = await captureSlideAsPng(slide.id);
-    completed++;
-    onProgress?.(completed, total);
+    try {
+      const pngDataUrl = await withTimeout(
+        captureSlideAsPng(slide.id),
+        SLIDE_CAPTURE_TIMEOUT_MS,
+        `Capturing slide ${slide.id}`,
+      );
+      completed++;
+      onProgress?.(completed, total);
 
-    if (!pngDataUrl) continue;
+      if (!pngDataUrl) continue;
 
-    const pngImage = await pdfDoc.embedPng(pngDataUrl);
-    const page = pdfDoc.addPage([pngImage.width, pngImage.height]);
-    page.drawImage(pngImage, {
-      x: 0,
-      y: 0,
-      width: pngImage.width,
-      height: pngImage.height,
-    });
+      const pngImage = await pdfDoc.embedPng(pngDataUrl);
+      const page = pdfDoc.addPage([pngImage.width, pngImage.height]);
+      page.drawImage(pngImage, {
+        x: 0,
+        y: 0,
+        width: pngImage.width,
+        height: pngImage.height,
+      });
+    } catch (error) {
+      completed++;
+      onProgress?.(completed, total);
+      console.warn(`Skipping slide ${slide.id} in PDF export:`, error);
+    }
   }
 
   if (pdfDoc.getPageCount() === 0) {
