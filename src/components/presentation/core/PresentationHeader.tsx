@@ -13,7 +13,7 @@ import AllweoneText from "@/components/globals/allweone-logo";
 import { ExportButton } from "@/components/presentation/buttons/ExportButton";
 import { PresentButton } from "@/components/presentation/buttons/PresentButton";
 import { PresentationMenu } from "@/components/presentation/controls/PresentationMenu";
-import { OllamaStatusBadge } from "@/components/presentation/core/OllamaStatusBadge";
+import { SystemStatusBadge } from "@/components/presentation/core/SystemStatusBadge";
 import { PresentationSavingIndicator } from "@/components/presentation/core/PresentationSavingIndicator";
 import { Button } from "@/components/ui/button";
 import { Brain } from "@/components/ui/icons";
@@ -88,7 +88,7 @@ export default function PresentationHeader({ title }: PresentationHeaderProps) {
           </motion.div>
         </div>
 
-        <OllamaStatusBadge />
+        <SystemStatusBadge />
 
         {/* <SideBarDropdown /> */}
       </header>
@@ -164,8 +164,8 @@ export default function PresentationHeader({ title }: PresentationHeaderProps) {
 
       {/* Right section with actions */}
       <div className="scrollbar-hide flex max-w-[56vw] shrink-0 items-center gap-2 overflow-x-auto md:max-w-none md:overflow-visible">
-        {/* Ollama backend status - always visible since generation depends on it */}
-        {!isPresenting && <OllamaStatusBadge />}
+        {/* Backend status - always visible since generation depends on it */}
+        {!isPresenting && <SystemStatusBadge />}
 
         {/* Saving indicator - Placed right before Theme button */}
         {isPresentationPage && !isPresenting && !isReadOnly && (

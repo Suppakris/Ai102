@@ -802,6 +802,12 @@ export function PresentationGenerationManager() {
       const batches = chunkOutlineForGeneration(outline);
       completedDeckSlidesRef.current = [];
       batchGenerationErroredRef.current = false;
+      // Explicitly clear any pre-existing slides instead of relying on the
+      // first streamed batch to overwrite them: if batches resolve fast
+      // enough that no live RAF preview tick fires before this run's first
+      // setSlides call, a stale slide from before generation started could
+      // otherwise remain visible/persisted underneath the new ones.
+      setSlides([]);
       streamingParserRef.current.reset();
       setIsGeneratingPresentation(true);
       setThumbnailUrl(undefined);
