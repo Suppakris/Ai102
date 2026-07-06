@@ -17,6 +17,7 @@ import { collectNotebookAgentToolCalls } from "@/lib/notebook/agent-activity";
 import { isWebSearchToolName } from "@/lib/ai/tool-names";
 import { createLogger } from "@/lib/observability/logger";
 import { useDebouncedSave } from "@/hooks/presentation/useDebouncedSave";
+import { applyGenerationAspectRatioToSlides } from "@/lib/presentation/aspect-ratio";
 import { buildPresentationCustomization } from "@/lib/presentation/customization";
 import { extractGeneratedPresentationTheme } from "@/lib/presentation/generated-theme";
 import {
@@ -110,6 +111,7 @@ export function PresentationGenerationManager() {
     modelId,
     modelProvider,
     presentationInput,
+    generationAspectRatio,
     shouldStartOutlineGeneration,
     shouldStartPresentationGeneration,
     shouldStartImageSlideGeneration,
@@ -201,7 +203,9 @@ export function PresentationGenerationManager() {
         }
       }
     }
-    setSlides(mergedSlides);
+    setSlides(
+      applyGenerationAspectRatioToSlides(mergedSlides, generationAspectRatio),
+    );
     // Debounced save during generation to avoid excessive writes
     save();
     slidesRafIdRef.current = null;
@@ -700,7 +704,12 @@ export function PresentationGenerationManager() {
           }
         }
 
-        setSlides(imageSlidesData);
+        setSlides(
+          applyGenerationAspectRatioToSlides(
+            imageSlidesData,
+            generationAspectRatio,
+          ),
+        );
         save();
       } catch (error) {
         generationLogger.error("Failed to process image slides XML stream", error, {

@@ -51,14 +51,12 @@ export function usePresentationTheme() {
 
 /**
  * A custom theme provider for the presentation section.
- * This creates a completely isolated theme context that doesn't affect other browser tabs.
- *
- * Unlike the previous version, this provider:
- * - Does not use localStorage or listen to storage events, eliminating cross-tab flickering.
- * - Manages theme state completely in-memory per tab.
- * - Dynamically updates the global <html> element's dark class for the current tab only,
- *   ensuring portals (dialogs, dropdowns, etc.) receive the correct theme.
- * - Safely restores the original html element classes and color scheme when unmounted.
+ * This creates a theme context scoped to a wrapper element instead of the
+ * global <html> tag, so switching the editor's own light/dark state (or a
+ * slide's color theme) never overrides the rest of the site's theme.
+ * Radix portals (Sheet, Popover) that need to inherit this scope should
+ * render into the `.sheet-container` element instead of the default body
+ * portal (see PresentationLayout).
  */
 export function PresentationThemeProvider({
   children,
@@ -86,32 +84,6 @@ export function PresentationThemeProvider({
     },
     [],
   );
-
-  // Capture original document classes and color scheme, and restore on unmount
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const root = window.document.documentElement;
-    const originalClass = root.className;
-    const originalColorScheme = root.style.colorScheme;
-
-    return () => {
-      root.className = originalClass;
-      root.style.colorScheme = originalColorScheme;
-    };
-  }, []);
-
-  // Update HTML class and color-scheme for the current tab
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const root = window.document.documentElement;
-    if (theme === "dark") {
-      root.classList.add("dark");
-      root.style.colorScheme = "dark";
-    } else {
-      root.classList.remove("dark");
-      root.style.colorScheme = "light";
-    }
-  }, [theme]);
 
   const value: PresentationThemeContextValue = {
     theme,
