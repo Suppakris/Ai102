@@ -28,6 +28,13 @@ const createNoopClient = () => {
   }) as unknown as PrismaClient;
 };
 
+// Each serverless function instance gets its own connection pool. Capping it
+// to a single connection per instance avoids exhausting a poolers's small
+// max-clients limit (e.g. Supabase's Session Pooler) when several instances
+// are warm at once; the pooler itself is responsible for multiplexing across
+// instances, not the app-side pool.
+const SERVERLESS_POOL_MAX_CONNECTIONS = 1;
+
 const createPrismaClient = () => {
   if (!env.DATABASE_URL) {
     console.warn("[db] DATABASE_URL is not set; using a no-op database client in development.");
@@ -37,8 +44,14 @@ const createPrismaClient = () => {
   return new PrismaClient({
     adapter:
       env.NODE_ENV === "production" && !process.env.LOCAL_PRODUCTION
-        ? new PrismaNeon({ connectionString: env.DATABASE_URL })
-        : new PrismaPg({ connectionString: env.DATABASE_URL }),
+        ? new PrismaNeon({
+            connectionString: env.DATABASE_URL,
+            max: SERVERLESS_POOL_MAX_CONNECTIONS,
+          })
+        : new PrismaPg({
+            connectionString: env.DATABASE_URL,
+            max: SERVERLESS_POOL_MAX_CONNECTIONS,
+          }),
     log: env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   });
 };
