@@ -1,4 +1,5 @@
 import { search_tool } from "@/ai/tools/search";
+import { env } from "@/env";
 import {
   getLatestUserMessage,
   getMessageText,
@@ -222,7 +223,10 @@ export async function POST(req: Request) {
     const language = metadata.language ?? "";
     const modelProvider = metadata.modelProvider ?? "ollama";
     const modelId = metadata.modelId;
-    const webSearch = Boolean(metadata.webSearch);
+    // Never bind the search tool without a Tavily key: the request would be
+    // guaranteed to fail, and merely binding tools already derails small
+    // models into emitting fake tool-call JSON instead of an outline.
+    const webSearch = Boolean(metadata.webSearch) && Boolean(env.TAVILY_API_KEY);
     const autoTheme = metadata.autoTheme ?? false;
 
     span.annotate({

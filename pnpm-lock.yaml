@@ -89,6 +89,9 @@ importers:
       '@langchain/langgraph-checkpoint-postgres':
         specifier: ^1.0.1
         version: 1.0.1(@langchain/core@1.1.42(@opentelemetry/api@1.9.0)(openai@6.39.1(zod@3.25.76)))(@langchain/langgraph-checkpoint@1.0.1(@langchain/core@1.1.42(@opentelemetry/api@1.9.0)(openai@6.39.1(zod@3.25.76))))
+      '@langchain/ollama':
+        specifier: ^1.2.0
+        version: 1.2.0(@langchain/core@1.1.42(@opentelemetry/api@1.9.0)(openai@6.39.1(zod@3.25.76)))
       '@langchain/openai':
         specifier: 1.4.5
         version: 1.4.5(@langchain/core@1.1.42(@opentelemetry/api@1.9.0)(openai@6.39.1(zod@3.25.76)))
@@ -1207,6 +1210,12 @@ packages:
     peerDependenciesMeta:
       zod-to-json-schema:
         optional: true
+
+  '@langchain/ollama@1.2.0':
+    resolution: {integrity: sha512-OinxIhssKXdDQKnQoBF4TQTMBuMMV5OcNPk4Zze8UjcaSOGngn3CAI1FVbBxl0bTG5ov61w4AoWWsUwOwiSJFw==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@langchain/core': ^1.0.0
 
   '@langchain/openai@1.4.5':
     resolution: {integrity: sha512-bQ2WMIZfSh02trJLYSAtiIcD3j6EBCiAm9nw0dZWQsVaUxmWc3JJqs8uUte6AkMazmLHzcUIw+14UkXO5fRJvQ==}
@@ -4175,6 +4184,7 @@ packages:
   html2canvas-pro@1.5.11:
     resolution: {integrity: sha512-W4pEeKLG8+9a54RDOSiEKq7gRXXDzt0ORMaLXX+l6a3urSKbmnkmyzcRDCtgTOzmHLaZTLG2wiTQMJqKLlSh3w==}
     engines: {node: '>=16.0.0'}
+    deprecated: All 1.5.x series are deprecated. Known rendering bugs exist and no further maintenance. Please upgrade to the latest 2.x release.
 
   htmlparser2@10.1.0:
     resolution: {integrity: sha512-VTZkM9GWRAtEpveh7MSF6SjjrpNVNNVJfFup7xTY3UpFtm67foy9HDVXneLtFVt4pMz5kZtgNcvCniNFb1hlEQ==}
@@ -5113,6 +5123,9 @@ packages:
     peerDependenciesMeta:
       zod:
         optional: true
+
+  ollama@0.6.3:
+    resolution: {integrity: sha512-KEWEhIqE5wtfzEIZbDCLH51VFZ6Z3ZSa6sIOg/E/tBV8S51flyqBOXi+bRxlOYKDf8i327zG9eSTb8IJxvm3Zg==}
 
   once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
@@ -6383,6 +6396,9 @@ packages:
     engines: {node: '>=18'}
     deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 
+  whatwg-fetch@3.6.20:
+    resolution: {integrity: sha512-EqhiFU6daOA8kpjOWTL0olhVOF3i7OrFzSYiGsEMB8GcXS+RrzauAERX65xMeNWVqxA6HXH2m69Z9LaKKdisfg==}
+
   whatwg-mimetype@4.0.0:
     resolution: {integrity: sha512-QaKxh0eNIi2mE9p2vEdzfagOKHCcj1pJ56EEHGQOVxp8r9/iszLUUV7v89x9O1p/T+NlTM5W7jW6+cz4Fq1YVg==}
     engines: {node: '>=18'}
@@ -7071,6 +7087,12 @@ snapshots:
       - react-dom
       - svelte
       - vue
+
+  '@langchain/ollama@1.2.0(@langchain/core@1.1.42(@opentelemetry/api@1.9.0)(openai@6.39.1(zod@3.25.76)))':
+    dependencies:
+      '@langchain/core': 1.1.42(@opentelemetry/api@1.9.0)(openai@6.39.1(zod@3.25.76))
+      ollama: 0.6.3
+      uuid: 10.0.0
 
   '@langchain/openai@1.4.5(@langchain/core@1.1.42(@opentelemetry/api@1.9.0)(openai@6.39.1(zod@3.25.76)))':
     dependencies:
@@ -11439,6 +11461,10 @@ snapshots:
     optionalDependencies:
       zod: 3.25.76
 
+  ollama@0.6.3:
+    dependencies:
+      whatwg-fetch: 3.6.20
+
   once@1.4.0:
     dependencies:
       wrappy: 1.0.2
@@ -12762,6 +12788,8 @@ snapshots:
   whatwg-encoding@3.1.1:
     dependencies:
       iconv-lite: 0.6.3
+
+  whatwg-fetch@3.6.20: {}
 
   whatwg-mimetype@4.0.0: {}
 

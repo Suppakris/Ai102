@@ -35,12 +35,12 @@ export function createPresentationGraph() {
     trimMessageHistory,
   ];
 
+  // No tool_choice/parallel_tool_calls here: those are OpenAI-only call
+  // options with no Ollama equivalent (the old OpenAI-compat endpoint
+  // silently discarded them as well).
   const llm = modelPicker(DEFAULT_OLLAMA_MODEL);
   const agent = createAgent({
-    model: llm.withConfig({
-      parallel_tool_calls: false,
-      tool_choice: "required",
-    }),
+    model: llm,
     tools: [...presentationTools],
     name: "presentation_agent",
     middleware,

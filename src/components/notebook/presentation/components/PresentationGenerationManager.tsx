@@ -544,7 +544,10 @@ export function PresentationGenerationManager() {
               language,
               modelId,
               modelProvider,
-              webSearch: webSearchEnabled,
+              // An attached source document supersedes web search: the
+              // content is already provided, and binding search tools makes
+              // small models emit fake tool-call JSON instead of an outline.
+              webSearch: webSearchEnabled && !sourceDocument,
               autoTheme: autoThemeEnabled,
               presentationId: currentPresentationId,
               textContent,
