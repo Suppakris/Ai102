@@ -168,7 +168,7 @@ There's no separate seed step required to boot the app — the stubbed demo user
 4. Export to `.pptx`, present directly from the browser, or generate a public share link.
 
 ## 📁 Project Structure
-
+```text
 High-level map of `src/`:
 
 - **`app/`** — Next.js App Router routes.
@@ -187,7 +187,7 @@ High-level map of `src/`:
 - **`server/`** — `auth.ts` (the demo-user stub), `ai/` (LangChain↔AI SDK message conversion), `share/` (share-link authorization).
 - **`config/`, `constants/`** — slide sizing/format presets, the FAL image model catalog, and infographic chart templates.
 - **`provider/`** — root-level React providers (session, React Query, theme).
-
+```
 ## ⚠️ Known Issues
 
 - **Document/RAG search is scaffolded but not implemented.** The notebook attachment model has `ragId`/`processingStatus` fields, and `PINECONE_API_KEY` is declared, but there's no actual vector-search tool wired into the agent. Don't expect "chat with your uploaded document" to work yet.
