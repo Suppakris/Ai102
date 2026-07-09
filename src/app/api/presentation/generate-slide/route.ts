@@ -11,6 +11,7 @@ import { PromptTemplate } from "@langchain/core/prompts";
 import { RunnableSequence } from "@langchain/core/runnables";
 import { NextResponse } from "next/server";
 import { LAYOUT_REFERENCE } from "@/lib/presentation/layout-catalog";
+import { getLanguageDisplayName } from "@/lib/presentation/languages";
 
 interface GenerateSlideRequest {
   prompt: string;
@@ -278,7 +279,7 @@ export async function POST(req: Request) {
       ? {
           PROMPT: prompt,
           CURRENT_SLIDE: currentSlide || "No current slide context provided.",
-          LANGUAGE: language || "en-US",
+          LANGUAGE: getLanguageDisplayName(language || "en-US"),
           IMAGE_STYLE: imageStyle || "3D",
           IMAGE_STYLE_GUIDANCE: getImageStyleGuidance(imageStyle),
           TEXT_DENSITY: textDensity || "Balanced",
@@ -287,7 +288,7 @@ export async function POST(req: Request) {
       : {
           PROMPT: prompt,
           CURRENT_SLIDE: currentSlide || "No current slide context provided.",
-          LANGUAGE: language || "en-US",
+          LANGUAGE: getLanguageDisplayName(language || "en-US"),
         };
     routeLogger.info("Single slide generation started", {
       requestId,

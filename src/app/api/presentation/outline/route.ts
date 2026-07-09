@@ -10,6 +10,7 @@ import {
   modelPicker,
 } from "@/lib/modelPicker";
 import { createLogger } from "@/lib/observability/logger";
+import { getLanguageDisplayName } from "@/lib/presentation/languages";
 import { logger } from "@/lib/observability/server/logger";
 import { auth } from "@/server/auth";
 import { toBaseMessages, toUIMessageStream } from "@ai-sdk/langchain";
@@ -258,22 +259,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const languageMap: Record<string, string> = {
-      "en-US": "English (US)",
-      pt: "Portuguese",
-      es: "Spanish",
-      fr: "French",
-      de: "German",
-      it: "Italian",
-      ja: "Japanese",
-      ko: "Korean",
-      zh: "Chinese",
-      ru: "Russian",
-      hi: "Hindi",
-      ar: "Arabic",
-    };
-
-    const actualLanguage = languageMap[language] ?? language;
+    const actualLanguage = getLanguageDisplayName(language);
     const currentDate = new Date().toLocaleDateString("en-US", {
       weekday: "long",
       year: "numeric",

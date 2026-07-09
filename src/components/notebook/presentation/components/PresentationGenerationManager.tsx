@@ -25,6 +25,7 @@ import {
 import { sanitizeGeneratedSlides } from "@/lib/presentation/generation-sanitize";
 import { buildPresentationCustomization } from "@/lib/presentation/customization";
 import { extractGeneratedPresentationTheme } from "@/lib/presentation/generated-theme";
+import { buildOutlinePromptText } from "@/lib/presentation/source-document";
 import {
   getPersistablePresentationTheme,
   PRESENTATION_AUTO_THEME_ID,
@@ -516,7 +517,8 @@ export function PresentationGenerationManager() {
           latestGeneratedThemeDataRef.current = null;
           lastProcessedMessagesLength.current = 0;
 
-          const { presentationInput } = usePresentationState.getState();
+          const { presentationInput, sourceDocument } =
+            usePresentationState.getState();
           if (outlineRafIdRef.current === null) {
             outlineRafIdRef.current =
               requestAnimationFrame(updateOutlineWithRAF);
@@ -550,7 +552,12 @@ export function PresentationGenerationManager() {
               audience,
               scenario,
             } satisfies PresentationOutlineMessageMetadata,
-            parts: [{ type: "text", text: presentationInput }],
+            parts: [
+              {
+                type: "text",
+                text: buildOutlinePromptText(presentationInput, sourceDocument),
+              },
+            ],
           });
         } catch (error) {
           generationLogger.error(

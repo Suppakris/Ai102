@@ -15,6 +15,7 @@ import {
   presentationGenerationPromptTemplate,
   type PresentationGenerationPromptInput,
 } from "@/lib/presentation/generation-prompt";
+import { getLanguageDisplayName } from "@/lib/presentation/languages";
 import { auth } from "@/server/auth";
 
 // Vercel Hobby caps serverless functions at 60s. Deck generation on a free
@@ -154,6 +155,7 @@ export async function POST(req: Request) {
     const stream = await chain.stream(
       buildPresentationPromptValues({
         ...request,
+        language: getLanguageDisplayName(request.language),
         currentDate,
       }),
     );

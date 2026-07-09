@@ -34,23 +34,9 @@ import {
   PRESENTATION_GENERATION_ASPECT_RATIO_OPTIONS,
   type PresentationGenerationAspectRatio,
 } from "@/lib/presentation/aspect-ratio";
+import { LANGUAGE_OPTIONS } from "@/lib/presentation/languages";
 import { cn } from "@/lib/utils";
 import { usePresentationState } from "@/states/presentation-state";
-
-const LANGUAGE_OPTIONS = [
-  { label: "English (US)", shortLabel: "English", value: "en-US" },
-  { label: "Spanish", shortLabel: "Spanish", value: "es" },
-  { label: "French", shortLabel: "French", value: "fr" },
-  { label: "German", shortLabel: "German", value: "de" },
-  { label: "Portuguese", shortLabel: "Portuguese", value: "pt" },
-  { label: "Italian", shortLabel: "Italian", value: "it" },
-  { label: "Japanese", shortLabel: "Japanese", value: "ja" },
-  { label: "Korean", shortLabel: "Korean", value: "ko" },
-  { label: "Chinese", shortLabel: "Chinese", value: "zh" },
-  { label: "Russian", shortLabel: "Russian", value: "ru" },
-  { label: "Hindi", shortLabel: "Hindi", value: "hi" },
-  { label: "Arabic", shortLabel: "Arabic", value: "ar" },
-] as const;
 
 interface HeaderProps {
   onRegenerate?: () => void;
