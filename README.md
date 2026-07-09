@@ -176,7 +176,6 @@ High-level map of `src/`:
   - `share/` — public read-only share view for a presentation.
   - `api/` — route handlers: the presentation chat agent (`agent/presentation/`), outline/slide/image/diagram generation, the stubbed auth endpoint, UploadThing's route.
   - `_actions/` — Server Actions for image generation, notebook/presentation CRUD, and the image-studio tool (multi-provider image search).
-  - `auth/` — sign-in/sign-out pages. Currently dead UI (see Known Issues).
 ```
 ```text
 - **`ai/`** — the presentation-editing agent: `agents/presentation/createAgent.ts` (LangGraph agent with Postgres-backed chat memory), `tools/` (slide/theme/image editing tools + web search), `lib/` (Postgres checkpointing, pasted-content middleware).
