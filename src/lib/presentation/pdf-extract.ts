@@ -15,11 +15,23 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 // which is why this is conservative.
 const MAX_SOURCE_TEXT_LENGTH = 8000;
 
+// CID-keyed fonts (the norm in Thai/CJK PDFs exported from Word, InDesign,
+// etc.) need external cMaps to map glyphs back to Unicode; without them
+// getTextContent() returns empty or garbage text. pdfjs-dist doesn't bundle
+// them into the app chunk, so they are fetched on demand, version-pinned to
+// the exact pdfjs build react-pdf ships.
+const PDFJS_ASSET_BASE_URL = `https://unpkg.com/pdfjs-dist@${pdfjs.version}`;
+
 export async function extractPdfSource(
   file: File,
 ): Promise<PresentationSourceDocument> {
   const data = await file.arrayBuffer();
-  const loadingTask = pdfjs.getDocument({ data });
+  const loadingTask = pdfjs.getDocument({
+    data,
+    cMapUrl: `${PDFJS_ASSET_BASE_URL}/cmaps/`,
+    cMapPacked: true,
+    standardFontDataUrl: `${PDFJS_ASSET_BASE_URL}/standard_fonts/`,
+  });
   const pdf = await loadingTask.promise;
 
   try {

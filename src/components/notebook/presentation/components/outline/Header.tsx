@@ -67,6 +67,7 @@ export function Header({
     setGenerationAspectRatio,
     isGeneratingOutline: isGeneratingOutlineFromState,
     startOutlineGeneration,
+    sourceDocument,
     attachedFiles,
     selectedChunks,
     extractorRagIds,
@@ -87,8 +88,8 @@ export function Header({
     : LANGUAGE_OPTIONS[0].value;
 
   function handleRegenerate() {
-    if (!prompt) {
-      toast.error("Please enter a presentation topic");
+    if (!prompt && !sourceDocument) {
+      toast.error("Please enter a presentation topic or attach a PDF");
       return;
     }
 
@@ -118,7 +119,7 @@ export function Header({
               )}
             />
             <span className="truncate text-sm font-medium">
-              {prompt || "Untitled presentation"}
+              {prompt || sourceDocument?.name || "Untitled presentation"}
             </span>
           </div>
 

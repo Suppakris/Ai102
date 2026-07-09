@@ -1482,7 +1482,11 @@ export function PresentationDashboard() {
       setSourceDocument(source);
     } catch (error) {
       console.error("Failed to read PDF:", error);
-      toast.error("Failed to read the PDF file");
+      toast.error(
+        error instanceof Error
+          ? `Failed to read the PDF: ${error.message}`
+          : "Failed to read the PDF file",
+      );
     } finally {
       setIsReadingPdf(false);
     }
