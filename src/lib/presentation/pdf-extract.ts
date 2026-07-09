@@ -1,6 +1,11 @@
 import { pdfjs } from "react-pdf";
 
-import { type PresentationSourceDocument } from "@/lib/presentation/source-document";
+import {
+  estimateTokenCount,
+  MAX_SOURCE_TOKEN_ESTIMATE,
+  truncateToTokenBudget,
+  type PresentationSourceDocument,
+} from "@/lib/presentation/source-document";
 
 // Client-side only: extraction runs in the browser so PDFs never hit the
 // server (no upload service, no serverless body-size limits).
@@ -8,12 +13,6 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
   import.meta.url,
 ).toString();
-
-// The whole document (system prompt + user prompt + source text) has to fit in
-// OLLAMA_NUM_CTX (default 8192 tokens), so the source text is capped hard.
-// Thai tokenizes at roughly 1-2 tokens per character on llama-family models,
-// which is why this is conservative.
-const MAX_SOURCE_TEXT_LENGTH = 8000;
 
 // CID-keyed fonts (the norm in Thai/CJK PDFs exported from Word, InDesign,
 // etc.) need external cMaps to map glyphs back to Unicode; without them
@@ -36,7 +35,7 @@ export async function extractPdfSource(
 
   try {
     const pages: string[] = [];
-    let totalLength = 0;
+    let estimatedTokens = 0;
     let processedPages = 0;
 
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
@@ -55,25 +54,23 @@ export async function extractPdfSource(
       const trimmed = pageText.replace(/[ \t]+\n/g, "\n").trim();
       if (trimmed) {
         pages.push(trimmed);
-        totalLength += trimmed.length;
+        estimatedTokens += estimateTokenCount(trimmed);
       }
       processedPages = pageNumber;
 
-      // Stop paging through huge documents once the cap is already exceeded.
-      if (totalLength > MAX_SOURCE_TEXT_LENGTH) {
+      // Stop paging through huge documents once the budget is exceeded.
+      if (estimatedTokens > MAX_SOURCE_TOKEN_ESTIMATE) {
         break;
       }
     }
 
-    const fullText = pages.join("\n\n").trim();
-    const truncated =
-      fullText.length > MAX_SOURCE_TEXT_LENGTH || processedPages < pdf.numPages;
+    const bounded = truncateToTokenBudget(pages.join("\n\n").trim());
 
     return {
       name: file.name,
-      text: fullText.slice(0, MAX_SOURCE_TEXT_LENGTH),
+      text: bounded.text,
       pageCount: pdf.numPages,
-      truncated,
+      truncated: bounded.truncated || processedPages < pdf.numPages,
     };
   } finally {
     await loadingTask.destroy();
