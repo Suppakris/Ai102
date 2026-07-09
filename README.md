@@ -177,9 +177,13 @@ High-level map of `src/`:
   - `api/` — route handlers: the presentation chat agent (`agent/presentation/`), outline/slide/image/diagram generation, the stubbed auth endpoint, UploadThing's route.
   - `_actions/` — Server Actions for image generation, notebook/presentation CRUD, and the image-studio tool (multi-provider image search).
   - `auth/` — sign-in/sign-out pages. Currently dead UI (see Known Issues).
+```
+```text
 - **`ai/`** — the presentation-editing agent: `agents/presentation/createAgent.ts` (LangGraph agent with Postgres-backed chat memory), `tools/` (slide/theme/image editing tools + web search), `lib/` (Postgres checkpointing, pasted-content middleware).
 - **`components/notebook/`** — the primary implementation of the slide-outline UI, theming UI, editor plugins, and image editor. "Notebook" here just means "a presentation project" — it's not a separate note-taking product. Includes a small early-stage `notes/` sub-mode.
 - **`components/presentation/`** — the app-shell/viewer chrome (sidebar, edit panel, zoom/scroll, present mode) that composes pieces from `components/notebook/`.
+```
+```text
 - **`lib/model-picker.ts`** — the Ollama-only LLM resolver (see [What's Different From Upstream](#-whats-different-from-upstream)).
 - **`lib/notebook/`** — data model for attaching source files to a presentation project, and the agent activity timeline shown in the chat UI.
 - **`lib/presentation/themes.ts`** — built-in theme definitions.
@@ -188,6 +192,7 @@ High-level map of `src/`:
 - **`config/`, `constants/`** — slide sizing/format presets, the FAL image model catalog, and infographic chart templates.
 - **`provider/`** — root-level React providers (session, React Query, theme).
 ```
+
 ## ⚠️ Known Issues
 
 - **Document/RAG search is scaffolded but not implemented.** The notebook attachment model has `ragId`/`processingStatus` fields, and `PINECONE_API_KEY` is declared, but there's no actual vector-search tool wired into the agent. Don't expect "chat with your uploaded document" to work yet.
