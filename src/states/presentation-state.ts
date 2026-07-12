@@ -27,6 +27,7 @@ import {
   type PresentationImageGenerationTarget,
 } from "@/lib/presentation/image-generation";
 import { type PresentationImageSearchResult } from "@/lib/presentation/image-search";
+import { type PresentationSourceDocument } from "@/lib/presentation/source-document";
 import { isBuiltInPresentationTheme } from "@/lib/presentation/theme-resolution";
 import { type ThemeProperties, type Themes } from "@/lib/presentation/themes";
 import { usePresentationHistoryState } from "./presentation-history-state";
@@ -133,6 +134,7 @@ interface PresentationState {
   modelId: string;
   pageStyle: string;
   presentationInput: string;
+  sourceDocument: PresentationSourceDocument | null;
   imageModel: ImageModelList;
   imageSource: "automatic" | "ai" | "stock" | "gif";
   stockImageProvider: PresentationStockImageProvider;
@@ -261,6 +263,7 @@ interface PresentationState {
   setModelId: (id: string) => void;
   setPageStyle: (style: string) => void;
   setPresentationInput: (input: string) => void;
+  setSourceDocument: (document: PresentationSourceDocument | null) => void;
   setOutline: (topics: string[]) => void;
   setSearchResults: (
     results: Array<{ query: string; results: unknown[] }>,
@@ -550,6 +553,7 @@ export const usePresentationState = create<PresentationState>()(
       modelId: "llama3.2:3b",
       pageStyle: "default",
       presentationInput: "",
+      sourceDocument: null,
       outline: [],
       searchResults: [],
       imageSearchResults: [],
@@ -1104,6 +1108,7 @@ export const usePresentationState = create<PresentationState>()(
       setGeneratedThemeData: (data) => set({ generatedThemeData: data }),
       setPageStyle: (style) => set({ pageStyle: style }),
       setPresentationInput: (input) => set({ presentationInput: input }),
+      setSourceDocument: (document) => set({ sourceDocument: document }),
       setOutline: (topics) => set({ outline: topics }),
       setSearchResults: (results) => set({ searchResults: results }),
       setImageSearchResults: (results) => set({ imageSearchResults: results }),
@@ -1309,6 +1314,7 @@ export const usePresentationState = create<PresentationState>()(
           currentPresentationOwnerId: null,
           contentVersion: 0,
           presentationInput: "",
+          sourceDocument: null,
           outline: [],
           slides: [],
           searchResults: [],
@@ -1428,6 +1434,7 @@ export const usePresentationState = create<PresentationState>()(
         pendingCreateRequest: state.pendingCreateRequest,
         presentationInput: state.presentationInput,
         presentationStyle: state.presentationStyle,
+        sourceDocument: state.sourceDocument,
         scenario: state.scenario,
         searchResults: state.searchResults,
         selectedChunks: state.selectedChunks,

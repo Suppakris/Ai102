@@ -18,6 +18,11 @@ import {
   type PresentationGenerationAspectRatio,
 } from "@/lib/presentation/aspect-ratio";
 import { buildPresentationCustomization } from "@/lib/presentation/customization";
+import { LANGUAGE_OPTIONS } from "@/lib/presentation/languages";
+import {
+  isPdfFile,
+  MAX_PDF_FILE_SIZE_BYTES,
+} from "@/lib/presentation/source-document";
 import { cn } from "@/lib/utils";
 import { usePresentationState } from "@/states/presentation-state";
 import {
@@ -33,6 +38,7 @@ import {
   Check,
   Clock3,
   Copy,
+  FileText,
   Folder,
   Globe,
   Grid2X2,
@@ -42,6 +48,7 @@ import {
   Loader2,
   MoreVertical,
   PanelsTopLeft,
+  Paperclip,
   Pencil,
   Plus,
   Search,
@@ -126,21 +133,6 @@ type LibraryTab = "all" | "recent" | "favorites";
 type ViewMode = "grid" | "list";
 type SortBy = "date-desc" | "date-asc" | "name-asc" | "name-desc";
 
-const LANGUAGE_OPTIONS = [
-  { label: "English", value: "en-US" },
-  { label: "Portuguese", value: "pt" },
-  { label: "Spanish", value: "es" },
-  { label: "French", value: "fr" },
-  { label: "German", value: "de" },
-  { label: "Italian", value: "it" },
-  { label: "Japanese", value: "ja" },
-  { label: "Korean", value: "ko" },
-  { label: "Chinese", value: "zh" },
-  { label: "Russian", value: "ru" },
-  { label: "Hindi", value: "hi" },
-  { label: "Arabic", value: "ar" },
-] as const;
-
 const SLIDE_OPTIONS = Array.from({ length: 12 }, (_, index) => ({
   label: `${index + 1} slide${index === 0 ? "" : "s"}`,
   value: String(index + 1),
@@ -218,6 +210,8 @@ function NotebookInputBox({
   isSubmitting,
   children,
   topRightContent,
+  attachmentSlot,
+  onPdfFile,
 }: {
   placeholder: string;
   value: string;
@@ -227,9 +221,65 @@ function NotebookInputBox({
   isSubmitting: boolean;
   children: ReactNode;
   topRightContent?: ReactNode;
+  attachmentSlot?: ReactNode;
+  onPdfFile?: (file: File) => void;
 }) {
+  const [isDragActive, setIsDragActive] = useState(false);
+  const dragDepthRef = useRef(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const dragContainsFiles = (event: React.DragEvent) =>
+    Array.from(event.dataTransfer.types).includes("Files");
+
+  const resetDragState = () => {
+    dragDepthRef.current = 0;
+    setIsDragActive(false);
+  };
+
+  const dropHandlers = onPdfFile
+    ? {
+        onDragEnter: (event: React.DragEvent) => {
+          if (!dragContainsFiles(event)) return;
+          event.preventDefault();
+          dragDepthRef.current += 1;
+          setIsDragActive(true);
+        },
+        onDragOver: (event: React.DragEvent) => {
+          if (!dragContainsFiles(event)) return;
+          event.preventDefault();
+        },
+        onDragLeave: (event: React.DragEvent) => {
+          if (!dragContainsFiles(event)) return;
+          dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+          if (dragDepthRef.current === 0) {
+            setIsDragActive(false);
+          }
+        },
+        onDrop: (event: React.DragEvent) => {
+          if (!dragContainsFiles(event)) return;
+          event.preventDefault();
+          resetDragState();
+          const file = event.dataTransfer.files[0];
+          if (file) {
+            onPdfFile(file);
+          }
+        },
+      }
+    : {};
+
   return (
-    <div className="relative mb-4 min-w-0 rounded-xl border border-border bg-background p-2.5 shadow sm:p-4">
+    <div
+      className="relative mb-4 min-w-0 rounded-xl border border-border bg-background p-2.5 shadow sm:p-4"
+      {...dropHandlers}
+    >
+      {isDragActive ? (
+        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-xl border-2 border-dashed border-primary bg-background/90">
+          <p className="flex items-center gap-2 text-sm font-medium text-primary">
+            <FileText className="size-4" />
+            Drop a PDF to use it as source material
+          </p>
+        </div>
+      ) : null}
       {topRightContent ? (
         <div className="absolute top-2.5 right-2.5 z-10 sm:top-4 sm:right-4">
           {topRightContent}
@@ -251,8 +301,35 @@ function NotebookInputBox({
           topRightContent ? "pr-34 sm:pr-44" : undefined,
         )}
       />
+      {attachmentSlot}
       <div className="flex min-w-0 items-center justify-between gap-2">
         <div className="min-w-0 flex-1">{children}</div>
+        {onPdfFile ? (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf,.pdf"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                  onPdfFile(file);
+                }
+                event.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              aria-label="Attach a PDF as source material"
+              title="Attach a PDF as source material"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:size-9"
+            >
+              <Paperclip className="size-4" />
+            </button>
+          </>
+        ) : null}
         <button
           type="button"
           onClick={onSubmit}
@@ -1040,7 +1117,10 @@ export function PresentationDashboard() {
     outlineItemIds,
     outlineTemplateOverrides,
     resetPresentationState,
+    sourceDocument,
+    setSourceDocument,
   } = usePresentationState();
+  const [isReadingPdf, setIsReadingPdf] = useState(false);
 
   useEffect(() => {
     setOutputFormat("flow");
@@ -1359,7 +1439,7 @@ export function PresentationDashboard() {
   }));
 
   const selectedLanguageLabel =
-    LANGUAGE_OPTIONS.find((option) => option.value === language)?.label ??
+    LANGUAGE_OPTIONS.find((option) => option.value === language)?.shortLabel ??
     "English";
   const slidesLabel =
     SLIDE_OPTIONS.find((option) => option.value === String(numSlides))?.label ??
@@ -1374,15 +1454,57 @@ export function PresentationDashboard() {
     [],
   );
 
+  const handlePdfFile = async (file: File) => {
+    if (!isPdfFile(file)) {
+      toast.error("Only PDF files can be used as source material");
+      return;
+    }
+
+    if (file.size > MAX_PDF_FILE_SIZE_BYTES) {
+      toast.error("PDF is too large (max 25MB)");
+      return;
+    }
+
+    setIsReadingPdf(true);
+    try {
+      const { extractPdfSource } = await import(
+        "@/lib/presentation/pdf-extract"
+      );
+      const source = await extractPdfSource(file);
+
+      if (!source.text) {
+        toast.error(
+          "No selectable text found in this PDF. Scanned documents are not supported.",
+        );
+        return;
+      }
+
+      setSourceDocument(source);
+    } catch (error) {
+      console.error("Failed to read PDF:", error);
+      toast.error(
+        error instanceof Error
+          ? `Failed to read the PDF: ${error.message}`
+          : "Failed to read the PDF file",
+      );
+    } finally {
+      setIsReadingPdf(false);
+    }
+  };
+
   const handleGenerate = async () => {
     const prompt = presentationInput.trim();
 
-    if (!prompt) {
+    if (!prompt && !sourceDocument) {
       return;
     }
 
     const initialTheme = resolvedTheme === "dark" ? "ebony" : "mystique";
-    const title = prompt.substring(0, 50) || "Untitled Presentation";
+    const title =
+      (prompt || sourceDocument?.name.replace(/\.pdf$/i, "") || "").substring(
+        0,
+        50,
+      ) || "Untitled Presentation";
 
     setOutputFormat("flow");
     setIsGeneratingOutline(true);
@@ -1435,12 +1557,51 @@ export function PresentationDashboard() {
       <GreetingSection />
 
       <NotebookInputBox
-        placeholder="Describe your topic or paste your content here. Our AI will structure it into a compelling presentation."
+        placeholder="Describe your topic or paste your content here — or drop a PDF to use it as source material. Our AI will structure it into a compelling presentation."
         value={presentationInput}
         onChange={setPresentationInput}
         onSubmit={handleGenerate}
-        submitDisabled={!presentationInput.trim() || isGeneratingOutline}
+        submitDisabled={
+          (!presentationInput.trim() && !sourceDocument) ||
+          isGeneratingOutline ||
+          isReadingPdf
+        }
         isSubmitting={isGeneratingOutline}
+        onPdfFile={handlePdfFile}
+        attachmentSlot={
+          isReadingPdf || sourceDocument ? (
+            <div className="mb-3 flex min-w-0 items-center gap-2">
+              <div className="flex min-w-0 items-center gap-2 rounded-full border border-border bg-accent/40 px-3 py-1.5 text-[13px] text-foreground">
+                {isReadingPdf ? (
+                  <>
+                    <Loader2 className="size-3.5 shrink-0 animate-spin" />
+                    <span>Reading PDF…</span>
+                  </>
+                ) : sourceDocument ? (
+                  <>
+                    <FileText className="size-3.5 shrink-0 text-primary" />
+                    <span className="truncate font-medium">
+                      {sourceDocument.name}
+                    </span>
+                    <span className="shrink-0 text-muted-foreground">
+                      {sourceDocument.pageCount}{" "}
+                      {sourceDocument.pageCount === 1 ? "page" : "pages"}
+                      {sourceDocument.truncated ? ", truncated" : ""}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label="Remove attached PDF"
+                      onClick={() => setSourceDocument(null)}
+                      className="flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          ) : null
+        }
       >
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <SettingPill icon={PanelsTopLeft} label={slidesLabel}>

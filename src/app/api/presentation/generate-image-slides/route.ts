@@ -6,6 +6,7 @@ import {
   modelPicker,
 } from "@/lib/modelPicker";
 import { createLogger } from "@/lib/observability/logger";
+import { getLanguageDisplayName } from "@/lib/presentation/languages";
 import { toUIMessageStream } from "@ai-sdk/langchain";
 import { auth } from "@/server/auth";
 import { PromptTemplate } from "@langchain/core/prompts";
@@ -213,7 +214,7 @@ export async function POST(req: Request) {
     const stream = await chain.stream({
       TITLE: title,
       PROMPT: userPrompt || "No specific prompt provided",
-      LANGUAGE: language,
+      LANGUAGE: getLanguageDisplayName(language),
       OUTLINE_FORMATTED: formatOutlineForPrompt(outline),
       TOTAL_SLIDES: totalSlides,
     });

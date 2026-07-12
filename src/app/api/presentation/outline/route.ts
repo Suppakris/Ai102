@@ -1,4 +1,5 @@
 import { search_tool } from "@/ai/tools/search";
+import { env } from "@/env";
 import {
   getLatestUserMessage,
   getMessageText,
@@ -10,6 +11,7 @@ import {
   modelPicker,
 } from "@/lib/modelPicker";
 import { createLogger } from "@/lib/observability/logger";
+import { getLanguageDisplayName } from "@/lib/presentation/languages";
 import { logger } from "@/lib/observability/server/logger";
 import { auth } from "@/server/auth";
 import { toBaseMessages, toUIMessageStream } from "@ai-sdk/langchain";
@@ -221,7 +223,10 @@ export async function POST(req: Request) {
     const language = metadata.language ?? "";
     const modelProvider = metadata.modelProvider ?? "ollama";
     const modelId = metadata.modelId;
-    const webSearch = Boolean(metadata.webSearch);
+    // Never bind the search tool without a Tavily key: the request would be
+    // guaranteed to fail, and merely binding tools already derails small
+    // models into emitting fake tool-call JSON instead of an outline.
+    const webSearch = Boolean(metadata.webSearch) && Boolean(env.TAVILY_API_KEY);
     const autoTheme = metadata.autoTheme ?? false;
 
     span.annotate({
@@ -258,22 +263,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const languageMap: Record<string, string> = {
-      "en-US": "English (US)",
-      pt: "Portuguese",
-      es: "Spanish",
-      fr: "French",
-      de: "German",
-      it: "Italian",
-      ja: "Japanese",
-      ko: "Korean",
-      zh: "Chinese",
-      ru: "Russian",
-      hi: "Hindi",
-      ar: "Arabic",
-    };
-
-    const actualLanguage = languageMap[language] ?? language;
+    const actualLanguage = getLanguageDisplayName(language);
     const currentDate = new Date().toLocaleDateString("en-US", {
       weekday: "long",
       year: "numeric",

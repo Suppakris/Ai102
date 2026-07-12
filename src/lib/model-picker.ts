@@ -1,6 +1,6 @@
 import { env } from "@/env";
 import { createLogger } from "@/lib/observability/logger";
-import { ChatOpenAI } from "@langchain/openai";
+import { ChatOllama } from "@langchain/ollama";
 
 const modelLogger = createLogger("model-picker");
 const OLLAMA_BASE_URL = env.OLLAMA_BASE_URL || "http://localhost:11434";
@@ -233,7 +233,12 @@ export async function ensureModelIsReady(
 /**
  * Centralized model picker for LangChain-based presentation routes.
  * Ollama-only: every selection resolves to a model served from
- * OLLAMA_BASE_URL's OpenAI-compatible endpoint.
+ * OLLAMA_BASE_URL's native API.
+ *
+ * This intentionally uses the native Ollama client, not the OpenAI-compat
+ * endpoint: /v1 silently drops Ollama options like num_ctx, so the model
+ * always ran at Ollama's default context (4096) no matter what
+ * OLLAMA_NUM_CTX was set to. The native API honors numCtx per request.
  */
 export function modelPicker(modelProviderOrModel: string, modelId?: string) {
   const resolvedModelId = resolveModelId(modelProviderOrModel, modelId);
@@ -241,23 +246,16 @@ export function modelPicker(modelProviderOrModel: string, modelId?: string) {
   modelLogger.info("Creating Ollama model client", {
     provider: "ollama",
     modelId: resolvedModelId,
-    baseUrl: `${OLLAMA_BASE_URL}/v1`,
+    baseUrl: OLLAMA_BASE_URL,
   });
 
-  return new ChatOpenAI({
+  return new ChatOllama({
     model: resolvedModelId,
-    apiKey: "ollama",
+    baseUrl: OLLAMA_BASE_URL,
+    numCtx: OLLAMA_NUM_CTX,
     ...(OLLAMA_MAX_OUTPUT_TOKENS !== undefined && {
-      maxTokens: OLLAMA_MAX_OUTPUT_TOKENS,
+      numPredict: OLLAMA_MAX_OUTPUT_TOKENS,
     }),
-    configuration: {
-      baseURL: `${OLLAMA_BASE_URL}/v1`,
-    },
-    modelKwargs: {
-      options: {
-        num_ctx: OLLAMA_NUM_CTX,
-      },
-    },
   });
 }
 //0

@@ -42,6 +42,7 @@
     "@langchain/core": "1.1.42",
     "@langchain/langgraph": "^1.2.3",
     "@langchain/langgraph-checkpoint-postgres": "^1.0.1",
+    "@langchain/ollama": "^1.2.0",
     "@langchain/openai": "1.4.5",
     "@langchain/pinecone": "1.0.1",
     "@pinecone-database/pinecone": "5.0.2",
