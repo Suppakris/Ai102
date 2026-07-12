@@ -69,13 +69,12 @@ This fork disables everything that requires a paid account or a login system, so
 | ------------------- | -------------------------------------------------------------------- |
 | **Framework**       | Next.js 16, React 19, TypeScript                                     |
 | **Styling**         | Tailwind CSS v4                                                      |
-| **Database**        | PostgreSQL with Prisma ORM (Neon and node-postgres adapters both present) |
+| **Database**        | Supabase with Prisma ORM.                                            |
 | **Text Generation**| Ollama (local, OpenAI-compatible endpoint), via LangChain + LangGraph agent |
 | **Image Generation**| FAL (Flux models, primary), Together AI (secondary path)             |
 | **UI Components**   | Radix UI                                                              |
 | **Text Editor**     | Plate Editor (`platejs`)                                             |
 | **File Uploads**     | UploadThing                                                          |
-| **Drag & Drop**      | DND Kit                                                              |
 | **Lint/Format**      | Biome (canonical — see `lint`/`check` scripts)                       |
 
 ## 🚀 Getting Started
