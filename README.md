@@ -177,7 +177,7 @@ High-level map of `src/`:
   └── actions/` — Server Actions for image generation, notebook/presentation CRUD, and the image-studio tool (multi-provider image search).
 ```
 ```text
-  └── ai/` — the presentation-editing agent: `agents/presentation/createAgent.ts` (LangGraph agent with Postgres-backed chat memory), `tools/` (slide/theme/image editing tools + web search), `lib/` (Postgres checkpointing, pasted-content middleware).
+  └── ai/` — the presentation-editing agent: `agents/presentation/createAgent.ts` (LangGraph agent with Supabase-backed chat memory), `tools/` (slide/theme/image editing tools + web search), `lib/` (Postgres checkpointing, pasted-content middleware).
   └── components/notebook/` — the primary implementation of the slide-outline UI, theming UI, editor plugins, and image editor. "Notebook" here just means "a presentation project" — it's not a separate note-taking product. Includes a small early-stage `notes/` sub-mode.
   └── components/presentation/` — the app-shell/viewer chrome (sidebar, edit panel, zoom/scroll, present mode) that composes pieces from `components/notebook/`.
 ```
