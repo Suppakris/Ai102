@@ -81,7 +81,7 @@ This fork disables everything that requires a paid account or a login system, so
 
 ### Prerequisites
 
-- Node.js 18.x or higher
+- Next.js 16
 - pnpm (repo is pinned to `pnpm@11.1.3`; uses `pnpm-lock.yaml` / `pnpm-workspace.yaml`)
 - PostgreSQL database (Supabase or Neon both confirmed to work)
 - [Ollama](https://ollama.com) installed and running locally, with at least one model pulled (e.g. `ollama pull llama3.2:3b`)
