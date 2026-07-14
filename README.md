@@ -155,14 +155,14 @@ All optional integrations degrade gracefully when unset — features that need t
 The schema is managed with **SQL migrations** (`prisma/migrations/`). Once `DATABASE_URL` is set:
 
 ```bash
-pnpm db:deploy      # prisma migrate deploy — applies all pending migrations
+pnpm db:migrate:deploy   # prisma migrate deploy — applies all pending migrations
 pnpm db:studio      # optional: browse the DB with Prisma Studio
 ```
 
 When you change `prisma/schema.prisma`, create a new migration (this also applies it to your dev database):
 
 ```bash
-pnpm db:migrate     # prisma migrate dev — generates a new SQL migration from the schema diff
+pnpm db:migrate:dev      # prisma migrate dev — generates a new SQL migration from the schema diff
 ```
 
 Commit the generated folder under `prisma/migrations/` — that SQL file *is* the schema change. `pnpm db:push` still exists for throwaway prototyping, but it bypasses migration history; don't use it on a shared database.
@@ -197,7 +197,7 @@ Work is split into two independent tracks so both can move in parallel without s
 | --- | --- | --- |
 | **Owns** | Prompt templates, agent behavior, model/provider selection, output quality | Docker, database migrations, environment config, deployment |
 | **Files** | `src/ai/**`, `src/lib/presentation/*prompt*`, `src/lib/model-picker.ts`, `src/app/api/presentation/**` | `Dockerfile`, `docker-compose.yml`, `prisma/migrations/**`, `prisma/schema.prisma`, `.env.example`, Vercel settings |
-| **Test loop** | Run the app against OpenRouter (`LLM_PROVIDER=openrouter`) for reproducible model behavior, or local Ollama for free iteration; judge output with the slide verification agent (`POST /api/presentation/verify`) | `docker compose up --build` must boot a working app from a clean checkout; schema changes ship as SQL migrations via `pnpm db:migrate` |
+| **Test loop** | Run the app against OpenRouter (`LLM_PROVIDER=openrouter`) for reproducible model behavior, or local Ollama for free iteration; judge output with the slide audit agent (`POST /api/presentation/audit-slide`) | `docker compose up --build` must boot a working app from a clean checkout; schema changes ship as SQL migrations via `pnpm db:migrate:dev` |
 | **PR scope** | Prompt/agent changes only — no infra files | Infra changes only — no prompt edits |
 
 Rules of the road:
