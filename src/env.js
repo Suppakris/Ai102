@@ -10,6 +10,14 @@ export const env = createEnv({
       .default("development"),
 
     OPENAI_API_KEY: z.string().optional(),
+    // Text-generation backend. "ollama" (default) serves models from
+    // OLLAMA_BASE_URL; "openrouter" routes every text request through
+    // OpenRouter's OpenAI-compatible API (requires OPENROUTER_API_KEY).
+    LLM_PROVIDER: z.enum(["ollama", "openrouter"]).optional(),
+    OPENROUTER_API_KEY: z.string().optional(),
+    OPENROUTER_BASE_URL: z.string().url().optional(),
+    OPENROUTER_DEFAULT_MODEL: z.string().optional(),
+    OPENROUTER_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
     OLLAMA_BASE_URL: z.string().optional(),
     OLLAMA_DEFAULT_MODEL: z.string().optional(),
     OLLAMA_NUM_CTX: z.coerce.number().int().positive().optional(),
@@ -37,6 +45,11 @@ export const env = createEnv({
     TAVILY_API_KEY: process.env.TAVILY_API_KEY,
     NODE_ENV: process.env.NODE_ENV,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    LLM_PROVIDER: process.env.LLM_PROVIDER,
+    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+    OPENROUTER_BASE_URL: process.env.OPENROUTER_BASE_URL,
+    OPENROUTER_DEFAULT_MODEL: process.env.OPENROUTER_DEFAULT_MODEL,
+    OPENROUTER_MAX_OUTPUT_TOKENS: process.env.OPENROUTER_MAX_OUTPUT_TOKENS,
     OLLAMA_BASE_URL: process.env.OLLAMA_BASE_URL,
     OLLAMA_DEFAULT_MODEL: process.env.OLLAMA_DEFAULT_MODEL,
     OLLAMA_NUM_CTX: process.env.OLLAMA_NUM_CTX,

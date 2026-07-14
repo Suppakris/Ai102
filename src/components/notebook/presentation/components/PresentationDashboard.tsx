@@ -11,6 +11,12 @@ import {
   duplicatePresentation,
   updatePresentationTitle,
 } from "@/app/_actions/notebook/presentation/presentationActions";
+import {
+  type ClarifyAnswer,
+  type ClarifyQuestion,
+  type ClarifySettings,
+} from "@/ai/agents/clarify/clarify";
+import { ClarifyDialog } from "@/components/notebook/presentation/components/ClarifyDialog";
 import { ModelPicker } from "@/components/notebook/presentation/components/ModelPicker";
 import { useBlankPresentationCreator } from "@/hooks/presentation/useBlankPresentationCreator";
 import {
@@ -1112,6 +1118,10 @@ export function PresentationDashboard() {
     tone,
     audience,
     scenario,
+    setTextContent,
+    setTone,
+    setAudience,
+    setScenario,
     pageBackground,
     selectedSlideTemplates,
     outlineItemIds,
@@ -1121,6 +1131,12 @@ export function PresentationDashboard() {
     setSourceDocument,
   } = usePresentationState();
   const [isReadingPdf, setIsReadingPdf] = useState(false);
+  const [clarifyQuestions, setClarifyQuestions] = useState<ClarifyQuestion[]>(
+    [],
+  );
+  const [isClarifyOpen, setIsClarifyOpen] = useState(false);
+  const [isClarifying, setIsClarifying] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
 
   useEffect(() => {
     setOutputFormat("flow");
@@ -1492,8 +1508,11 @@ export function PresentationDashboard() {
     }
   };
 
-  const handleGenerate = async () => {
-    const prompt = presentationInput.trim();
+  const proceedWithGeneration = async (overrides?: {
+    prompt?: string;
+    settings?: ClarifySettings;
+  }) => {
+    const prompt = (overrides?.prompt ?? presentationInput).trim();
 
     if (!prompt && !sourceDocument) {
       return;
@@ -1510,6 +1529,9 @@ export function PresentationDashboard() {
     setIsGeneratingOutline(true);
     setTheme(initialTheme);
 
+    // The zustand setters fired by the clarify flow don't refresh this
+    // closure's destructured values, so interview results arrive as
+    // explicit overrides.
     const customization = buildPresentationCustomization({
       customThemeData,
       themeDataByTheme,
@@ -1518,10 +1540,10 @@ export function PresentationDashboard() {
       pageStyle,
       presentationStyle,
       generationAspectRatio,
-      textContent,
-      tone,
-      audience,
-      scenario,
+      textContent: overrides?.settings?.textContent ?? textContent,
+      tone: overrides?.settings?.tone ?? tone,
+      audience: overrides?.settings?.audience ?? audience,
+      scenario: overrides?.settings?.scenario ?? scenario,
       pageBackground,
       selectedSlideTemplates,
       outlineItemIds,
@@ -1552,6 +1574,104 @@ export function PresentationDashboard() {
     }
   };
 
+  // Pre-generation interview: ask the clarify agent for 2-4 questions about
+  // the topic before anything is generated. Fails open — any error in the
+  // interview falls through to direct generation, never blocks it.
+  const handleGenerate = async () => {
+    const prompt = presentationInput.trim();
+
+    if (!prompt && !sourceDocument) {
+      return;
+    }
+
+    setIsClarifying(true);
+    try {
+      const response = await fetch("/api/presentation/clarify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          sourceDocumentName: sourceDocument?.name,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`Clarify request failed (${response.status})`);
+      }
+      const result = (await response.json()) as {
+        ready: boolean;
+        questions?: ClarifyQuestion[];
+      };
+      if (!result.ready && result.questions && result.questions.length > 0) {
+        setClarifyQuestions(result.questions);
+        setIsClarifyOpen(true);
+        return;
+      }
+      await proceedWithGeneration();
+    } catch (error) {
+      console.error("Clarify step failed; generating directly:", error);
+      await proceedWithGeneration();
+    } finally {
+      setIsClarifying(false);
+    }
+  };
+
+  const handleClarifySubmit = async (answers: ClarifyAnswer[]) => {
+    const prompt = presentationInput.trim();
+    setIsRefining(true);
+    try {
+      const response = await fetch("/api/presentation/clarify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          sourceDocumentName: sourceDocument?.name,
+          answers,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`Clarify request failed (${response.status})`);
+      }
+      const result = (await response.json()) as {
+        ready: boolean;
+        refinedPrompt?: string;
+        settings?: ClarifySettings;
+      };
+      if (!result.ready || !result.refinedPrompt) {
+        throw new Error("Clarify agent returned no refined brief");
+      }
+
+      // Show the user what will actually be generated, and persist the
+      // mapped settings so the rest of the UI reflects them too.
+      setPresentationInput(result.refinedPrompt);
+      if (result.settings?.tone) setTone(result.settings.tone);
+      if (result.settings?.audience) setAudience(result.settings.audience);
+      if (result.settings?.scenario) setScenario(result.settings.scenario);
+      if (result.settings?.textContent)
+        setTextContent(result.settings.textContent);
+
+      setIsClarifyOpen(false);
+      await proceedWithGeneration({
+        prompt: result.refinedPrompt,
+        settings: result.settings,
+      });
+    } catch (error) {
+      console.error(
+        "Clarify refine failed; generating with the original prompt:",
+        error,
+      );
+      toast.error("Couldn't refine the brief — generating with your prompt as-is");
+      setIsClarifyOpen(false);
+      await proceedWithGeneration();
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
+  const handleClarifySkip = () => {
+    setIsClarifyOpen(false);
+    void proceedWithGeneration();
+  };
+
   return (
     <NotebookPageLayout>
       <GreetingSection />
@@ -1564,9 +1684,10 @@ export function PresentationDashboard() {
         submitDisabled={
           (!presentationInput.trim() && !sourceDocument) ||
           isGeneratingOutline ||
+          isClarifying ||
           isReadingPdf
         }
-        isSubmitting={isGeneratingOutline}
+        isSubmitting={isGeneratingOutline || isClarifying}
         onPdfFile={handlePdfFile}
         attachmentSlot={
           isReadingPdf || sourceDocument ? (
@@ -1705,6 +1826,15 @@ export function PresentationDashboard() {
           ) : null}
         </div>
       ) : null}
+
+      <ClarifyDialog
+        open={isClarifyOpen}
+        questions={clarifyQuestions}
+        isSubmitting={isRefining}
+        onSubmit={handleClarifySubmit}
+        onSkip={handleClarifySkip}
+        onOpenChange={setIsClarifyOpen}
+      />
     </NotebookPageLayout>
   );
 }
