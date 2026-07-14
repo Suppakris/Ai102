@@ -193,3 +193,19 @@ model GeneratedImage {
   prompt    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+// Audit reports produced by the slide verification pipeline
+// (POST /api/presentation/audit-slide) — one row per audit round.
+model SlideAudit {
+  id            String   @id @default(cuid())
+  slideId       String
+  round         Int      @default(0)
+  score         Int?
+  pass          Boolean  @default(false)
+  claims        Json?
+  revisionNotes Json?    @map("revision_notes")
+  reviewerNotes Json?    @map("reviewer_notes")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([slideId])
+}
