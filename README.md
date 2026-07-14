@@ -1,6 +1,6 @@
 # Ai102
 
-A local-first AI presentation generator — a customized, Ollama-only build derived from [ALLWEONE's presentation-ai](https://github.com/allweonedev/presentation-ai), stripped down for a college project. No cloud LLM required, no login wall.
+A local-first AI presentation generator — a customized build derived from [ALLWEONE's presentation-ai](https://github.com/allweonedev/presentation-ai), stripped down for a college project. Text generation runs on local Ollama by default, or through OpenRouter for reproducible prompt testing. No login wall.
 
 ## 🔗 Quick Links
 
@@ -30,7 +30,8 @@ A local-first AI presentation generator — a customized, Ollama-only build deri
 This fork disables everything that requires a paid account or a login system, so it can run as a self-contained coursework build:
 
 - **Auth is disabled.** `src/server/auth.ts` is stubbed to always return a fixed demo admin user. No Google OAuth, no `NEXTAUTH_*` vars needed. Because the demo user's role is always `ADMIN`, every "admin-only" feature (see Known Issues) is effectively open to everyone in this build. To restore real login, revert that file and set the Google/NextAuth env vars again.
-- **Text generation is Ollama-only.** All cloud text providers (OpenAI, LM Studio, OpenRouter, Groq/BYOK) have been removed from `src/lib/model-picker.ts`. Every request resolves to a model served from `OLLAMA_BASE_URL`'s OpenAI-compatible endpoint. Legacy provider values (`openai`, `lmstudio`) from old persisted client state are caught and silently redirected to the default Ollama model instead of erroring.
+- **Text generation has two backends, selected by env.** Local Ollama is the default; setting `LLM_PROVIDER=openrouter` routes every text request through OpenRouter's OpenAI-compatible API instead (`src/lib/model-picker.ts`) — used for prompt testing, where results must not depend on whose machine ran the model. Per-user BYOK cloud providers (OpenAI, LM Studio, Groq) remain removed. Legacy provider values (`openai`, `lmstudio`) from old persisted client state are caught and silently redirected to the default model instead of erroring.
+- **Slide verification agents.** `POST /api/presentation/verify` runs a two-agent quality pipeline over a generated slide: a verifier agent scores it against a rubric (schema, factual grounding, language, layout) reasoning step-by-step and asking questions instead of guessing when context is missing; below-threshold slides are regenerated from the verifier's fixes in a bounded loop; an independent reviewer agent then double-checks the verdict and returns recommendations (`src/ai/agents/verification/`).
 - **Image generation still uses cloud providers** — FAL (Flux models) is the default and primary path (`src/app/_actions/presentation/generate-slide-image.ts`), with a Together AI path also present as a secondary/legacy provider (`src/app/_actions/image/generate.ts`).
 
 ## 🌟 Features
@@ -72,7 +73,7 @@ This fork disables everything that requires a paid account or a login system, so
 | **Framework**       | Next.js 16, React 19, TypeScript                                     |
 | **Styling**         | Tailwind CSS v4                                                      |
 | **Database**        | Supabase with Prisma ORM.                                            |
-| **Text Generation**| Ollama (local, OpenAI-compatible endpoint), via LangChain + LangGraph agent |
+| **Text Generation**| Ollama (local, default) or OpenRouter (`LLM_PROVIDER=openrouter`), via LangChain + LangGraph agent |
 | **Image Generation**| FAL (Flux models, primary), Together AI (secondary path)             |
 | **UI Components**   | Radix UI                                                              |
 | **Text Editor**     | Plate Editor (`platejs`)                                             |
@@ -138,6 +139,10 @@ Copy `.env.example` to `.env` and fill in what you need. `.env.example` is the s
 | --- | --- | --- |
 | `DATABASE_URL` | **Required** | Postgres connection string, used at runtime and for migrations. For Supabase, use the **Transaction pooler** (port 6543) — this app runs on Vercel serverless functions, and Session/Direct connections exhaust a pooler's max-clients limit fast since they're held for the life of the client instead of released per query. |
 | `FAL_API_KEY` | Optional | Primary AI image provider (FAL/Flux). Without it, image generation fails gracefully with a "not configured" error. |
+| `LLM_PROVIDER` | Optional | Text-generation backend: `ollama` (default, local) or `openrouter` (hosted, reproducible — used for prompt testing). |
+| `OPENROUTER_API_KEY` | With `LLM_PROVIDER=openrouter` | OpenRouter API key ([openrouter.ai/keys](https://openrouter.ai/keys)). |
+| `OPENROUTER_BASE_URL` | Optional | Override the OpenRouter endpoint (default `https://openrouter.ai/api/v1`); point it at any local OpenAI-compatible server to exercise the same code path locally. |
+| `OPENROUTER_DEFAULT_MODEL` | Optional | OpenRouter model when the client didn't pick one (default `meta-llama/llama-3.3-70b-instruct:free`). |
 | `OLLAMA_BASE_URL` | Optional | Point at a remote/tunneled Ollama instance (e.g. via ngrok) instead of localhost. |
 | `OLLAMA_DEFAULT_MODEL` | Optional | Override the default model (`llama3.2:3b`). |
 | `OLLAMA_NUM_CTX` | Optional | Context window in tokens (default: 8192). Ollama's own default (often 2048) is smaller than this app's generation system prompt, which makes the model see truncated instructions and produce broken decks. Lower it only if generation requests start timing out on slow/CPU-only hardware. |
@@ -229,7 +234,7 @@ High-level map of `src/`:
   └── components/presentation/` — the app-shell/viewer chrome (sidebar, edit panel, zoom/scroll, present mode) that composes pieces from `components/notebook/`.
 ```
 ```text
-  └── lib/model-picker.ts` — the Ollama-only LLM resolver (see [What's Different From Upstream](#-whats-different-from-upstream)).
+  └── lib/model-picker.ts` — the LLM resolver: Ollama by default, OpenRouter when LLM_PROVIDER=openrouter (see [What's Different From Upstream](#-whats-different-from-upstream)).
   └── lib/notebook/` — data model for attaching source files to a presentation project, and the agent activity timeline shown in the chat UI.
   └── lib/presentation/themes.ts` — built-in theme definitions.
   └── lib/observability/` — a homegrown, console-only structured logger. No external service (no Sentry/PostHog/etc.) is wired up — nothing to configure here.
