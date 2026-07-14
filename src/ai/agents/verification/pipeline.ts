@@ -10,7 +10,15 @@ import {
   VERIFIER_SYSTEM_PROMPT,
 } from "./prompts";
 
-const pipelineLogger = createLogger("slide-verification");
+const pipelineLogger = createLogger("slide-audit");
+
+export type ClaimStatus = "SUPPORTED" | "UNSUPPORTED" | "INSUFFICIENT_CONTEXT";
+
+export interface AuditedClaim {
+  claim: string;
+  status: ClaimStatus;
+  note: string;
+}
 
 export interface SlideIssue {
   criterion: string;
@@ -20,20 +28,20 @@ export interface SlideIssue {
 
 export interface VerifierVerdict {
   steps: string[];
-  schemaScore: number;
-  groundingScore: number;
-  languageScore: number;
-  layoutScore: number;
+  claims: AuditedClaim[];
+  contentAccuracy: number;
+  outlineAlignment: number;
+  clarityStructure: number;
+  designConsistency: number;
   score: number;
   issues: SlideIssue[];
   questions: string[];
 }
 
 export interface ReviewerReport {
-  verdict: "approve" | "needs_work";
-  agreesWithVerifier: boolean;
-  missedIssues: string[];
-  overturnedIssues: string[];
+  agreement: "confirm" | "revise_up" | "revise_down";
+  adjustedScore: number;
+  notes: string[];
   recommendations: string[];
 }
 
@@ -41,6 +49,7 @@ export interface VerificationAttempt {
   attempt: number;
   score: number;
   passed: boolean;
+  claims: AuditedClaim[];
   issues: SlideIssue[];
   questions: string[];
 }
@@ -56,10 +65,13 @@ export interface VerificationLoopResult {
 
 export interface VerificationLoopInput {
   slideXml: string;
-  /** Source material the slide's claims are checked against. */
+  /** The outline item this slide is supposed to cover. */
+  outline: string;
+  /** Source material (PDF extract, prompt, research) to ground claims in. */
   context: string;
   /** Display name, e.g. "Thai" — matches getLanguageDisplayName output. */
   language: string;
+  /** Minimum passing overall score, 0-100. */
   threshold: number;
   maxAttempts: number;
   modelProviderOrModel: string;
@@ -112,20 +124,42 @@ function extractSlideXml(raw: string): string {
   return raw.slice(start, end + "</SECTION>".length);
 }
 
-function clampScore(value: unknown): number {
+function clampScore(value: unknown, max: number): number {
   const n = typeof value === "number" ? value : Number(value);
   if (Number.isNaN(n)) return 0;
-  return Math.max(0, Math.min(10, Math.round(n)));
+  return Math.max(0, Math.min(max, Math.round(n)));
+}
+
+function normalizeClaimStatus(value: unknown): ClaimStatus {
+  return value === "SUPPORTED" || value === "UNSUPPORTED"
+    ? value
+    : "INSUFFICIENT_CONTEXT";
 }
 
 function normalizeVerdict(raw: Partial<VerifierVerdict>): VerifierVerdict {
+  const contentAccuracy = clampScore(raw.contentAccuracy, 40);
+  const outlineAlignment = clampScore(raw.outlineAlignment, 30);
+  const clarityStructure = clampScore(raw.clarityStructure, 20);
+  const designConsistency = clampScore(raw.designConsistency, 10);
+  // The overall score is defined as the sum of the four criteria; recompute
+  // it rather than trusting the model's own arithmetic.
+  const score =
+    contentAccuracy + outlineAlignment + clarityStructure + designConsistency;
+
   return {
     steps: Array.isArray(raw.steps) ? raw.steps.map(String) : [],
-    schemaScore: clampScore(raw.schemaScore),
-    groundingScore: clampScore(raw.groundingScore),
-    languageScore: clampScore(raw.languageScore),
-    layoutScore: clampScore(raw.layoutScore),
-    score: clampScore(raw.score),
+    claims: Array.isArray(raw.claims)
+      ? raw.claims.map((claim) => ({
+          claim: String(claim?.claim ?? ""),
+          status: normalizeClaimStatus(claim?.status),
+          note: String(claim?.note ?? ""),
+        }))
+      : [],
+    contentAccuracy,
+    outlineAlignment,
+    clarityStructure,
+    designConsistency,
+    score,
     issues: Array.isArray(raw.issues)
       ? raw.issues.map((issue) => ({
           criterion: String(issue?.criterion ?? "general"),
@@ -137,16 +171,21 @@ function normalizeVerdict(raw: Partial<VerifierVerdict>): VerifierVerdict {
   };
 }
 
-function normalizeReview(raw: Partial<ReviewerReport>): ReviewerReport {
+function normalizeReview(
+  raw: Partial<ReviewerReport>,
+  verifierScore: number,
+): ReviewerReport {
+  const agreement =
+    raw.agreement === "revise_up" || raw.agreement === "revise_down"
+      ? raw.agreement
+      : "confirm";
   return {
-    verdict: raw.verdict === "approve" ? "approve" : "needs_work",
-    agreesWithVerifier: Boolean(raw.agreesWithVerifier),
-    missedIssues: Array.isArray(raw.missedIssues)
-      ? raw.missedIssues.map(String)
-      : [],
-    overturnedIssues: Array.isArray(raw.overturnedIssues)
-      ? raw.overturnedIssues.map(String)
-      : [],
+    agreement,
+    adjustedScore:
+      agreement === "confirm"
+        ? verifierScore
+        : clampScore(raw.adjustedScore, 100),
+    notes: Array.isArray(raw.notes) ? raw.notes.map(String) : [],
     recommendations: Array.isArray(raw.recommendations)
       ? raw.recommendations.map(String)
       : [],
@@ -154,12 +193,12 @@ function normalizeReview(raw: Partial<ReviewerReport>): ReviewerReport {
 }
 
 /**
- * Verify → (fail) → improve → re-verify, up to maxAttempts, then hand the
+ * Audit → (fail) → improve → re-audit, up to maxAttempts, then hand the
  * final slide to an independent reviewer agent for a second check.
  *
  * The loop is bounded and monotone in intent, not guaranteed in outcome: a
  * slide can come back from the improver worse than it went in, so `passed`
- * reflects the LAST verifier verdict, and the full attempt history is
+ * reflects the LAST auditor verdict, and the full attempt history is
  * returned for the caller to judge.
  */
 export async function runVerificationLoop(
@@ -177,6 +216,7 @@ export async function runVerificationLoop(
       new HumanMessage(
         buildVerifierUserMessage({
           slideXml: currentXml,
+          outline: input.outline,
           context: input.context,
           language: input.language,
         }),
@@ -186,7 +226,7 @@ export async function runVerificationLoop(
     verdict = normalizeVerdict(
       extractJson<Partial<VerifierVerdict>>(
         messageContentToString(verifierResponse.content),
-        "Verifier",
+        "Auditor",
       ),
     );
 
@@ -195,14 +235,16 @@ export async function runVerificationLoop(
       attempt,
       score: verdict.score,
       passed,
+      claims: verdict.claims,
       issues: verdict.issues,
       questions: verdict.questions,
     });
-    pipelineLogger.info("Slide verification attempt scored", {
+    pipelineLogger.info("Slide audit attempt scored", {
       attempt,
       score: verdict.score,
       threshold: input.threshold,
       passed,
+      claimCount: verdict.claims.length,
       issueCount: verdict.issues.length,
       questionCount: verdict.questions.length,
     });
@@ -216,6 +258,7 @@ export async function runVerificationLoop(
       new HumanMessage(
         buildImproverUserMessage({
           slideXml: currentXml,
+          outline: input.outline,
           context: input.context,
           language: input.language,
           issues: verdict.issues,
@@ -226,14 +269,14 @@ export async function runVerificationLoop(
     currentXml = extractSlideXml(
       messageContentToString(improverResponse.content),
     );
-    pipelineLogger.info("Slide regenerated from verification feedback", {
+    pipelineLogger.info("Slide regenerated from audit feedback", {
       attempt,
       slideXmlLength: currentXml.length,
     });
   }
 
   if (!verdict) {
-    throw new Error("Verification loop produced no verdict");
+    throw new Error("Audit loop produced no verdict");
   }
 
   const reviewerResponse = await model.invoke([
@@ -241,6 +284,7 @@ export async function runVerificationLoop(
     new HumanMessage(
       buildReviewerUserMessage({
         slideXml: currentXml,
+        outline: input.outline,
         context: input.context,
         language: input.language,
         verifierReportJson: JSON.stringify(verdict, null, 2),
@@ -252,6 +296,7 @@ export async function runVerificationLoop(
       messageContentToString(reviewerResponse.content),
       "Reviewer",
     ),
+    verdict.score,
   );
 
   return {

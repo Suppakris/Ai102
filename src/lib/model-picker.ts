@@ -9,12 +9,18 @@ const modelLogger = createLogger("model-picker");
  * Which backend serves text generation. Ollama remains the local default;
  * setting LLM_PROVIDER=openrouter routes every text request through
  * OpenRouter's OpenAI-compatible API instead — same prompts, same routes,
- * reproducible hosted models for prompt testing.
+ * reproducible hosted models for prompt testing. A request may also opt
+ * into OpenRouter explicitly by sending modelProvider "openrouter" (used
+ * by the slide audit agents) without flipping the whole deployment.
  */
 export type TextProvider = "ollama" | "openrouter";
 
 export const TEXT_PROVIDER: TextProvider =
   env.LLM_PROVIDER === "openrouter" ? "openrouter" : "ollama";
+
+function resolveProvider(modelProviderOrModel: string): TextProvider {
+  return modelProviderOrModel === "openrouter" ? "openrouter" : TEXT_PROVIDER;
+}
 
 const OPENROUTER_BASE_URL =
   env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1";
@@ -260,10 +266,10 @@ export function assertModelIsConfigured(
   modelProviderOrModel: string,
   modelId?: string,
 ) {
-  if (TEXT_PROVIDER === "openrouter") {
+  if (resolveProvider(modelProviderOrModel) === "openrouter") {
     if (!env.OPENROUTER_API_KEY) {
       throw new Error(
-        "LLM_PROVIDER is set to openrouter but OPENROUTER_API_KEY is not configured.",
+        "The openrouter provider was selected but OPENROUTER_API_KEY is not configured.",
       );
     }
     modelLogger.info("Model configuration validated", {
@@ -285,7 +291,7 @@ export async function ensureModelIsReady(
   modelProviderOrModel: string,
   modelId?: string,
 ) {
-  if (TEXT_PROVIDER === "openrouter") {
+  if (resolveProvider(modelProviderOrModel) === "openrouter") {
     // Hosted models need no local pull; the key check happens in
     // assertModelIsConfigured and per-request errors surface from the API.
     return;
@@ -304,8 +310,13 @@ export async function ensureModelIsReady(
  * always ran at Ollama's default context (4096) no matter what
  * OLLAMA_NUM_CTX was set to. The native API honors numCtx per request.
  */
+/** True when a request can opt into the openrouter provider. */
+export function isOpenRouterAvailable(): boolean {
+  return Boolean(env.OPENROUTER_API_KEY);
+}
+
 export function modelPicker(modelProviderOrModel: string, modelId?: string) {
-  if (TEXT_PROVIDER === "openrouter") {
+  if (resolveProvider(modelProviderOrModel) === "openrouter") {
     const openRouterModelId = resolveOpenRouterModelId(
       modelProviderOrModel,
       modelId,
