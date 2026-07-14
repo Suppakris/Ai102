@@ -251,8 +251,12 @@ function resolveOpenRouterModelId(
   modelProviderOrModel: string,
   modelId?: string,
 ): string {
+  // When a provider name was sent, the model lives in modelId; otherwise the
+  // first argument is itself a bare model id.
   const requested =
-    modelProviderOrModel === "ollama" || LEGACY_PROVIDERS.has(modelProviderOrModel)
+    modelProviderOrModel === "openrouter" ||
+    modelProviderOrModel === "ollama" ||
+    LEGACY_PROVIDERS.has(modelProviderOrModel)
       ? modelId?.trim()
       : modelProviderOrModel.trim();
 
