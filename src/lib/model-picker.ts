@@ -34,6 +34,15 @@ export const DEFAULT_OPENROUTER_MODEL =
   env.OPENROUTER_DEFAULT_MODEL?.trim() ||
   "meta-llama/llama-3.3-70b-instruct:free";
 
+/**
+ * Cap on completion tokens for OpenRouter requests. Without an explicit
+ * max_tokens, OpenRouter pre-authorizes the model's maximum output (65k+ on
+ * some models) against the account balance and 402s small accounts even
+ * though the actual response would cost a fraction of that. 8192 covers the
+ * largest response this app produces (a 2-slide generation batch).
+ */
+const OPENROUTER_MAX_OUTPUT_TOKENS = env.OPENROUTER_MAX_OUTPUT_TOKENS ?? 8192;
+
 const OLLAMA_BASE_URL = env.OLLAMA_BASE_URL || "http://localhost:11434";
 const OLLAMA_TAGS_URL = `${OLLAMA_BASE_URL}/api/tags`;
 const OLLAMA_PULL_URL = `${OLLAMA_BASE_URL}/api/pull`;
@@ -335,6 +344,7 @@ export function modelPicker(modelProviderOrModel: string, modelId?: string) {
     return new ChatOpenAI({
       model: openRouterModelId,
       apiKey: env.OPENROUTER_API_KEY,
+      maxTokens: OPENROUTER_MAX_OUTPUT_TOKENS,
       configuration: {
         baseURL: OPENROUTER_BASE_URL,
       },
