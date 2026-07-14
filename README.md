@@ -39,6 +39,7 @@ This fork disables everything that requires a paid account or a login system, so
 ### Core Functionality
 
 - AI-powered outline generation, then full slide generation, running on a local Ollama model
+- Pre-generation interview: before generating, a clarify agent asks 2–4 quick questions about the topic (style? purpose? audience?), then folds the answers into the prompt and generation settings — skippable, and generation proceeds normally if the agent is unavailable
 - Editable outlines before finalizing
 - Real-time slide generation
 - Auto-save
