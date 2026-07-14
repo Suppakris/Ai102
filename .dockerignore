@@ -1,0 +1,13 @@
+.git
+.next
+node_modules
+prisma/generated
+prisma/local/generated
+tsconfig.tsbuildinfo
+.env
+.env.*
+!.env.example
+.vercel
+Dockerfile
+docker-compose.yml
+*.log

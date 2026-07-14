@@ -16,6 +16,8 @@ A local-first AI presentation generator — a customized, Ollama-only build deri
   - [Installation](#installation)
   - [Environment Variables](#environment-variables)
   - [Database Setup](#database-setup)
+  - [Run on Docker](#run-on-docker)
+- [Team Workflow](#-team-workflow)
 - [Usage](#-usage)
 - [Project Structure](#-project-structure)
 - [Known Issues](#-known-issues)
@@ -150,14 +152,59 @@ All optional integrations degrade gracefully when unset — features that need t
 
 ### Database Setup
 
-Once `DATABASE_URL` is set:
+The schema is managed with **SQL migrations** (`prisma/migrations/`). Once `DATABASE_URL` is set:
 
 ```bash
-pnpm db:push       # prisma generate + prisma db push — applies the schema
+pnpm db:deploy      # prisma migrate deploy — applies all pending migrations
 pnpm db:studio      # optional: browse the DB with Prisma Studio
 ```
 
+When you change `prisma/schema.prisma`, create a new migration (this also applies it to your dev database):
+
+```bash
+pnpm db:migrate     # prisma migrate dev — generates a new SQL migration from the schema diff
+```
+
+Commit the generated folder under `prisma/migrations/` — that SQL file *is* the schema change. `pnpm db:push` still exists for throwaway prototyping, but it bypasses migration history; don't use it on a shared database.
+
+> **Migrating an existing `db push` database:** if your DB already has the schema (created via `db:push` before migrations existed), baseline it once instead of re-running the initial migration:
+> `pnpm exec prisma migrate resolve --applied 0_init`
+
 There's no separate seed step required to boot the app — the stubbed demo user is upserted automatically on first request.
+
+### Run on Docker
+
+The whole stack (front-end + back-end + Postgres) runs on Docker with nothing installed on the host except Docker itself:
+
+```bash
+docker compose up --build
+```
+
+Boot order is handled for you: Postgres starts and becomes healthy → a one-shot `migrate` container runs `prisma migrate deploy` → the app starts at `http://localhost:3000`.
+
+LLM access from inside the container:
+
+- **Ollama on the host** (default): the compose file points `OLLAMA_BASE_URL` at `host.docker.internal:11434`, which reaches the Ollama instance running on your machine.
+- **OpenRouter**: create a `.env` file next to `docker-compose.yml` with `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY=sk-or-...` — no Ollama needed at all.
+
+The database is persisted in the `db-data` volume; `docker compose down -v` wipes it.
+
+## 👥 Team Workflow
+
+Work is split into two independent tracks so both can move in parallel without stepping on each other:
+
+| | **Track 1 — Prompt Testing** | **Track 2 — DevOps** |
+| --- | --- | --- |
+| **Owns** | Prompt templates, agent behavior, model/provider selection, output quality | Docker, database migrations, environment config, deployment |
+| **Files** | `src/ai/**`, `src/lib/presentation/*prompt*`, `src/lib/model-picker.ts`, `src/app/api/presentation/**` | `Dockerfile`, `docker-compose.yml`, `prisma/migrations/**`, `prisma/schema.prisma`, `.env.example`, Vercel settings |
+| **Test loop** | Run the app against OpenRouter (`LLM_PROVIDER=openrouter`) for reproducible model behavior, or local Ollama for free iteration; judge output with the slide verification agent (`POST /api/presentation/verify`) | `docker compose up --build` must boot a working app from a clean checkout; schema changes ship as SQL migrations via `pnpm db:migrate` |
+| **PR scope** | Prompt/agent changes only — no infra files | Infra changes only — no prompt edits |
+
+Rules of the road:
+
+1. A schema change is a **DevOps-track** change even if a prompt PR needs it — split it out.
+2. Prompt changes are judged by verification score (see the verification agent), not by eyeballing one lucky generation.
+3. Both tracks branch from `main` and merge via PR; neither track pushes to `main` directly.
 
 ## 📖 Usage
 

@@ -1,0 +1,72 @@
+# Run the whole stack on Docker:
+#
+#   docker compose up --build
+#
+# Boot order: db (healthy) → migrate (prisma migrate deploy, one-shot)
+# → app (http://localhost:3000).
+#
+# LLM access from inside the container:
+#   - Ollama on the host machine is reachable at host.docker.internal:11434
+#     (the default OLLAMA_BASE_URL below).
+#   - For OpenRouter instead, set LLM_PROVIDER=openrouter and
+#     OPENROUTER_API_KEY in a `.env` file next to this compose file.
+
+name: ai102
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ai102
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      # Host access for `prisma studio` / psql; not needed by the app itself.
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ai102"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build:
+      context: .
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/ai102
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    build:
+      context: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/ai102
+      # NODE_ENV=production normally selects the Neon serverless adapter
+      # (src/server/db.ts); this forces the plain pg adapter, which is what
+      # a local Postgres container speaks.
+      LOCAL_PRODUCTION: "1"
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_DEFAULT_MODEL: ${OLLAMA_DEFAULT_MODEL:-}
+      OLLAMA_NUM_CTX: ${OLLAMA_NUM_CTX:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-}
+      OPENROUTER_DEFAULT_MODEL: ${OPENROUTER_DEFAULT_MODEL:-}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+      FAL_API_KEY: ${FAL_API_KEY:-}
+    extra_hosts:
+      # Linux hosts don't get host.docker.internal automatically.
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  db-data:
