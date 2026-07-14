@@ -1,8 +1,33 @@
 import { env } from "@/env";
 import { createLogger } from "@/lib/observability/logger";
 import { ChatOllama } from "@langchain/ollama";
+import { ChatOpenAI } from "@langchain/openai";
 
 const modelLogger = createLogger("model-picker");
+
+/**
+ * Which backend serves text generation. Ollama remains the local default;
+ * setting LLM_PROVIDER=openrouter routes every text request through
+ * OpenRouter's OpenAI-compatible API instead — same prompts, same routes,
+ * reproducible hosted models for prompt testing.
+ */
+export type TextProvider = "ollama" | "openrouter";
+
+export const TEXT_PROVIDER: TextProvider =
+  env.LLM_PROVIDER === "openrouter" ? "openrouter" : "ollama";
+
+const OPENROUTER_BASE_URL =
+  env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1";
+
+/**
+ * OpenRouter model used when the client didn't pick one, or picked an
+ * Ollama-style id (e.g. "llama3.2:3b") that doesn't exist on OpenRouter.
+ * The default is a free-tier model so prompt testing costs nothing.
+ */
+export const DEFAULT_OPENROUTER_MODEL =
+  env.OPENROUTER_DEFAULT_MODEL?.trim() ||
+  "meta-llama/llama-3.3-70b-instruct:free";
+
 const OLLAMA_BASE_URL = env.OLLAMA_BASE_URL || "http://localhost:11434";
 const OLLAMA_TAGS_URL = `${OLLAMA_BASE_URL}/api/tags`;
 const OLLAMA_PULL_URL = `${OLLAMA_BASE_URL}/api/pull`;
@@ -210,10 +235,44 @@ async function ensureOllamaModelIsReady(modelId: string): Promise<void> {
   });
 }
 
+/**
+ * OpenRouter model ids are namespaced ("vendor/model"); Ollama tags are not.
+ * A client on the openrouter backend may still send a persisted Ollama model
+ * selection — map those to the configured OpenRouter default instead of
+ * sending an id OpenRouter has never heard of.
+ */
+function resolveOpenRouterModelId(
+  modelProviderOrModel: string,
+  modelId?: string,
+): string {
+  const requested =
+    modelProviderOrModel === "ollama" || LEGACY_PROVIDERS.has(modelProviderOrModel)
+      ? modelId?.trim()
+      : modelProviderOrModel.trim();
+
+  if (requested?.includes("/")) {
+    return requested;
+  }
+  return DEFAULT_OPENROUTER_MODEL;
+}
+
 export function assertModelIsConfigured(
   modelProviderOrModel: string,
   modelId?: string,
 ) {
+  if (TEXT_PROVIDER === "openrouter") {
+    if (!env.OPENROUTER_API_KEY) {
+      throw new Error(
+        "LLM_PROVIDER is set to openrouter but OPENROUTER_API_KEY is not configured.",
+      );
+    }
+    modelLogger.info("Model configuration validated", {
+      provider: "openrouter",
+      modelId: resolveOpenRouterModelId(modelProviderOrModel, modelId),
+    });
+    return;
+  }
+
   const resolvedModelId = resolveModelId(modelProviderOrModel, modelId);
 
   modelLogger.info("Model configuration validated", {
@@ -226,6 +285,11 @@ export async function ensureModelIsReady(
   modelProviderOrModel: string,
   modelId?: string,
 ) {
+  if (TEXT_PROVIDER === "openrouter") {
+    // Hosted models need no local pull; the key check happens in
+    // assertModelIsConfigured and per-request errors surface from the API.
+    return;
+  }
   const resolvedModelId = resolveModelId(modelProviderOrModel, modelId);
   await ensureOllamaModelIsReady(resolvedModelId);
 }
@@ -241,6 +305,27 @@ export async function ensureModelIsReady(
  * OLLAMA_NUM_CTX was set to. The native API honors numCtx per request.
  */
 export function modelPicker(modelProviderOrModel: string, modelId?: string) {
+  if (TEXT_PROVIDER === "openrouter") {
+    const openRouterModelId = resolveOpenRouterModelId(
+      modelProviderOrModel,
+      modelId,
+    );
+
+    modelLogger.info("Creating OpenRouter model client", {
+      provider: "openrouter",
+      modelId: openRouterModelId,
+      baseUrl: OPENROUTER_BASE_URL,
+    });
+
+    return new ChatOpenAI({
+      model: openRouterModelId,
+      apiKey: env.OPENROUTER_API_KEY,
+      configuration: {
+        baseURL: OPENROUTER_BASE_URL,
+      },
+    });
+  }
+
   const resolvedModelId = resolveModelId(modelProviderOrModel, modelId);
 
   modelLogger.info("Creating Ollama model client", {
