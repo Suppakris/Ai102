@@ -1,9 +1,10 @@
 # Ai102
 
-A local-first AI presentation generator — a customized, Ollama-only build derived from [ALLWEONE's presentation-ai](https://github.com/allweonedev/presentation-ai), stripped down for a college project. No cloud LLM required, no login wall.
+A local-first AI presentation generator — a customized, Ollama-only build derived from [ALLWEONE's presentation-ai](https://github.com/allweonedev/presentation-ai), stripped down for a college project. No cloud LLM required, no login wall, no paid APIs required to run it end to end.
 
 ## 🔗 Quick Links
 
+- [Architecture](ARCHITECTURE.md) — folder layout, frontend/backend split, request flow
 - [Contributing Guidelines](CONTRIBUTING.md)
 
 ## 📋 Table of Contents
@@ -29,9 +30,10 @@ A local-first AI presentation generator — a customized, Ollama-only build deri
 
 This fork disables everything that requires a paid account or a login system, so it can run as a self-contained coursework build:
 
-- **Auth is disabled.** `src/server/auth.ts` is stubbed to always return a fixed demo admin user. No Google OAuth, no `NEXTAUTH_*` vars needed. Because the demo user's role is always `ADMIN`, every "admin-only" feature (see Known Issues) is effectively open to everyone in this build. To restore real login, revert that file and set the Google/NextAuth env vars again.
+- **Auth is disabled.** `src/backend/auth.ts` is stubbed to always return a fixed demo admin user. No Google OAuth, no `NEXTAUTH_*` vars needed. Because the demo user's role is always `ADMIN`, every "admin-only" feature (see Known Issues) is effectively open to everyone in this build. To restore real login, revert that file and set the Google/NextAuth env vars again.
 - **Text generation is Ollama-only.** All cloud text providers (OpenAI, LM Studio, OpenRouter, Groq/BYOK) have been removed from `src/lib/model-picker.ts`. Every request resolves to a model served from `OLLAMA_BASE_URL`'s OpenAI-compatible endpoint. Legacy provider values (`openai`, `lmstudio`) from old persisted client state are caught and silently redirected to the default Ollama model instead of erroring.
-- **Image generation still uses cloud providers** — FAL (Flux models) is the default and primary path (`src/app/_actions/presentation/generate-slide-image.ts`), with a Together AI path also present as a secondary/legacy provider (`src/app/_actions/image/generate.ts`).
+- **Image generation is free by default.** [Pollinations.ai](https://pollinations.ai) (no API key) is the default provider everywhere images are generated (`src/backend/queue/image-generation.ts`). FAL (Flux models) is still wired in as an optional, admin-gated paid upgrade if `FAL_API_KEY` is set; Together AI's code path exists but isn't used by any active feature.
+- **Backend logic lives under `src/backend/`.** Db, auth, tenant, rate-limiting, the image queue, and the LangGraph presentation agent are consolidated there — see [ARCHITECTURE.md](ARCHITECTURE.md) for the full frontend/backend split.
 
 ## 🌟 Features
 
@@ -60,8 +62,7 @@ This fork disables everything that requires a paid account or a login system, so
 
 ### Images
 
-- AI image generation via FAL (Flux models — default: Flux 2 Flash; several other Flux/GPT-image models are admin-gated, which is moot since every user is admin in this build)
-- Secondary image generation via Together AI (FLUX.1 family)
+- AI image generation via Pollinations.ai (free, no API key, default) with FAL (Flux models) available as an optional paid upgrade
 - Stock photos via Unsplash, Pixabay, and Giphy
 - Google Custom Search image lookup (`src/app/_actions/apps/image-studio/google.ts`)
 
@@ -73,7 +74,7 @@ This fork disables everything that requires a paid account or a login system, so
 | **Styling**         | Tailwind CSS v4                                                      |
 | **Database**        | Supabase with Prisma ORM.                                            |
 | **Text Generation**| Ollama (local, OpenAI-compatible endpoint), via LangChain + LangGraph agent |
-| **Image Generation**| FAL (Flux models, primary), Together AI (secondary path)             |
+| **Image Generation**| Pollinations.ai (free, default), FAL (Flux models, optional/paid)     |
 | **UI Components**   | Radix UI                                                              |
 | **Text Editor**     | Plate Editor (`platejs`)                                             |
 | **File Uploads**     | UploadThing                                                          |
@@ -137,12 +138,12 @@ Copy `.env.example` to `.env` and fill in what you need. `.env.example` is the s
 | Variable | Required? | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | **Required** | Postgres connection string, used at runtime and for migrations. For Supabase, use the **Transaction pooler** (port 6543) — this app runs on Vercel serverless functions, and Session/Direct connections exhaust a pooler's max-clients limit fast since they're held for the life of the client instead of released per query. |
-| `FAL_API_KEY` | Optional | Primary AI image provider (FAL/Flux). Without it, image generation fails gracefully with a "not configured" error. |
+| `FAL_API_KEY` | Optional | Paid AI image upgrade (FAL/Flux), admin-gated. Image generation works with no key at all via the free Pollinations.ai default. |
 | `OLLAMA_BASE_URL` | Optional | Point at a remote/tunneled Ollama instance (e.g. via ngrok) instead of localhost. |
 | `OLLAMA_DEFAULT_MODEL` | Optional | Override the default model (`llama3.2:3b`). |
 | `OLLAMA_NUM_CTX` | Optional | Context window in tokens (default: 8192). Ollama's own default (often 2048) is smaller than this app's generation system prompt, which makes the model see truncated instructions and produce broken decks. Lower it only if generation requests start timing out on slow/CPU-only hardware. |
 | `OLLAMA_MAX_OUTPUT_TOKENS` | Optional | Max output tokens per generation request. Unset by default. Same trade-off as `OLLAMA_NUM_CTX`. |
-| `TOGETHER_AI_API_KEY` | Optional | Secondary image generation path (Together AI FLUX models). |
+| `TOGETHER_AI_API_KEY` | Optional | Legacy code path, not used by any active feature. |
 | `UPLOADTHING_TOKEN` | Optional | Image storage for AI-generated images. |
 | `UNSPLASH_ACCESS_KEY` | Optional | Stock photo search. |
 | `GOOGLE_CUSTOM_SEARCH_API_KEY` + `SEARCH_ENGINE_CX` | Optional | Google Custom Search image lookup. |
@@ -196,7 +197,7 @@ Work is split into two independent tracks so both can move in parallel without s
 | | **Track 1 — Prompt Testing** | **Track 2 — DevOps** |
 | --- | --- | --- |
 | **Owns** | Prompt templates, agent behavior, model/provider selection, output quality | Docker, database migrations, environment config, deployment |
-| **Files** | `src/ai/**`, `src/lib/presentation/*prompt*`, `src/lib/model-picker.ts`, `src/app/api/presentation/**` | `Dockerfile`, `docker-compose.yml`, `prisma/migrations/**`, `prisma/schema.prisma`, `.env.example`, Vercel settings |
+| **Files** | `src/backend/agent/**`, `src/lib/presentation/*prompt*`, `src/lib/model-picker.ts`, `src/app/api/presentation/**` | `Dockerfile`, `docker-compose.yml`, `prisma/migrations/**`, `prisma/schema.prisma`, `.env.example`, Vercel settings |
 | **Test loop** | Run the app against OpenRouter (`LLM_PROVIDER=openrouter`) for reproducible model behavior, or local Ollama for free iteration; judge output with the slide audit agent (`POST /api/presentation/audit-slide`) | `docker compose up --build` must boot a working app from a clean checkout; schema changes ship as SQL migrations via `pnpm db:migrate:dev` |
 | **PR scope** | Prompt/agent changes only — no infra files | Infra changes only — no prompt edits |
 
@@ -214,28 +215,44 @@ Rules of the road:
 4. Export to `.pptx`, present directly from the browser, or generate a public share link.
 
 ## 📁 Project Structure
-```text
-High-level map of `src/`:
 
-├── app/` — Next.js App Router routes.
-  └── presentation/` — the main app surface: create flow, generation-in-progress view, and the editor/viewer (`[id]/`).
-  └── share/` — public read-only share view for a presentation.
-  └── api/` — route handlers: the presentation chat agent (`agent/presentation/`), outline/slide/image/diagram generation, the stubbed auth endpoint, UploadThing's route.
-  └── actions/` — Server Actions for image generation, notebook/presentation CRUD, and the image-studio tool (multi-provider image search).
-```
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full frontend/backend split and a
+request-flow diagram. Quick map of `src/`:
+
+**Frontend**
 ```text
-  └── ai/` — the presentation-editing agent: `agents/presentation/createAgent.ts` (LangGraph agent with Supabase-backed chat memory), `tools/` (slide/theme/image editing tools + web search), `lib/` (Postgres checkpointing, pasted-content middleware).
-  └── components/notebook/` — the primary implementation of the slide-outline UI, theming UI, editor plugins, and image editor. "Notebook" here just means "a presentation project" — it's not a separate note-taking product. Includes a small early-stage `notes/` sub-mode.
-  └── components/presentation/` — the app-shell/viewer chrome (sidebar, edit panel, zoom/scroll, present mode) that composes pieces from `components/notebook/`.
+├── app/`                Next.js App Router routes (pages).
+  └── presentation/`     main app surface: create flow, generation-in-progress view, editor/viewer (`[id]/`).
+  └── share/`            public read-only share view for a presentation.
+  └── api/`              thin route handlers that delegate to src/backend/**.
+  └── _actions/`         Server Actions ("use server") — UI-adjacent entry points, delegate to src/backend/**.
+├── components/notebook/` the primary slide-outline UI, theming UI, editor plugins, image editor. "Notebook" = "a presentation project", not a separate note-taking product.
+├── components/presentation/` app-shell/viewer chrome (sidebar, edit panel, zoom/scroll, present mode).
+├── hooks/`, states/`, provider/`, styles/` client-side hooks, state, root providers, global styles.
 ```
+
+**Backend** (`src/backend/**` — see [ARCHITECTURE.md](ARCHITECTURE.md))
 ```text
-  └── lib/model-picker.ts` — the Ollama-only LLM resolver (see [What's Different From Upstream](#-whats-different-from-upstream)).
-  └── lib/notebook/` — data model for attaching source files to a presentation project, and the agent activity timeline shown in the chat UI.
-  └── lib/presentation/themes.ts` — built-in theme definitions.
-  └── lib/observability/` — a homegrown, console-only structured logger. No external service (no Sentry/PostHog/etc.) is wired up — nothing to configure here.
-  └── server/` — `auth.ts` (the demo-user stub), `ai/` (LangChain↔AI SDK message conversion), `share/` (share-link authorization).
-  └── config/`, `constants/` — slide sizing/format presets, the FAL image model catalog, and infographic chart templates.
-  └── provider/` — root-level React providers (session, React Query, theme).
+├── db.ts                Prisma client.
+├── auth.ts              the demo-user stub.
+├── tenant.ts            multi-tenant resolution.
+├── rate-limit.ts        request rate limiting.
+├── share/`              share-link authorization.
+├── queue/`              BullMQ image-generation queue + Pollinations.ai/FAL providers.
+├── ai/chatMessages.ts   chat message persistence helpers.
+├── agent/`              the presentation-editing agent: agent/agents/presentation/createAgent.ts
+                          (LangGraph agent, Postgres-backed chat memory), agent/tools/ (slide/theme/
+                          image editing tools + web search), agent/lib/ (Postgres checkpointing,
+                          pasted-content middleware).
+```
+
+**Shared by both layers**
+```text
+├── lib/model-picker.ts  the Ollama-only LLM resolver (see [What's Different From Upstream](#-whats-different-from-upstream)).
+├── lib/notebook/`       data model for attaching source files to a presentation project, and the agent activity timeline.
+├── lib/presentation/themes.ts` built-in theme definitions.
+├── lib/observability/`  a homegrown, console-only structured logger. No external service wired up.
+├── config/`, constants/` slide sizing/format presets, the image-model catalog (Pollinations.ai + FAL), infographic chart templates.
 ```
 
 ## ⚠️ Known Issues
