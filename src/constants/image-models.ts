@@ -1,4 +1,6 @@
 export type ImageModelList =
+  | "pollinations/flux"
+  | "pollinations/turbo"
   | "openai/gpt-image-2"
   | "fal-ai/nano-banana-2"
   | "fal-ai/nano-banana-pro"
@@ -8,7 +10,9 @@ export type ImageModelList =
   | "fal-ai/flux-2"
   | "fal-ai/flux/dev";
 
-export const DEFAULT_IMAGE_MODEL: ImageModelList = "fal-ai/flux-2/flash";
+// Free, no API key required (Pollinations.ai). FAL models below need
+// FAL_API_KEY and cost money per image — kept as an admin-only opt-in.
+export const DEFAULT_IMAGE_MODEL: ImageModelList = "pollinations/flux";
 
 export type ImageModelOption = {
   value: ImageModelList;
@@ -18,8 +22,17 @@ export type ImageModelOption = {
 
 const IMAGE_MODELS: ImageModelOption[] = [
   {
+    value: "pollinations/flux",
+    label: "Flux (Free)",
+  },
+  {
+    value: "pollinations/turbo",
+    label: "Turbo (Free)",
+  },
+  {
     value: "fal-ai/flux-2/flash",
-    label: "Flux 2 Flash",
+    label: "Flux 2 Flash (paid, needs FAL_API_KEY)",
+    adminOnly: true,
   },
   {
     value: "fal-ai/flux-2/turbo",

@@ -4,9 +4,9 @@ import { auth } from "@/backend/auth";
 import { runImageGeneration } from "@/backend/queue/image-generation";
 import { checkRateLimit } from "@/backend/rate-limit";
 
-// Nano Banana Pro model for presentation slide images
-// const SLIDE_IMAGE_MODEL = "fal-ai/nano-banana-pro";
-const DEFAULT_SLIDE_IMAGE_MODEL = "fal-ai/flux-2/flash";
+// Free by default: Pollinations.ai needs no API key. FAL is opt-in — pass an
+// imageModel string containing "fal-ai/" and configure FAL_API_KEY to use it.
+const DEFAULT_SLIDE_IMAGE_MODEL = "flux";
 
 export async function generateSlideImageAction(
   prompt: string,
@@ -43,12 +43,11 @@ export async function generateSlideImageAction(
 
     console.log(`Generating slide image with model: ${imageModel}`);
 
-    const generatedImage = await runImageGeneration({
-      provider: "fal",
-      prompt,
-      model: imageModel,
-      userId: session.user.id,
-    });
+    const generatedImage = await runImageGeneration(
+      imageModel.startsWith("fal-ai/")
+        ? { provider: "fal", prompt, model: imageModel, userId: session.user.id }
+        : { provider: "pollinations", prompt, model: imageModel, userId: session.user.id },
+    );
 
     console.log(`Uploaded slide image to: ${generatedImage.url}`);
 

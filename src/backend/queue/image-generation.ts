@@ -21,6 +21,12 @@ export type ImageGenerationJobData =
       prompt: string;
       model: string;
       userId: string;
+    }
+  | {
+      provider: "pollinations";
+      prompt: string;
+      model?: string;
+      userId: string;
     };
 
 export type ImageGenerationJobResult = {
@@ -86,6 +92,43 @@ async function generateWithTogether(
   return uploadGeneratedImage(imageUrl, prompt.substring(0, 20).replace(/[^a-z0-9]/gi, "_"));
 }
 
+// Pollinations.ai's image API is a plain GET that renders and streams the
+// image back on the same request — no API key or account needed, so this is
+// the zero-cost default provider (see runImageGeneration below).
+const POLLINATIONS_BASE_URL = "https://image.pollinations.ai/prompt";
+
+function buildPollinationsUrl(prompt: string, model?: string): string {
+  const params = new URLSearchParams({
+    width: "1024",
+    height: "576",
+    nologo: "true",
+    seed: String(Math.floor(Math.random() * 1_000_000)),
+  });
+  if (model) params.set("model", model);
+  return `${POLLINATIONS_BASE_URL}/${encodeURIComponent(prompt)}?${params.toString()}`;
+}
+
+async function generateWithPollinations(
+  prompt: string,
+  model?: string,
+): Promise<string> {
+  return uploadGeneratedImage(buildPollinationsUrl(prompt, model), "slide");
+}
+
+// Shared entry point for callers that just want a permanent image URL
+// (already uploaded) without going through the job queue/db-record dance —
+// picks FAL when the model id names a FAL model, Pollinations (free, no key)
+// otherwise.
+export async function generateImageUrl(
+  prompt: string,
+  model: string,
+): Promise<string> {
+  if (model.startsWith("fal-ai/") || model === "openai/gpt-image-2") {
+    return generateWithFal(prompt, model);
+  }
+  return generateWithPollinations(prompt, model);
+}
+
 async function generateWithFal(prompt: string, model: string): Promise<string> {
   const falConfig = requireOptionalIntegration({
     integration: "FAL",
@@ -113,7 +156,9 @@ export async function processImageGenerationJob(
   const permanentUrl =
     data.provider === "together"
       ? await generateWithTogether(data.prompt, data.model)
-      : await generateWithFal(data.prompt, data.model);
+      : data.provider === "fal"
+        ? await generateWithFal(data.prompt, data.model)
+        : await generateWithPollinations(data.prompt, data.model);
 
   const generatedImage = await db.generatedImage.create({
     data: {

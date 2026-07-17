@@ -110,11 +110,15 @@ export function SystemStatusBadge() {
         </div>
         <div className="space-y-0.5 divide-y divide-border">
           <StatusRow
-            label="FAL (AI images)"
+            label="Pollinations (free AI images)"
+            online={integrations?.pollinationsImages ?? null}
+          />
+          <StatusRow
+            label="FAL (paid AI images, optional)"
             online={integrations?.falImages ?? null}
           />
           <StatusRow
-            label="Together AI (AI images)"
+            label="Together AI (paid, unused)"
             online={integrations?.togetherAiImages ?? null}
           />
           <StatusRow

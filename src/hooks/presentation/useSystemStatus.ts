@@ -11,6 +11,7 @@ interface ServiceStatus {
 }
 
 interface IntegrationConfigStatus {
+  pollinationsImages: boolean;
   falImages: boolean;
   togetherAiImages: boolean;
   uploadthing: boolean;
