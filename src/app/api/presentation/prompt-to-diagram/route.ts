@@ -9,7 +9,7 @@ import { NextResponse } from "next/server";
 import { templates } from "@/constants/antv-templates";
 import { DEFAULT_OLLAMA_MODEL, modelPicker } from "@/lib/modelPicker";
 import { logger } from "@/lib/observability/server/logger";
-import { checkRateLimit, rateLimitResponse } from "@/server/rate-limit";
+import { checkRateLimit, rateLimitResponse } from "@/backend/rate-limit";
 import {
   buildInfographicLayoutInstruction,
   filterInfographicTemplatesForOrientation,
@@ -17,7 +17,7 @@ import {
   type InfographicOrientation,
   type InfographicSlideLayout,
 } from "@/lib/presentation/infographic-layout";
-import { auth } from "@/server/auth";
+import { auth } from "@/backend/auth";
 
 const INFOGRAPHIC_MODEL = DEFAULT_OLLAMA_MODEL;
 

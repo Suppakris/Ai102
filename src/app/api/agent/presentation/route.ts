@@ -7,12 +7,12 @@ import {
   type UIMessage,
 } from "ai";
 
-import { createPresentationGraph } from "@/ai/agents/presentation/createAgent";
-import { recordAgentThreadActivity } from "@/ai/lib/prune-checkpoints";
+import { createPresentationGraph } from "@/backend/agent/agents/presentation/createAgent";
+import { recordAgentThreadActivity } from "@/backend/agent/lib/prune-checkpoints";
 import { getLatestUserMessage } from "@/lib/ai/uiMessageParts";
 import { logger } from "@/lib/observability/server/logger";
-import { auth } from "@/server/auth";
-import { checkRateLimit, rateLimitResponse } from "@/server/rate-limit";
+import { auth } from "@/backend/auth";
+import { checkRateLimit, rateLimitResponse } from "@/backend/rate-limit";
 
 type PresentationStreamOptions = Parameters<
   ReturnType<typeof createPresentationGraph>["stream"]

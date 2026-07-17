@@ -1,7 +1,7 @@
 "use server";
 
-import { auth } from "@/server/auth";
-import { db } from "@/server/db";
+import { auth } from "@/backend/auth";
+import { db } from "@/backend/db";
 import { DocumentType } from "@/prisma/client";
 
 type PresentationFavoriteResult = {

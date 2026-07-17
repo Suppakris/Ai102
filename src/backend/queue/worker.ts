@@ -3,7 +3,7 @@
 // Next.js app itself. Runs two things, both decoupled from the web server:
 //   1. the BullMQ image-generation consumer (requires REDIS_URL)
 //   2. the periodic LangGraph checkpoint-pruning job (Postgres only)
-import { pruneStaleAgentThreads } from "@/ai/lib/prune-checkpoints";
+import { pruneStaleAgentThreads } from "@/backend/agent/lib/prune-checkpoints";
 import { env } from "@/env";
 import { Worker } from "bullmq";
 import {

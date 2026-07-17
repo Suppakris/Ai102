@@ -6,11 +6,11 @@ import { type NotebookSelectedChunk } from "@/lib/notebook/attachments";
 import { type PresentationCustomization } from "@/lib/presentation/customization";
 import { getPresentationThumbnailUrl } from "@/lib/presentation/thumbnail";
 import { isPresentationAutoTheme } from "@/lib/presentation/theme-resolution";
-import { auth } from "@/server/auth";
-import { db } from "@/server/db";
-import { canEditDocument, canReadDocument } from "@/server/share/authorization";
-import { getOrCreatePersonalTenant } from "@/server/tenant";
-import { normalizeShareEmail } from "@/server/share/utils";
+import { auth } from "@/backend/auth";
+import { db } from "@/backend/db";
+import { canEditDocument, canReadDocument } from "@/backend/share/authorization";
+import { getOrCreatePersonalTenant } from "@/backend/tenant";
+import { normalizeShareEmail } from "@/backend/share/utils";
 import { type InputJsonValue } from "@prisma/client/runtime/client";
 import { notFound } from "next/navigation";
 

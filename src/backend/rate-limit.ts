@@ -1,4 +1,4 @@
-import { getRedisConnection } from "@/server/queue/redis";
+import { getRedisConnection } from "@/backend/queue/redis";
 
 export type RateLimitResult =
   | { allowed: true }

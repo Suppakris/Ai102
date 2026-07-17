@@ -1,7 +1,7 @@
 import { env } from "@/env";
 import { createLogger } from "@/lib/observability/logger";
-import { auth } from "@/server/auth";
-import { db } from "@/server/db";
+import { auth } from "@/backend/auth";
+import { db } from "@/backend/db";
 import { NextResponse } from "next/server";
 
 const routeLogger = createLogger("api:presentation-system-status");
@@ -53,6 +53,8 @@ async function checkDatabase(): Promise<{ online: boolean; error?: string }> {
 // so "is it configured" is the actionable signal, not "is it reachable".
 function checkIntegrationConfig() {
   return {
+    // Free, no key required — always available.
+    pollinationsImages: true,
     falImages: Boolean(env.FAL_API_KEY),
     togetherAiImages: Boolean(env.TOGETHER_AI_API_KEY),
     uploadthing: Boolean(env.UPLOADTHING_TOKEN),

@@ -4,7 +4,7 @@ import PresentationPage from "@/components/presentation/core/PresentationPage";
 import {
   getDocumentAccessForUser,
   getSessionIdentity,
-} from "@/server/share/authorization";
+} from "@/backend/share/authorization";
 
 export const dynamic = "force-dynamic";
 

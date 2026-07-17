@@ -1,9 +1,9 @@
 "use server";
 
-import { createPresentationGraph } from "@/ai/agents/presentation/createAgent";
-import { ensureCheckpointerSetup } from "@/ai/lib/postgres";
-import { auth } from "@/server/auth";
-import { toHydratedUiMessages } from "@/server/ai/chatMessages";
+import { createPresentationGraph } from "@/backend/agent/agents/presentation/createAgent";
+import { ensureCheckpointerSetup } from "@/backend/agent/lib/postgres";
+import { auth } from "@/backend/auth";
+import { toHydratedUiMessages } from "@/backend/ai/chatMessages";
 import { type UIMessage } from "ai";
 import { type BaseMessage } from "@langchain/core/messages";
 

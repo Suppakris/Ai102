@@ -4,8 +4,8 @@ import "server-only";
 
 import { logger } from "@/lib/observability/server/logger";
 import { DocumentType, type Prisma } from "@/prisma/client";
-import { auth } from "@/server/auth";
-import { db } from "@/server/db";
+import { auth } from "@/backend/auth";
+import { db } from "@/backend/db";
 
 const ITEMS_PER_PAGE = 10;
 const PRESENTATION_DOCUMENT_TYPES = [DocumentType.PRESENTATION] as const;

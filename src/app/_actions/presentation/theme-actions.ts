@@ -3,9 +3,9 @@
 import * as z from "zod";
 
 import { presentationThemeStyleDataSchema } from "@/lib/presentation/theme-schema";
-import { auth } from "@/server/auth";
-import { db } from "@/server/db";
-import { getOrCreatePersonalTenant } from "@/server/tenant";
+import { auth } from "@/backend/auth";
+import { db } from "@/backend/db";
+import { getOrCreatePersonalTenant } from "@/backend/tenant";
 
 // Schema for creating/updating a theme
 const themeSchema = z.object({

@@ -3,7 +3,7 @@
 import { type LayoutType } from "@/components/presentation/utils/parser";
 import { env } from "@/env";
 import { requireOptionalIntegration } from "@/lib/env/optional-integrations";
-import { auth } from "@/server/auth";
+import { auth } from "@/backend/auth";
 
 export interface UnsplashImage {
   id: string;

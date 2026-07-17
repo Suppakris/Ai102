@@ -3,7 +3,7 @@ import "server-only";
 import { createUploadthing } from "uploadthing/next";
 import { UploadThingError, UTApi } from "uploadthing/server";
 
-import { auth } from "@/server/auth";
+import { auth } from "@/backend/auth";
 
 export const f = createUploadthing();
 export const utapi = new UTApi();

@@ -1,6 +1,6 @@
 import { env } from "@/env";
 import { createLogger } from "@/lib/observability/logger";
-import { auth } from "@/server/auth";
+import { auth } from "@/backend/auth";
 import { NextResponse } from "next/server";
 
 interface LocalModelInfo {

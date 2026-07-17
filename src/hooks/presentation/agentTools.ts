@@ -1,4 +1,4 @@
-import { type PresentationTool } from "@/ai/tools/presentation/tools";
+import { type PresentationTool } from "@/backend/agent/tools/presentation/tools";
 import {
   parseSlideXml,
   type PlateSlide,

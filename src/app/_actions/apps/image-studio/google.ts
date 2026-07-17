@@ -2,7 +2,7 @@
 
 import { type LayoutType } from "@/components/notebook/presentation/utils/parser";
 import { env } from "@/env";
-import { auth } from "@/server/auth";
+import { auth } from "@/backend/auth";
 
 type GoogleImageSearchItem = {
   link?: string;
