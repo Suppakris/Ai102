@@ -1,6 +1,6 @@
 import { env } from "@/env";
 import { requireOptionalIntegration } from "@/lib/env/optional-integrations";
-import { db } from "@/server/db";
+import { db } from "@/backend/db";
 import { fal } from "@fal-ai/client";
 import { Queue, QueueEvents, type JobsOptions } from "bullmq";
 import Together from "together-ai";

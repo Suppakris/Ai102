@@ -1,7 +1,7 @@
 "use server";
 
 import { logger } from "@/lib/observability/server/logger";
-import { auth } from "@/server/auth";
+import { auth } from "@/backend/auth";
 
 export async function clearPresentationChat(presentationId: string) {
   const actionName = "presentation.clearPresentationChat.clearPresentationChat";

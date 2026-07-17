@@ -3,14 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const findFirst = vi.fn();
 const create = vi.fn();
 
-vi.mock("@/server/db", () => ({
+vi.mock("@/backend/db", () => ({
   db: {
     tenantMembership: { findFirst: (...args: unknown[]) => findFirst(...args) },
     tenant: { create: (...args: unknown[]) => create(...args) },
   },
 }));
 
-const { getOrCreatePersonalTenant } = await import("@/server/tenant");
+const { getOrCreatePersonalTenant } = await import("@/backend/tenant");
 
 beforeEach(() => {
   findFirst.mockReset();

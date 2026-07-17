@@ -16,8 +16,8 @@ import {
   type PresentationGenerationPromptInput,
 } from "@/lib/presentation/generation-prompt";
 import { getLanguageDisplayName } from "@/lib/presentation/languages";
-import { auth } from "@/server/auth";
-import { checkRateLimit, rateLimitResponse } from "@/server/rate-limit";
+import { auth } from "@/backend/auth";
+import { checkRateLimit, rateLimitResponse } from "@/backend/rate-limit";
 
 // Vercel Hobby caps serverless functions at 60s. Deck generation on a free
 // (rate-limited) provider can run long, so claim the full budget.

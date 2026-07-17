@@ -5,11 +5,11 @@ const pexpire = vi.fn();
 const pttl = vi.fn();
 const getRedisConnection = vi.fn();
 
-vi.mock("@/server/queue/redis", () => ({
+vi.mock("@/backend/queue/redis", () => ({
   getRedisConnection: () => getRedisConnection(),
 }));
 
-const { checkRateLimit } = await import("@/server/rate-limit");
+const { checkRateLimit } = await import("@/backend/rate-limit");
 
 beforeEach(() => {
   incr.mockReset();

@@ -1,8 +1,8 @@
 "use server";
 
-import { auth } from "@/server/auth";
-import { runImageGeneration } from "@/server/queue/image-generation";
-import { checkRateLimit } from "@/server/rate-limit";
+import { auth } from "@/backend/auth";
+import { runImageGeneration } from "@/backend/queue/image-generation";
+import { checkRateLimit } from "@/backend/rate-limit";
 
 export type ImageModelList =
   | "black-forest-labs/FLUX1.1-pro"

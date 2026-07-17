@@ -1,4 +1,4 @@
-import { auth } from "@/server/auth";
+import { auth } from "@/backend/auth";
 import "server-only";
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { UploadThingError, UTApi } from "uploadthing/server";

@@ -6,8 +6,8 @@ import {
 } from "@/lib/modelPicker";
 import { createLogger } from "@/lib/observability/logger";
 import { toUIMessageStream } from "@ai-sdk/langchain";
-import { auth } from "@/server/auth";
-import { checkRateLimit, rateLimitResponse } from "@/server/rate-limit";
+import { auth } from "@/backend/auth";
+import { checkRateLimit, rateLimitResponse } from "@/backend/rate-limit";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { RunnableSequence } from "@langchain/core/runnables";
 import { NextResponse } from "next/server";

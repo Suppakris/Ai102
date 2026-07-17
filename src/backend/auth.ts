@@ -1,5 +1,5 @@
 import { env } from "@/env";
-import { db } from "@/server/db";
+import { db } from "@/backend/db";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import NextAuth, { type DefaultSession, type Session } from "next-auth";
 import { type Adapter } from "next-auth/adapters";

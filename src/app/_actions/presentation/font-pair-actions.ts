@@ -1,9 +1,9 @@
 "use server";
 
 import { utapi } from "@/app/api/uploadthing/core";
-import { auth } from "@/server/auth";
-import { db } from "@/server/db";
-import { getOrCreatePersonalTenant } from "@/server/tenant";
+import { auth } from "@/backend/auth";
+import { db } from "@/backend/db";
+import { getOrCreatePersonalTenant } from "@/backend/tenant";
 import * as z from "zod";
 
 // Schema for creating a font pair

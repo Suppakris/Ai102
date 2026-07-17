@@ -1,4 +1,4 @@
-import { db } from "@/server/db";
+import { db } from "@/backend/db";
 
 // Every user gets exactly one personal tenant, created lazily the first
 // time they touch a tenant-scoped resource (documents, themes, font

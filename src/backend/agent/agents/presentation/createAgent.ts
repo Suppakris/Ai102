@@ -5,9 +5,9 @@ import {
   type AgentMiddleware,
 } from "langchain";
 
-import { checkpointer } from "@/ai/lib/postgres";
-import { pastedContentMiddleware } from "@/ai/lib/processPastedContent";
-import { presentationTools } from "@/ai/tools/presentation/tools";
+import { checkpointer } from "@/backend/agent/lib/postgres";
+import { pastedContentMiddleware } from "@/backend/agent/lib/processPastedContent";
+import { presentationTools } from "@/backend/agent/tools/presentation/tools";
 import { DEFAULT_OLLAMA_MODEL, modelPicker } from "@/lib/modelPicker";
 
 // Create the graph

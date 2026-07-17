@@ -1,8 +1,8 @@
 "use server";
 
-import { auth } from "@/server/auth";
-import { runImageGeneration } from "@/server/queue/image-generation";
-import { checkRateLimit } from "@/server/rate-limit";
+import { auth } from "@/backend/auth";
+import { runImageGeneration } from "@/backend/queue/image-generation";
+import { checkRateLimit } from "@/backend/rate-limit";
 
 // Nano Banana Pro model for presentation slide images
 // const SLIDE_IMAGE_MODEL = "fal-ai/nano-banana-pro";

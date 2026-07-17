@@ -9,8 +9,8 @@ import {
 } from "@/constants/image-models";
 import { env } from "@/env";
 import { requireOptionalIntegration } from "@/lib/env/optional-integrations";
-import { auth } from "@/server/auth";
-import { db } from "@/server/db";
+import { auth } from "@/backend/auth";
+import { db } from "@/backend/db";
 import { fal } from "@fal-ai/client";
 import { UTFile } from "uploadthing/server";
 

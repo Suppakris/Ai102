@@ -15,7 +15,7 @@
 #     OPENROUTER_API_KEY in a `.env` file next to this compose file.
 #
 # Auth: GITHUB_CLIENT_ID/SECRET and NEXTAUTH_SECRET/URL are required at
-# runtime (src/server/auth.ts, src/env.js). The placeholders below let the
+# runtime (src/backend/auth.ts, src/env.js). The placeholders below let the
 # stack boot without real GitHub credentials — enough to browse the app and
 # hit its APIs — but signing in with GitHub won't work until you set real
 # values in a `.env` file next to this compose file.
@@ -68,7 +68,7 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/ai102
       # NODE_ENV=production normally selects the Neon serverless adapter
-      # (src/server/db.ts); this forces the plain pg adapter, which is what
+      # (src/backend/db.ts); this forces the plain pg adapter, which is what
       # a local Postgres container speaks.
       LOCAL_PRODUCTION: "1"
       REDIS_URL: redis://redis:6379

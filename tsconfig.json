@@ -45,7 +45,7 @@
     "**/*.tsx",
     ".eslintrc.cjs",
     "next-env.d.ts",
-    "src/ai/open-canvas/nodes/rewrite-artifact/index.tsx",
+    "src/backend/agent/open-canvas/nodes/rewrite-artifact/index.tsx",
     "src/components/notebook/mindmap/types.tss",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"

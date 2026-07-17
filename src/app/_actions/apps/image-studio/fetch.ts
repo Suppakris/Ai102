@@ -1,7 +1,7 @@
 "use server";
 
-import { auth } from "@/server/auth";
-import { db } from "@/server/db";
+import { auth } from "@/backend/auth";
+import { db } from "@/backend/db";
 
 export type Image = Awaited<ReturnType<typeof getUserImages>>[number];
 

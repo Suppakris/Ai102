@@ -9,8 +9,8 @@ import { NextResponse } from "next/server";
 import { templates } from "@/constants/antv-templates";
 import { DEFAULT_OLLAMA_MODEL, modelPicker } from "@/lib/modelPicker";
 import { logger } from "@/lib/observability/server/logger";
-import { auth } from "@/server/auth";
-import { checkRateLimit, rateLimitResponse } from "@/server/rate-limit";
+import { auth } from "@/backend/auth";
+import { checkRateLimit, rateLimitResponse } from "@/backend/rate-limit";
 
 const INFOGRAPHIC_MODEL = DEFAULT_OLLAMA_MODEL;
 

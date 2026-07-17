@@ -18,7 +18,7 @@
     "check:fix": "biome check --write .",
     "start": "next start",
     "type": "tsc --noEmit",
-    "queue:worker": "tsx src/server/queue/worker.ts",
+    "queue:worker": "tsx src/backend/queue/worker.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

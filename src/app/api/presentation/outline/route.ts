@@ -1,4 +1,4 @@
-import { search_tool } from "@/ai/tools/search";
+import { search_tool } from "@/backend/agent/tools/search";
 import { env } from "@/env";
 import {
   getLatestUserMessage,
@@ -13,8 +13,8 @@ import {
 import { createLogger } from "@/lib/observability/logger";
 import { getLanguageDisplayName } from "@/lib/presentation/languages";
 import { logger } from "@/lib/observability/server/logger";
-import { auth } from "@/server/auth";
-import { checkRateLimit, rateLimitResponse } from "@/server/rate-limit";
+import { auth } from "@/backend/auth";
+import { checkRateLimit, rateLimitResponse } from "@/backend/rate-limit";
 import { toBaseMessages, toUIMessageStream } from "@ai-sdk/langchain";
 import {
   createUIMessageStreamResponse,

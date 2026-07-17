@@ -1,5 +1,5 @@
-import { checkpointer } from "@/ai/lib/postgres";
-import { db } from "@/server/db";
+import { checkpointer } from "@/backend/agent/lib/postgres";
+import { db } from "@/backend/db";
 
 // LangGraph checkpoints one full state snapshot per graph step, keyed by
 // thread_id (== BaseDocument.id — see createAgent.ts), with no built-in cap

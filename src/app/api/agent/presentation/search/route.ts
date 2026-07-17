@@ -1,6 +1,6 @@
-import { search_tool } from "@/ai/tools/search";
-import { auth } from "@/server/auth";
-import { checkRateLimit, rateLimitResponse } from "@/server/rate-limit";
+import { search_tool } from "@/backend/agent/tools/search";
+import { auth } from "@/backend/auth";
+import { checkRateLimit, rateLimitResponse } from "@/backend/rate-limit";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {

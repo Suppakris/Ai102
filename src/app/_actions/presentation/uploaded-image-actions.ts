@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-import { auth } from "@/server/auth";
+import { auth } from "@/backend/auth";
 
 const uploadedImagesInputSchema = z.object({
   limit: z.number().int().min(1).max(60).default(30),

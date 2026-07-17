@@ -1,4 +1,4 @@
-import { auth } from "@/server/auth";
+import { auth } from "@/backend/auth";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function proxy(request: NextRequest) {

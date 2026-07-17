@@ -11,8 +11,8 @@ import {
 } from "@/constants/image-models";
 import { env } from "@/env";
 import { logger } from "@/lib/observability/server/logger";
-import { auth } from "@/server/auth";
-import { db } from "@/server/db";
+import { auth } from "@/backend/auth";
+import { db } from "@/backend/db";
 
 fal.config({
   credentials: env.FAL_API_KEY,

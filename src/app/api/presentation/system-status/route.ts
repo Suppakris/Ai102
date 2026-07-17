@@ -1,7 +1,7 @@
 import { env } from "@/env";
 import { createLogger } from "@/lib/observability/logger";
-import { auth } from "@/server/auth";
-import { db } from "@/server/db";
+import { auth } from "@/backend/auth";
+import { db } from "@/backend/db";
 import { NextResponse } from "next/server";
 
 const routeLogger = createLogger("api:presentation-system-status");

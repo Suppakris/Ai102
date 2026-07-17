@@ -1,10 +1,10 @@
 "use server";
 
 import { logger } from "@/lib/observability/server/logger";
-import { auth } from "@/server/auth";
-import { db } from "@/server/db";
-import { canEditDocument } from "@/server/share/authorization";
-import { normalizeShareEmail } from "@/server/share/utils";
+import { auth } from "@/backend/auth";
+import { db } from "@/backend/db";
+import { canEditDocument } from "@/backend/share/authorization";
+import { normalizeShareEmail } from "@/backend/share/utils";
 
 type UpdatePresentationThumbnailUrlParams = {
   id: string;

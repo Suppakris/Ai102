@@ -1,7 +1,7 @@
 "use server";
 
-import { auth } from "@/server/auth";
-import { db } from "@/server/db";
+import { auth } from "@/backend/auth";
+import { db } from "@/backend/db";
 
 // Toggle like status for a theme
 export async function toggleLikeTheme(themeId: string) {
