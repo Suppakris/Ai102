@@ -26,10 +26,18 @@ export const env = createEnv({
     GITHUB_CLIENT_ID: z.string(),
     GITHUB_CLIENT_SECRET: z.string(),
     UNSPLASH_ACCESS_KEY: z.string().optional(),
-    NEXTAUTH_URL: z.preprocess(
-      (str) => process.env.VERCEL_URL ?? str,
-      process.env.VERCEL ? z.string() : z.string().url(),
-    ),
+    // Accepts a bare host (e.g. Vercel's own VERCEL_URL, or a value someone
+    // pasted without a protocol) and normalizes it to a full URL. Without
+    // this, a protocol-less NEXTAUTH_URL passes validation (previously just
+    // z.string() on Vercel) but then crashes every request at runtime with
+    // "TypeError: Invalid URL" wherever NextAuth calls `new URL()` on it.
+    NEXTAUTH_URL: z.preprocess((str) => {
+      const value = process.env.VERCEL_URL ?? str;
+      if (typeof value === "string" && value && !/^https?:\/\//.test(value)) {
+        return `https://${value}`;
+      }
+      return value;
+    }, z.string().url()),
     NEXTAUTH_SECRET:
       process.env.NODE_ENV === "production"
         ? z.string()
