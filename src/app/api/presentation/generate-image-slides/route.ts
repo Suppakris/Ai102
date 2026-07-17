@@ -9,6 +9,7 @@ import { createLogger } from "@/lib/observability/logger";
 import { getLanguageDisplayName } from "@/lib/presentation/languages";
 import { toUIMessageStream } from "@ai-sdk/langchain";
 import { auth } from "@/server/auth";
+import { checkRateLimit, rateLimitResponse } from "@/server/rate-limit";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { RunnableSequence } from "@langchain/core/runnables";
 import { NextResponse } from "next/server";
@@ -117,6 +118,17 @@ export async function POST(req: Request) {
         { error: "This feature is only available for admin users" },
         { status: 403 },
       );
+    }
+
+    const rateLimit = await checkRateLimit(
+      `presentation-generate-image-slides:${session.user.id}`,
+      { max: 20, windowSeconds: 300 },
+    );
+    if (!rateLimit.allowed) {
+      routeLogger.warn("Image slide generation request rejected: rate limited", {
+        requestId,
+      });
+      return rateLimitResponse(rateLimit.retryAfterSeconds);
     }
 
     const {

@@ -17,6 +17,7 @@ import {
 } from "@/lib/presentation/generation-prompt";
 import { getLanguageDisplayName } from "@/lib/presentation/languages";
 import { auth } from "@/server/auth";
+import { checkRateLimit, rateLimitResponse } from "@/server/rate-limit";
 
 // Vercel Hobby caps serverless functions at 60s. Deck generation on a free
 // (rate-limited) provider can run long, so claim the full budget.
@@ -40,6 +41,17 @@ export async function POST(req: Request) {
         requestId,
       });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimit = await checkRateLimit(`presentation-generate:${session.user.id}`, {
+      max: 20,
+      windowSeconds: 300,
+    });
+    if (!rateLimit.allowed) {
+      routeLogger.warn("Presentation generation request rejected: rate limited", {
+        requestId,
+      });
+      return rateLimitResponse(rateLimit.retryAfterSeconds);
     }
 
     const request = (await req.json()) as SlidesRequest;

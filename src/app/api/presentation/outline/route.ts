@@ -14,6 +14,7 @@ import { createLogger } from "@/lib/observability/logger";
 import { getLanguageDisplayName } from "@/lib/presentation/languages";
 import { logger } from "@/lib/observability/server/logger";
 import { auth } from "@/server/auth";
+import { checkRateLimit, rateLimitResponse } from "@/server/rate-limit";
 import { toBaseMessages, toUIMessageStream } from "@ai-sdk/langchain";
 import {
   createUIMessageStreamResponse,
@@ -211,6 +212,18 @@ export async function POST(req: Request) {
         "allweone.validation.error": "unauthorized",
       });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimit = await checkRateLimit(`presentation-outline:${session.user.id}`, {
+      max: 30,
+      windowSeconds: 300,
+    });
+    if (!rateLimit.allowed) {
+      routeLogger.warn("Outline request rejected: rate limited", { requestId });
+      span.event("allweone.api.request_rejected", {
+        "allweone.validation.error": "rate_limited",
+      });
+      return rateLimitResponse(rateLimit.retryAfterSeconds);
     }
 
     const request = (await req.json()) as OutlineRequest;

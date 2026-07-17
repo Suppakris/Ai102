@@ -67,6 +67,45 @@ model User {
   favoritePresentationThemes FavoritePresentationTheme[]
   presentationThemeLikes     PresentationThemeLike[]
   fontPairs                  FontPair[]
+  memberships                TenantMembership[]
+  documentsCreated           BaseDocument[]              @relation("DocumentCreatedBy")
+  documentsUpdated           BaseDocument[]              @relation("DocumentUpdatedBy")
+}
+
+enum TenantRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+// A tenant is a workspace resources belong to. Every user gets a personal
+// tenant (created lazily on first use — see src/server/tenant.ts) so single-
+// user data keeps working unchanged; users can additionally belong to
+// shared/team tenants via TenantMembership.
+model Tenant {
+  id          String              @id @default(cuid())
+  name        String
+  slug        String              @unique
+  isPersonal  Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  memberships TenantMembership[]
+  documents   BaseDocument[]
+  themes      PresentationTheme[]
+  fontPairs   FontPair[]
+}
+
+model TenantMembership {
+  id        String     @id @default(cuid())
+  tenantId  String
+  userId    String
+  role      TenantRole @default(MEMBER)
+  createdAt DateTime   @default(now())
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([userId])
 }
 
 enum DocumentType {
@@ -86,14 +125,25 @@ model BaseDocument {
   title        String
   type         DocumentType
   userId       String
+  tenantId     String
+  // Ownership audit trail: userId above is the *current* owner (can be
+  // reassigned within a tenant); these two are immutable/append-only
+  // records of who authored and who last touched the row.
+  createdById  String
+  updatedById  String
   thumbnailUrl String?
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   isPublic     Boolean            @default(false)
   documentType String
   user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant       Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy    User               @relation("DocumentCreatedBy", fields: [createdById], references: [id])
+  updatedBy    User               @relation("DocumentUpdatedBy", fields: [updatedById], references: [id])
   presentation Presentation?
   favorites    FavoriteDocument[]
+
+  @@index([tenantId])
 }
 
 model Presentation {
@@ -118,6 +168,7 @@ model PresentationTheme {
   name                       String
   description                String?
   userId                     String
+  tenantId                   String
   logoUrl                    String?
   isPublic                   Boolean                     @default(false)
   createdAt                  DateTime                    @default(now())
@@ -125,10 +176,12 @@ model PresentationTheme {
   isAdmin                    Boolean                     @default(false)
   themeData                  Json
   user                       User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant                     Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   favoritePresentationThemes FavoritePresentationTheme[]
   presentationThemeLikes     PresentationThemeLike[]
 
   @@index([userId])
+  @@index([tenantId])
   @@map("CustomTheme")
 }
 
@@ -167,11 +220,14 @@ model FontPair {
   bodyUrl       String?
   bodyWeight    Int      @default(400)
   userId        String
+  tenantId      String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([tenantId])
 }
 
 model FavoriteDocument {
@@ -182,6 +238,20 @@ model FavoriteDocument {
   user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, documentId])
+}
+
+// Tracks activity on the presentation-editing agent's LangGraph thread
+// (thread_id == BaseDocument.id, see src/ai/agents/presentation/createAgent.ts
+// and src/ai/lib/postgres.ts). The actual conversation/checkpoint state lives
+// in Postgres tables LangGraph itself manages (checkpoints, checkpoint_blobs,
+// checkpoint_writes) and grows without bound as a presentation is edited —
+// this row is just what lets the pruning job (src/ai/lib/prune-checkpoints.ts)
+// find threads that have gone stale, without scanning LangGraph's tables.
+model AgentThread {
+  threadId     String   @id
+  lastActiveAt DateTime @default(now())
+
+  @@index([lastActiveAt])
 }
 
 model GeneratedImage {

@@ -9,6 +9,7 @@ import { NextResponse } from "next/server";
 import { templates } from "@/constants/antv-templates";
 import { DEFAULT_OLLAMA_MODEL, modelPicker } from "@/lib/modelPicker";
 import { logger } from "@/lib/observability/server/logger";
+import { checkRateLimit, rateLimitResponse } from "@/server/rate-limit";
 import {
   buildInfographicLayoutInstruction,
   filterInfographicTemplatesForOrientation,
@@ -225,6 +226,17 @@ export async function POST(req: Request) {
         "allweone.validation.error": "unauthorized",
       });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimit = await checkRateLimit(
+      `presentation-prompt-to-diagram:${session.user.id}`,
+      { max: 40, windowSeconds: 300 },
+    );
+    if (!rateLimit.allowed) {
+      span.event("allweone.api.request_rejected", {
+        "allweone.validation.error": "rate_limited",
+      });
+      return rateLimitResponse(rateLimit.retryAfterSeconds);
     }
 
     const body: unknown = await req.json();

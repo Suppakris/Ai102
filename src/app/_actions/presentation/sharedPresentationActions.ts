@@ -76,7 +76,7 @@ export async function togglePresentationPublicStatus(
         id,
         userId: session.user.id, // Only the owner can change the public status
       },
-      data: { isPublic },
+      data: { isPublic, updatedById: session.user.id },
     });
 
     return {

@@ -8,9 +8,11 @@ import {
 } from "ai";
 
 import { createPresentationGraph } from "@/ai/agents/presentation/createAgent";
+import { recordAgentThreadActivity } from "@/ai/lib/prune-checkpoints";
 import { getLatestUserMessage } from "@/lib/ai/uiMessageParts";
 import { logger } from "@/lib/observability/server/logger";
 import { auth } from "@/server/auth";
+import { checkRateLimit, rateLimitResponse } from "@/server/rate-limit";
 
 type PresentationStreamOptions = Parameters<
   ReturnType<typeof createPresentationGraph>["stream"]
@@ -54,6 +56,17 @@ export async function POST(req: Request) {
       return new Response("Unauthorized", { status: 401 });
     }
 
+    const rateLimit = await checkRateLimit(`agent-presentation:${session.user.id}`, {
+      max: 30,
+      windowSeconds: 300,
+    });
+    if (!rateLimit.allowed) {
+      span.event("allweone.api.request_rejected", {
+        "allweone.validation.error": "rate_limited",
+      });
+      return rateLimitResponse(rateLimit.retryAfterSeconds);
+    }
+
     span.annotate({
       "allweone.thread.id": `presentation:${id}`,
       "allweone.thread.type": "presentation",
@@ -63,6 +76,11 @@ export async function POST(req: Request) {
         : 0,
       "allweone.presentation.resume.present": Boolean(resumeData),
     });
+
+    // Not awaited: this just marks the thread as active for the pruning
+    // job (see prune-checkpoints.ts) and shouldn't add latency to the
+    // agent response.
+    void recordAgentThreadActivity(id).catch((error) => span.error(error));
 
     const graph = createPresentationGraph();
     const streamOptions: PresentationStreamOptions = {

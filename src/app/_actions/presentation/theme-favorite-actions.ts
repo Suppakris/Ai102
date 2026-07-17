@@ -73,8 +73,13 @@ export async function toggleFavoriteTheme(themeId: string) {
   }
 }
 
+const FAVORITE_THEMES_PER_PAGE = 50;
+
 // Get favorite themes for the current user, including like counts and user liked flag
-export async function getUserFavoriteThemes() {
+export async function getUserFavoriteThemes(
+  page = 1,
+  limit = FAVORITE_THEMES_PER_PAGE,
+) {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -82,10 +87,11 @@ export async function getUserFavoriteThemes() {
         success: false,
         message: "You must be signed in to view favorite themes",
         themes: [],
+        hasMore: false,
       };
     }
 
-    const favorites = await db.favoritePresentationTheme.findMany({
+    const rows = await db.favoritePresentationTheme.findMany({
       where: {
         userId: session.user.id,
       },
@@ -116,7 +122,12 @@ export async function getUserFavoriteThemes() {
       orderBy: {
         createdAt: "desc",
       },
+      skip: Math.max(page - 1, 0) * limit,
+      take: limit + 1,
     });
+
+    const hasMore = rows.length > limit;
+    const favorites = hasMore ? rows.slice(0, limit) : rows;
 
     const themes = favorites.map((fav) => ({
       ...fav.theme,
@@ -128,6 +139,7 @@ export async function getUserFavoriteThemes() {
     return {
       success: true,
       themes,
+      hasMore,
     };
   } catch (error) {
     console.error("Failed to fetch favorite themes:", error);
@@ -135,6 +147,7 @@ export async function getUserFavoriteThemes() {
       success: false,
       message: "Unable to load favorite themes. Please try again later.",
       themes: [],
+      hasMore: false,
     };
   }
 }

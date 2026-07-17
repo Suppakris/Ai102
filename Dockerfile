@@ -24,6 +24,16 @@ RUN pnpm install --frozen-lockfile
 FROM deps AS migrate
 CMD ["pnpm", "exec", "prisma", "migrate", "deploy"]
 
+# Runs the BullMQ image-generation worker (src/server/queue/worker.ts) as its
+# own process/container, separate from the web server. Reuses the `deps`
+# node_modules (tsx is a devDependency) and runs the TS source directly —
+# no Next.js build needed for this half of the stack.
+FROM deps AS worker
+COPY . .
+ENV NODE_ENV=production
+ENV SKIP_ENV_VALIDATION=1
+CMD ["pnpm", "exec", "tsx", "src/server/queue/worker.ts"]
+
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .

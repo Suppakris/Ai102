@@ -3,6 +3,7 @@
 import { utapi } from "@/app/api/uploadthing/core";
 import { auth } from "@/server/auth";
 import { db } from "@/server/db";
+import { getOrCreatePersonalTenant } from "@/server/tenant";
 import * as z from "zod";
 
 // Schema for creating a font pair
@@ -29,6 +30,7 @@ export async function createFontPair(formData: FontPairFormData) {
     }
 
     const validatedData = fontPairSchema.parse(formData);
+    const tenantId = await getOrCreatePersonalTenant(session.user.id);
 
     const newFontPair = await db.fontPair.create({
       data: {
@@ -39,6 +41,7 @@ export async function createFontPair(formData: FontPairFormData) {
         bodyUrl: validatedData.bodyUrl,
         bodyWeight: validatedData.bodyWeight,
         userId: session.user.id,
+        tenantId,
       },
     });
 
@@ -70,8 +73,10 @@ export async function createFontPair(formData: FontPairFormData) {
   }
 }
 
+const FONT_PAIRS_PER_PAGE = 50;
+
 // Get all font pairs for the current user
-export async function getUserFontPairs() {
+export async function getUserFontPairs(page = 1, limit = FONT_PAIRS_PER_PAGE) {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -79,21 +84,27 @@ export async function getUserFontPairs() {
         success: false,
         message: "You must be signed in to view your font pairs",
         fontPairs: [],
+        hasMore: false,
       };
     }
 
-    const fontPairs = await db.fontPair.findMany({
+    const rows = await db.fontPair.findMany({
       where: {
         userId: session.user.id,
       },
       orderBy: {
         createdAt: "desc",
       },
+      skip: Math.max(page - 1, 0) * limit,
+      take: limit + 1,
     });
+
+    const hasMore = rows.length > limit;
 
     return {
       success: true,
-      fontPairs,
+      fontPairs: hasMore ? rows.slice(0, limit) : rows,
+      hasMore,
     };
   } catch (error) {
     console.error("Failed to fetch font pairs:", error);
@@ -102,6 +113,7 @@ export async function getUserFontPairs() {
       message:
         "Unable to load font pairs at this time. Please try again later.",
       fontPairs: [],
+      hasMore: false,
     };
   }
 }

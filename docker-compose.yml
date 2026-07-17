@@ -3,13 +3,22 @@
 #   docker compose up --build
 #
 # Boot order: db (healthy) → migrate (prisma migrate deploy, one-shot)
-# → app (http://localhost:3000).
+# → app (http://localhost:3000) + worker (BullMQ image-generation consumer).
+# redis backs the job queue used to move AI image generation off the web
+# server process; without it (REDIS_URL unset) the app would just run those
+# jobs inline instead.
 #
 # LLM access from inside the container:
 #   - Ollama on the host machine is reachable at host.docker.internal:11434
 #     (the default OLLAMA_BASE_URL below).
 #   - For OpenRouter instead, set LLM_PROVIDER=openrouter and
 #     OPENROUTER_API_KEY in a `.env` file next to this compose file.
+#
+# Auth: GOOGLE_CLIENT_ID/SECRET and NEXTAUTH_SECRET/URL are required at
+# runtime (src/server/auth.ts, src/env.js). The placeholders below let the
+# stack boot without real Google credentials — enough to browse the app and
+# hit its APIs — but signing in with Google won't work until you set real
+# values in a `.env` file next to this compose file.
 
 name: ai102
 
@@ -41,6 +50,16 @@ services:
       db:
         condition: service_healthy
 
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
   app:
     build:
       context: .
@@ -52,6 +71,11 @@ services:
       # (src/server/db.ts); this forces the plain pg adapter, which is what
       # a local Postgres container speaks.
       LOCAL_PRODUCTION: "1"
+      REDIS_URL: redis://redis:6379
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-dev-only-secret-change-me}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-dev-placeholder-client-id}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-dev-placeholder-client-secret}
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_DEFAULT_MODEL: ${OLLAMA_DEFAULT_MODEL:-}
@@ -67,6 +91,26 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      target: worker
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/ai102
+      LOCAL_PRODUCTION: "1"
+      REDIS_URL: redis://redis:6379
+      TOGETHER_AI_API_KEY: ${TOGETHER_AI_API_KEY:-}
+      FAL_API_KEY: ${FAL_API_KEY:-}
+      UPLOADTHING_TOKEN: ${UPLOADTHING_TOKEN:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
 
 volumes:
   db-data:
+  redis-data:

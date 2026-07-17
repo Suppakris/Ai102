@@ -1,5 +1,6 @@
 import { search_tool } from "@/ai/tools/search";
 import { auth } from "@/server/auth";
+import { checkRateLimit, rateLimitResponse } from "@/server/rate-limit";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -8,6 +9,14 @@ export async function POST(req: Request) {
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimit = await checkRateLimit(`agent-presentation-search:${session.user.id}`, {
+      max: 30,
+      windowSeconds: 300,
+    });
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit.retryAfterSeconds);
     }
 
     const { query } = (await req.json()) as {

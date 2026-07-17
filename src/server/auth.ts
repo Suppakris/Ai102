@@ -1,20 +1,9 @@
-// ─────────────────────────────────────────────────────────────
-// AUTH DISABLED — college project.
-//
-// This app normally gates every route/action behind NextAuth +
-// Google OAuth. For coursework we don't want a login wall, so this
-// module is stubbed to always return a single fixed "demo" admin
-// user. No Google, no sign-in screen, no NEXTAUTH_* env vars needed.
-//
-// `auth()` is called server-side (routes, server actions); `handlers`
-// backs GET/POST /api/auth/* so the client `useSession()` also sees
-// the demo user. To restore real auth, revert this file (see git
-// history) and set the Google/NEXTAUTH env vars again.
-// ─────────────────────────────────────────────────────────────
-import { db } from "@/server/db";
 import { env } from "@/env";
-import { type DefaultSession, type Session } from "next-auth";
-
+import { db } from "@/server/db";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import NextAuth, { type DefaultSession, type Session } from "next-auth";
+import { type Adapter } from "next-auth/adapters";
+import GoogleProvider from "next-auth/providers/google";
 declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
@@ -32,80 +21,79 @@ declare module "next-auth" {
   }
 }
 
-// Fixed identity every request runs as. Admin + hasAccess so all
-// features (including admin-only ones) are unlocked.
-export const DEMO_USER_ID = "demo-user";
-
-const demoSession: Session = {
-  user: {
-    id: DEMO_USER_ID,
-    name: "Demo User",
-    email: "demo@ai102.local",
-    image: null,
-    role: "ADMIN",
-    isAdmin: true,
-    hasAccess: true,
+export const { auth, handlers, signIn, signOut } = NextAuth({
+  trustHost: true,
+  session: {
+    strategy: "jwt",
   },
-  // 30 days out — client useSession treats it as a live session.
-  expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-};
+  callbacks: {
+    async jwt({ token, user, trigger, session }) {
+      if (user) {
+        token.id = user.id;
+        token.hasAccess = user.hasAccess;
+        token.name = user.name;
+        token.image = user.image;
+        token.picture = user.image;
+        token.location = (user as Session["user"]).location;
+        token.role = user.role;
+        token.isAdmin = user.role === "ADMIN";
+      }
 
-// The demo user must exist as a real DB row, otherwise anything that
-// foreign-keys to userId (presentations, documents) fails to insert.
-// Idempotent, and guarded so it only runs once per server instance.
-import { Prisma } from "@/prisma/client";
+      // Handle updates
+      if (trigger === "update" && (session as Session)?.user) {
+        const user = await db.user.findUnique({
+          where: { id: token.id as string },
+        });
+        if (session) {
+          token.name = (session as Session).user.name;
+          token.image = (session as Session).user.image;
+          token.picture = (session as Session).user.image;
+          token.location = (session as Session).user.location;
+          token.role = (session as Session).user.role;
+          token.isAdmin = (session as Session).user.role === "ADMIN";
+        }
+        if (user) {
+          token.hasAccess = user?.hasAccess ?? false;
+          token.role = user.role;
+          token.isAdmin = user.role === "ADMIN";
+        }
+      }
 
-let ensured = false;
-async function ensureDemoUser(): Promise<void> {
-  if (ensured || !env.DATABASE_URL) {
-    ensured = true;
-    return;
-  }
+      return token;
+    },
+    async session({ session, token }) {
+      session.user.id = token.id as string;
+      session.user.hasAccess = token.hasAccess as boolean;
+      session.user.location = token.location as string;
+      session.user.role = token.role as string;
+      session.user.isAdmin = token.role === "ADMIN";
+      return session;
+    },
+    async signIn({ user, account }) {
+      if (account?.provider === "google") {
+        const dbUser = await db.user.findUnique({
+          where: { email: user.email! },
+          select: { id: true, hasAccess: true, role: true },
+        });
 
-  try {
-    await db.user.upsert({
-      where: { id: DEMO_USER_ID },
-      update: {},
-      create: {
-        id: DEMO_USER_ID,
-        name: "Demo User",
-        email: "demo@ai102.local",
-        role: "ADMIN",
-        hasAccess: true,
-      },
-    });
-    ensured = true;
-  } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      // Another concurrent request already created it — fine.
-      ensured = true;
-      return;
-    }
-    console.warn("[auth-stub] could not ensure demo user:", error);
-  }
-}
+        if (dbUser) {
+          user.hasAccess = dbUser.hasAccess;
+          user.role = dbUser.role;
+        } else {
+          user.hasAccess = false;
+          user.role = "USER";
+        }
+      }
 
-/** Always returns the demo session. Never null. */
-export async function auth(): Promise<Session> {
-  await ensureDemoUser();
-  return demoSession;
-}
+      return true;
+    },
+  },
 
-// Serve the demo session at /api/auth/* so next-auth/react's
-// SessionProvider / useSession() report the user as signed in.
-const sessionJson = () => Response.json(demoSession);
-export const handlers = {
-  GET: async () => sessionJson(),
-  POST: async () => sessionJson(),
-};
-
-// Kept as harmless no-ops in case anything imports them.
-export async function signIn(): Promise<Session> {
-  return demoSession;
-}
-export async function signOut(): Promise<{ url: string }> {
-  return { url: "/" };
-}
+  adapter: PrismaAdapter(db) as Adapter,
+  providers: [
+    GoogleProvider({
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+    }),
+  ],
+});

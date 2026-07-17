@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  SKIP_ENV_VALIDATION: "1"
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm type
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+
+  # The E2E harness: boots the real stack (Postgres, Redis, the app itself)
+  # via docker-compose.yml — the same file used for local dev — then points
+  # Playwright at it. Keeping this on the docker-compose path (rather than a
+  # bespoke CI-only setup) means "does it pass in CI" and "does it pass on
+  # `docker compose up`" are the same question.
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [lint-and-typecheck, unit-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start app stack
+        run: docker compose up --build -d app
+
+      - name: Wait for app to be ready
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3000 > /dev/null; then
+              echo "App is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "App did not become ready in time"
+          docker compose logs
+          exit 1
+
+      - name: Run E2E suite
+        run: pnpm test:e2e
+        env:
+          E2E_BASE_URL: http://localhost:3000
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose down -v

@@ -7,6 +7,7 @@ import {
 import { createLogger } from "@/lib/observability/logger";
 import { toUIMessageStream } from "@ai-sdk/langchain";
 import { auth } from "@/server/auth";
+import { checkRateLimit, rateLimitResponse } from "@/server/rate-limit";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { RunnableSequence } from "@langchain/core/runnables";
 import { NextResponse } from "next/server";
@@ -216,6 +217,17 @@ export async function POST(req: Request) {
         requestId,
       });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimit = await checkRateLimit(
+      `presentation-generate-slide:${session.user.id}`,
+      { max: 40, windowSeconds: 300 },
+    );
+    if (!rateLimit.allowed) {
+      routeLogger.warn("Single slide generation request rejected: rate limited", {
+        requestId,
+      });
+      return rateLimitResponse(rateLimit.retryAfterSeconds);
     }
 
     const {

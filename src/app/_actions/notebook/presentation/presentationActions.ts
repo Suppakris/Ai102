@@ -9,6 +9,7 @@ import { isPresentationAutoTheme } from "@/lib/presentation/theme-resolution";
 import { auth } from "@/server/auth";
 import { db } from "@/server/db";
 import { canEditDocument, canReadDocument } from "@/server/share/authorization";
+import { getOrCreatePersonalTenant } from "@/server/tenant";
 import { normalizeShareEmail } from "@/server/share/utils";
 import { type InputJsonValue } from "@prisma/client/runtime/client";
 import { notFound } from "next/navigation";
@@ -46,12 +47,16 @@ export async function createPresentation({
   }
 
   try {
+    const tenantId = await getOrCreatePersonalTenant(session.user.id);
     const presentation = await db.baseDocument.create({
       data: {
         type: "PRESENTATION",
         documentType: "presentation",
         title: title || "Untitled Presentation",
         userId: session.user.id,
+        tenantId,
+        createdById: session.user.id,
+        updatedById: session.user.id,
         thumbnailUrl: getPresentationThumbnailUrl(content.slides) ?? undefined,
         presentation: {
           create: {
@@ -186,6 +191,7 @@ export async function updatePresentation({
       where: { id },
       data: {
         title,
+        updatedById: session.user.id,
         thumbnailUrl:
           content !== undefined
             ? getPresentationThumbnailUrl(content.slides)
@@ -296,7 +302,7 @@ export async function updatePresentationTitle(id: string, title: string) {
   try {
     const presentation = await db.baseDocument.update({
       where: { id },
-      data: { title },
+      data: { title, updatedById: session.user.id },
       include: {
         presentation: true,
       },
@@ -483,12 +489,16 @@ export async function duplicatePresentation(id: string, newTitle?: string) {
       };
     }
 
+    const duplicateTenantId = await getOrCreatePersonalTenant(session.user.id);
     const duplicated = await db.baseDocument.create({
       data: {
         type: "PRESENTATION",
         documentType: "presentation",
         title: newTitle ?? `(Copy) ${original.title}`,
         userId: session.user.id,
+        tenantId: duplicateTenantId,
+        createdById: session.user.id,
+        updatedById: session.user.id,
         thumbnailUrl: original.thumbnailUrl,
         presentation: {
           create: {

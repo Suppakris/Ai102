@@ -5,6 +5,7 @@ import * as z from "zod";
 import { presentationThemeStyleDataSchema } from "@/lib/presentation/theme-schema";
 import { auth } from "@/server/auth";
 import { db } from "@/server/db";
+import { getOrCreatePersonalTenant } from "@/server/tenant";
 
 // Schema for creating/updating a theme
 const themeSchema = z.object({
@@ -29,6 +30,7 @@ export async function createCustomTheme(formData: ThemeFormData) {
     }
 
     const validatedData = themeSchema.parse(formData);
+    const tenantId = await getOrCreatePersonalTenant(session.user.id);
 
     const newTheme = await db.presentationTheme.create({
       data: {
@@ -38,6 +40,7 @@ export async function createCustomTheme(formData: ThemeFormData) {
         logoUrl: validatedData.logoUrl,
         isPublic: false,
         userId: session.user.id,
+        tenantId,
       },
     });
 
@@ -234,8 +237,10 @@ export async function getSystemPresentationThemes() {
   }
 }
 
+const THEMES_PER_PAGE = 50;
+
 // Get all custom themes for the current user
-export async function getUserCustomThemes() {
+export async function getUserCustomThemes(page = 1, limit = THEMES_PER_PAGE) {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -243,21 +248,27 @@ export async function getUserCustomThemes() {
         success: false,
         message: "You must be signed in to view your themes",
         themes: [],
+        hasMore: false,
       };
     }
 
-    const themes = await db.presentationTheme.findMany({
+    const rows = await db.presentationTheme.findMany({
       where: {
         userId: session.user.id,
       },
       orderBy: {
         createdAt: "desc",
       },
+      skip: Math.max(page - 1, 0) * limit,
+      take: limit + 1,
     });
+
+    const hasMore = rows.length > limit;
 
     return {
       success: true,
-      themes,
+      themes: hasMore ? rows.slice(0, limit) : rows,
+      hasMore,
     };
   } catch (error) {
     console.error("Failed to fetch custom themes:", error);
@@ -265,17 +276,18 @@ export async function getUserCustomThemes() {
       success: false,
       message: "Unable to load themes at this time. Please try again later.",
       themes: [],
+      hasMore: false,
     };
   }
 }
 
 // Get all public themes, including like counts and user engagement flags
-export async function getPublicCustomThemes() {
+export async function getPublicCustomThemes(page = 1, limit = THEMES_PER_PAGE) {
   try {
     const session = await auth();
     const userId = session?.user?.id ?? null;
 
-    const themes = await db.presentationTheme.findMany({
+    const rows = await db.presentationTheme.findMany({
       where: {
         isPublic: true,
         isAdmin: false,
@@ -283,6 +295,8 @@ export async function getPublicCustomThemes() {
       orderBy: {
         createdAt: "desc",
       },
+      skip: Math.max(page - 1, 0) * limit,
+      take: limit + 1,
       include: {
         user: {
           select: {
@@ -311,6 +325,9 @@ export async function getPublicCustomThemes() {
       },
     });
 
+    const hasMore = rows.length > limit;
+    const themes = hasMore ? rows.slice(0, limit) : rows;
+
     const shapedThemes = themes.map((theme) => ({
       ...theme,
       name: theme.name,
@@ -322,6 +339,7 @@ export async function getPublicCustomThemes() {
     return {
       success: true,
       themes: shapedThemes,
+      hasMore,
     };
   } catch (error) {
     console.error("Failed to fetch public themes:", error);
@@ -330,6 +348,7 @@ export async function getPublicCustomThemes() {
       message:
         "Unable to load public themes at this time. Please try again later.",
       themes: [],
+      hasMore: false,
     };
   }
 }

@@ -20,13 +20,20 @@ export const env = createEnv({
     TOGETHER_AI_API_KEY: z.string().optional(),
     FAL_API_KEY: z.string().optional(),
     PINECONE_API_KEY: z.string().optional(),
-    // Auth is stubbed out (see src/server/auth.ts) — these are no longer
-    // required. Kept optional so restoring real auth is just filling them in.
-    GOOGLE_CLIENT_ID: z.string().optional(),
-    GOOGLE_CLIENT_SECRET: z.string().optional(),
+    // Job queue (BullMQ) backing store. Unset in dev: image-generation jobs
+    // just run inline in-process instead of going through a queue/worker.
+    REDIS_URL: z.string().optional(),
+    GOOGLE_CLIENT_ID: z.string(),
+    GOOGLE_CLIENT_SECRET: z.string(),
     UNSPLASH_ACCESS_KEY: z.string().optional(),
-    NEXTAUTH_URL: z.string().optional(),
-    NEXTAUTH_SECRET: z.string().optional(),
+    NEXTAUTH_URL: z.preprocess(
+      (str) => process.env.VERCEL_URL ?? str,
+      process.env.VERCEL ? z.string() : z.string().url(),
+    ),
+    NEXTAUTH_SECRET:
+      process.env.NODE_ENV === "production"
+        ? z.string()
+        : z.string().optional(),
   },
 
   runtimeEnv: {
@@ -47,6 +54,7 @@ export const env = createEnv({
     TOGETHER_AI_API_KEY: process.env.TOGETHER_AI_API_KEY,
     FAL_API_KEY: process.env.FAL_API_KEY,
     PINECONE_API_KEY: process.env.PINECONE_API_KEY,
+    REDIS_URL: process.env.REDIS_URL,
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
   },
