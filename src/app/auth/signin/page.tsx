@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import { FaGoogle } from "react-icons/fa";
+import { FaGithub } from "react-icons/fa";
 
 export default function SignIn() {
   const searchParams = useSearchParams();
@@ -43,10 +43,10 @@ export default function SignIn() {
           <Button
             variant="outline"
             className="flex items-center justify-center gap-2"
-            onClick={() => handleSignIn("google")}
+            onClick={() => handleSignIn("github")}
           >
-            <FaGoogle className="h-4 w-4" />
-            Sign in with Google
+            <FaGithub className="h-4 w-4" />
+            Sign in with GitHub
           </Button>
         </CardContent>
         <CardFooter className="flex flex-col items-center justify-center gap-2">

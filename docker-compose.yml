@@ -14,10 +14,10 @@
 #   - For OpenRouter instead, set LLM_PROVIDER=openrouter and
 #     OPENROUTER_API_KEY in a `.env` file next to this compose file.
 #
-# Auth: GOOGLE_CLIENT_ID/SECRET and NEXTAUTH_SECRET/URL are required at
+# Auth: GITHUB_CLIENT_ID/SECRET and NEXTAUTH_SECRET/URL are required at
 # runtime (src/server/auth.ts, src/env.js). The placeholders below let the
-# stack boot without real Google credentials — enough to browse the app and
-# hit its APIs — but signing in with Google won't work until you set real
+# stack boot without real GitHub credentials — enough to browse the app and
+# hit its APIs — but signing in with GitHub won't work until you set real
 # values in a `.env` file next to this compose file.
 
 name: ai102
@@ -74,8 +74,8 @@ services:
       REDIS_URL: redis://redis:6379
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-dev-only-secret-change-me}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-dev-placeholder-client-id}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-dev-placeholder-client-secret}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-dev-placeholder-client-id}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-dev-placeholder-client-secret}
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_DEFAULT_MODEL: ${OLLAMA_DEFAULT_MODEL:-}
