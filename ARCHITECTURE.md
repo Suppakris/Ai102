@@ -35,7 +35,7 @@ concerns" benefit for a report/demo, without the deployment and integration risk
 ┌─────────────────────────────────────────────────────────┐
 │  Backend  (src/backend/**)                                │
 │  db.ts               Prisma client                       │
-│  auth.ts             stubbed demo-admin auth              │
+│  auth.ts             real GitHub OAuth (Auth.js v5)       │
 │  tenant.ts            multi-tenant resolution              │
 │  rate-limit.ts        request rate limiting                │
 │  share/**             public share-link authorization      │
@@ -80,6 +80,7 @@ Everything required to run and demo this project is free:
 |---|---|---|
 | Text generation (outlines, slides, chat agent) | Ollama, local | Free |
 | AI image generation | Pollinations.ai, no API key | Free (default) |
+| Auth | GitHub OAuth App | Free, no billing |
 | Database | Supabase or Neon free tier | Free |
 | File storage | UploadThing free tier | Free |
 | Stock photos | Unsplash free tier | Free |

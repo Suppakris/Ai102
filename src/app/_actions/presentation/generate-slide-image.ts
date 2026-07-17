@@ -21,13 +21,9 @@ export async function generateSlideImageAction(
     };
   }
 
-  // Admin only feature
-  if (!session.user.isAdmin) {
-    return {
-      success: false,
-      error: "This feature is only available for admin users",
-    };
-  }
+  // Non-admins are capped to the free default model rather than blocked
+  // outright, matching the other image-generation actions.
+  const actualModel = session.user.isAdmin ? imageModel : DEFAULT_SLIDE_IMAGE_MODEL;
 
   try {
     const rateLimit = await checkRateLimit(`slide-image-generate:${session.user.id}`, {
@@ -41,12 +37,12 @@ export async function generateSlideImageAction(
       };
     }
 
-    console.log(`Generating slide image with model: ${imageModel}`);
+    console.log(`Generating slide image with model: ${actualModel}`);
 
     const generatedImage = await runImageGeneration(
-      imageModel.startsWith("fal-ai/")
-        ? { provider: "fal", prompt, model: imageModel, userId: session.user.id }
-        : { provider: "pollinations", prompt, model: imageModel, userId: session.user.id },
+      actualModel.startsWith("fal-ai/")
+        ? { provider: "fal", prompt, model: actualModel, userId: session.user.id }
+        : { provider: "pollinations", prompt, model: actualModel, userId: session.user.id },
     );
 
     console.log(`Uploaded slide image to: ${generatedImage.url}`);

@@ -1,6 +1,6 @@
 # Ai102
 
-A local-first AI presentation generator — a customized, Ollama-only build derived from [ALLWEONE's presentation-ai](https://github.com/allweonedev/presentation-ai), stripped down for a college project. No cloud LLM required, no login wall, no paid APIs required to run it end to end.
+A local-first AI presentation generator — a customized, Ollama-only build derived from [ALLWEONE's presentation-ai](https://github.com/allweonedev/presentation-ai), stripped down for a college project. No cloud LLM required, no paid APIs required to run it end to end. Sign-in is real GitHub OAuth (free, no billing) — see [Admin access](#admin-access) for granting a user full access after their first sign-in.
 
 ## 🔗 Quick Links
 
@@ -30,7 +30,8 @@ A local-first AI presentation generator — a customized, Ollama-only build deri
 
 This fork disables everything that requires a paid account or a login system, so it can run as a self-contained coursework build:
 
-- **Auth is disabled.** `src/backend/auth.ts` is stubbed to always return a fixed demo admin user. No Google OAuth, no `NEXTAUTH_*` vars needed. Because the demo user's role is always `ADMIN`, every "admin-only" feature (see Known Issues) is effectively open to everyone in this build. To restore real login, revert that file and set the Google/NextAuth env vars again.
+- **Auth is real GitHub OAuth** (`src/backend/auth.ts`, via Auth.js/NextAuth v5 + Prisma). GitHub OAuth Apps are free (no billing, unlike Google Cloud) — see `.env.example` for the required `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`/`NEXTAUTH_SECRET`/`NEXTAUTH_URL`. New sign-ins default to `role: USER` (not admin); see [Admin access](#admin-access) to grant someone full access.
+  - **Only test "Sign in with GitHub" against the real deployed domain, never a Vercel PR preview link.** GitHub OAuth Apps support exactly one callback URL (set to the production domain), so a sign-in started from a preview URL will always fail with `InvalidCheck`/`error=Configuration` — the PKCE cookie gets set on the preview's hostname but GitHub redirects the callback to production. This is expected, not a bug.
 - **Text generation is Ollama-only.** All cloud text providers (OpenAI, LM Studio, OpenRouter, Groq/BYOK) have been removed from `src/lib/model-picker.ts`. Every request resolves to a model served from `OLLAMA_BASE_URL`'s OpenAI-compatible endpoint. Legacy provider values (`openai`, `lmstudio`) from old persisted client state are caught and silently redirected to the default Ollama model instead of erroring.
 - **Image generation is free by default.** [Pollinations.ai](https://pollinations.ai) (no API key) is the default provider everywhere images are generated (`src/backend/queue/image-generation.ts`). FAL (Flux models) is still wired in as an optional, admin-gated paid upgrade if `FAL_API_KEY` is set; Together AI's code path exists but isn't used by any active feature.
 - **Backend logic lives under `src/backend/`.** Db, auth, tenant, rate-limiting, the image queue, and the LangGraph presentation agent are consolidated there — see [ARCHITECTURE.md](ARCHITECTURE.md) for the full frontend/backend split.
@@ -129,7 +130,7 @@ This fork disables everything that requires a paid account or a login system, so
    pnpm dev
    ```
 
-   The app runs at `http://localhost:3000` and redirects straight to `/presentation` (there's no separate marketing page, and no login screen — see [What's Different From Upstream](#-whats-different-from-upstream)).
+   The app runs at `http://localhost:3000` and redirects straight to `/presentation` (there's no separate marketing page). You'll be asked to sign in with GitHub first — see [What's Different From Upstream](#-whats-different-from-upstream).
 
 ### Environment Variables
 
@@ -149,7 +150,19 @@ Copy `.env.example` to `.env` and fill in what you need. `.env.example` is the s
 | `GOOGLE_CUSTOM_SEARCH_API_KEY` + `SEARCH_ENGINE_CX` | Optional | Google Custom Search image lookup. |
 | `TAVILY_API_KEY` | Optional | Web search tool for the outline generator and the in-editor chat agent. |
 
-All optional integrations degrade gracefully when unset — features that need them just no-op with an error message instead of crashing. Auth-related vars (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/`NEXTAUTH_SECRET`/`NEXTAUTH_URL`) are commented out and not needed since login is stubbed.
+All optional integrations degrade gracefully when unset — features that need them just no-op with an error message instead of crashing.
+
+Auth vars are **required**, not optional: `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` — see `.env.example` for how to get each one (all free). Without them the app won't boot in production.
+
+### Admin access
+
+New GitHub sign-ins default to `role: USER`. Most features work fine at that role — image generation, for example, is free and available to everyone — but a few (paid FAL image models, editing system themes) are admin-gated. To grant someone admin after their first sign-in:
+
+```bash
+pnpm db:studio   # opens Prisma Studio — open the User table, set role = ADMIN for their row
+```
+
+Or via SQL: `UPDATE "User" SET role = 'ADMIN' WHERE email = 'their@email.com';`
 
 ### Database Setup
 
@@ -171,7 +184,7 @@ Commit the generated folder under `prisma/migrations/` — that SQL file *is* th
 > **Migrating an existing `db push` database:** if your DB already has the schema (created via `db:push` before migrations existed), baseline it once instead of re-running the initial migration:
 > `pnpm exec prisma migrate resolve --applied 0_init`
 
-There's no separate seed step required to boot the app — the stubbed demo user is upserted automatically on first request.
+There's no separate seed step required — signing in with GitHub creates the user record automatically via the Prisma adapter. See [Admin access](#admin-access) above to grant a user elevated access afterward.
 
 ### Run on Docker
 
@@ -209,7 +222,7 @@ Rules of the road:
 
 ## 📖 Usage
 
-1. Start the app (`pnpm dev`) and go to `http://localhost:3000` — you're dropped straight into `/presentation` as the demo admin user.
+1. Start the app (`pnpm dev`) and go to `http://localhost:3000` — sign in with GitHub, then grant yourself admin (see [Admin access](#admin-access)) if you need admin-only features.
 2. Create a new presentation from `/presentation/create`: describe the topic, review/edit the generated outline, then generate the full deck.
 3. In the editor, use the built-in themes or create a custom one, edit slides directly, or use the in-editor chat agent to ask for changes (layout, images, new/regenerated slides, theme changes).
 4. Export to `.pptx`, present directly from the browser, or generate a public share link.
@@ -258,8 +271,7 @@ request-flow diagram. Quick map of `src/`:
 ## ⚠️ Known Issues
 
 - **Document/RAG search is scaffolded but not implemented.** The notebook attachment model has `ragId`/`processingStatus` fields, and `PINECONE_API_KEY` is declared, but there's no actual vector-search tool wired into the agent. Don't expect "chat with your uploaded document" to work yet.
-- **`/auth/signin` still renders a "Sign in with Google" button** that goes nowhere useful — dead leftover from upstream since auth is stubbed. Harmless, but confusing if you stumble onto it.
-- **"Admin-only" gating on some image models is a no-op in this build** — the demo user is always `role: ADMIN`, so those features work for everyone.
+- **New sign-ins default to `role: USER`, not admin.** A few features (paid FAL image models, editing system themes) stay hidden until someone grants the account admin — see [Admin access](#admin-access). Core features (generating a presentation, free AI images) work for every signed-in user regardless of role.
 - Both Biome and Prettier are configured; Biome is canonical (it's what `lint`/`check` scripts run).
 
 ## 🤝 Contributing
