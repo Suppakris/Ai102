@@ -189,7 +189,10 @@ export function ReviewButton() {
                 />
               </div>
 
-              <p className="text-sm leading-relaxed">{result.feedback}</p>
+              <p className="text-sm leading-relaxed">
+                {result.feedback.trim() ||
+                  "The reviewer returned scores without written feedback — try Review again for a written assessment."}
+              </p>
 
               {result.clarifying_questions.length > 0 && (
                 <div className="space-y-1.5">

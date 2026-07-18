@@ -90,6 +90,25 @@ const sampleDecks = [
     },
   },
   {
+    name: "ADVICE-ONLY deck (expect: empty claim_audit, no UNSUPPORTED, judged on clarity)",
+    input: {
+      user_id: "test-user",
+      document_id: "deck-advice",
+      slides: [
+        {
+          slide_number: 1,
+          content:
+            "Effective Decision Making\n• Break complex problems into manageable parts\n• Use a logical, systematic approach",
+        },
+        {
+          slide_number: 2,
+          content:
+            "Building Resilience\n• Emphasize flexibility and adaptability under uncertainty\n• Foster a culture of continuous learning",
+        },
+      ],
+    },
+  },
+  {
     name: "SPARSE deck (expect: clarifying_questions, no LLM guessing)",
     input: {
       user_id: "test-user",
