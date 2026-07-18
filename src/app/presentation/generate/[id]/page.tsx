@@ -361,6 +361,7 @@ export default function PresentationGenerateWithIdPage() {
     return (
       <ThemeBackground
         themeOverride={resolvedTheme === "dark" ? "ebony" : "mystique"}
+        lockAppBackground
       >
         <div className="flex h-[calc(100vh-8rem)] flex-col items-center justify-center px-4 text-center">
           <div className="relative">
@@ -376,7 +377,9 @@ export default function PresentationGenerateWithIdPage() {
   }
 
   return (
-    <ThemeBackground>
+    // lockAppBackground: picking a theme card must not recolor the page —
+    // the cards preview their own colors; the chrome stays on the app theme
+    <ThemeBackground lockAppBackground>
       <div className="flex justify-center pb-28">
         <div className="w-full max-w-4xl space-y-6 px-4 pt-14 pb-6 sm:p-8 sm:pt-6">
           <div className="space-y-6">

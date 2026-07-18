@@ -19,6 +19,12 @@ interface ThemeBackgroundProps {
   themeDataOverride?: ThemeProperties;
   suppressThemeUpdates?: boolean;
   ignorePageBackgroundOverride?: boolean;
+  /**
+   * Keep the page chrome on the app's own background/mode instead of
+   * recoloring with the selected presentation theme. Theme CSS variables and
+   * fonts still load so child previews render correctly.
+   */
+  lockAppBackground?: boolean;
 }
 
 export function ThemeBackground({
@@ -29,6 +35,7 @@ export function ThemeBackground({
   themeDataOverride,
   suppressThemeUpdates,
   ignorePageBackgroundOverride = false,
+  lockAppBackground = false,
 }: ThemeBackgroundProps) {
   const presentationTheme = usePresentationState((s) => s.theme);
   const customThemeData = usePresentationState((s) => s.customThemeData);
@@ -66,7 +73,7 @@ export function ThemeBackground({
   // When inside /presentation route, this sets the isolated presentation theme
   // When elsewhere, this would set the global theme (existing behavior for other use cases)
   useEffect(() => {
-    if (!mounted || !theme || suppressThemeUpdates) return;
+    if (!mounted || !theme || suppressThemeUpdates || lockAppBackground) return;
 
     let currentThemeData: ThemeProperties | null = null;
 
@@ -87,6 +94,7 @@ export function ThemeBackground({
     resolvedTheme,
     setPresentationThemeMode,
     suppressThemeUpdates,
+    lockAppBackground,
   ]);
 
   // Get the current theme colors
@@ -113,15 +121,23 @@ export function ThemeBackground({
     themeBackground?.override || // Theme background
     (isDark ? "#0a0a0a" : "#ffffff"); // Neutral fallback (not tied to slide color)
 
-  const gradientStyle = {
-    background: computedBackground,
-    transition: currentTheme.transitions.default,
-    color: colors.text,
-  } as React.CSSProperties;
+  const gradientStyle = lockAppBackground
+    ? ({
+        transition: currentTheme.transitions.default,
+      } as React.CSSProperties)
+    : ({
+        background: computedBackground,
+        transition: currentTheme.transitions.default,
+        color: colors.text,
+      } as React.CSSProperties);
 
   return (
     <div
-      className={cn("theme-background h-max min-h-full w-full", className)}
+      className={cn(
+        "theme-background h-max min-h-full w-full",
+        lockAppBackground && "bg-background text-foreground",
+        className,
+      )}
       style={gradientStyle}
       ref={themeBackgroundRef}
     >
