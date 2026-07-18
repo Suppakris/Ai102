@@ -45,6 +45,18 @@ function isReviewDeckRequest(value: unknown): value is ReviewDeckRequest {
   );
 }
 
+/**
+ * The Ollama backend lives behind a tunnel that can go down at any time; a
+ * connection-level failure means "backend offline", not a bug in this route.
+ */
+function isUpstreamUnreachable(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const text = [error.message, String(error.cause ?? "")].join(" ");
+  return /fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ECONNRESET|UND_ERR|socket hang up/i.test(
+    text,
+  );
+}
+
 export async function POST(req: Request) {
   const actionName = "presentation.review_deck.post";
   const span = logger.startSpan(`allweone.api.${actionName}`, {
@@ -115,6 +127,15 @@ export async function POST(req: Request) {
     return NextResponse.json(result);
   } catch (error) {
     span.error(error);
+    if (isUpstreamUnreachable(error)) {
+      return NextResponse.json(
+        {
+          error:
+            "The AI review server is unreachable right now. It may be offline — try again in a few minutes.",
+        },
+        { status: 503 },
+      );
+    }
     return NextResponse.json(
       { error: "Failed to review the deck" },
       { status: 500 },

@@ -8,7 +8,7 @@ import {
   Loader2,
   XCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { serializeSlideToXml } from "@/components/notebook/presentation/utils/slide-serializer";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +61,39 @@ const CLAIM_STATUS_STYLE: Record<
   },
 };
 
+/**
+ * The reviewer fact-checks claims against source_context; the presentation's
+ * own prompt and outline are the closest thing to source material we have.
+ */
+function buildSourceContext(
+  presentationInput: string,
+  outline: string[],
+): string | undefined {
+  const parts: string[] = [];
+  if (presentationInput.trim()) {
+    parts.push(`Presentation topic / original request:\n${presentationInput.trim()}`);
+  }
+  if (outline.length > 0) {
+    parts.push(
+      `Planned outline:\n${outline.map((item, i) => `${i + 1}. ${item}`).join("\n")}`,
+    );
+  }
+  return parts.length > 0 ? parts.join("\n\n") : undefined;
+}
+
+function progressMessage(elapsedSeconds: number, slideCount: number): string {
+  if (elapsedSeconds < 6) {
+    return `Sending your ${slideCount} slide${slideCount === 1 ? "" : "s"} to the auditor…`;
+  }
+  if (elapsedSeconds < 20) {
+    return "The auditor is reading your deck and checking its claims…";
+  }
+  if (elapsedSeconds < 45) {
+    return "Still working — larger decks and busy servers take a bit longer…";
+  }
+  return "Hang tight — the AI server is under load. This can take a minute or two.";
+}
+
 function ScoreTile({ label, value }: { label: string; value: number }) {
   const tone =
     value >= 7
@@ -79,11 +112,22 @@ function ScoreTile({ label, value }: { label: string; value: number }) {
 export function ReviewButton() {
   const [isOpen, setIsOpen] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [slideCount, setSlideCount] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [result, setResult] = useState<ReviewResult | null>(null);
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (!isReviewing) return;
+    setElapsedSeconds(0);
+    const timer = setInterval(() => setElapsedSeconds((s) => s + 1), 1000);
+    return () => clearInterval(timer);
+  }, [isReviewing]);
+
   const handleReview = async () => {
-    const { slides, currentPresentationId } = usePresentationState.getState();
+    const { slides, currentPresentationId, outline, presentationInput } =
+      usePresentationState.getState();
 
     if (!currentPresentationId || slides.length === 0) {
       toast({
@@ -95,7 +139,9 @@ export function ReviewButton() {
     }
 
     setIsReviewing(true);
+    setSlideCount(slides.length);
     setResult(null);
+    setErrorMessage(null);
     try {
       const response = await fetch("/api/presentation/review-deck", {
         method: "POST",
@@ -106,6 +152,7 @@ export function ReviewButton() {
             slide_number: index + 1,
             content: serializeSlideToXml(slide),
           })),
+          source_context: buildSourceContext(presentationInput, outline),
         }),
       });
 
@@ -113,19 +160,37 @@ export function ReviewButton() {
         const body = (await response.json().catch(() => null)) as {
           error?: string;
         } | null;
-        throw new Error(body?.error ?? `Review failed (${response.status})`);
+        if (response.status === 401) {
+          throw new Error(
+            "Your session has expired. Refresh the page and sign in again.",
+          );
+        }
+        if (response.status === 429) {
+          throw new Error(
+            "You've run a lot of reviews recently — wait a few minutes and try again.",
+          );
+        }
+        if (response.status === 503) {
+          throw new Error(
+            body?.error ??
+              "The AI review server is offline right now. Try again in a few minutes.",
+          );
+        }
+        throw new Error(
+          body?.error ?? `Something went wrong (error ${response.status}). Try again.`,
+        );
       }
 
       setResult((await response.json()) as ReviewResult);
     } catch (error) {
-      toast({
-        title: "Review Failed",
-        description:
-          error instanceof Error
+      // fetch rejects with a TypeError when the request never reached the server
+      setErrorMessage(
+        error instanceof TypeError
+          ? "Couldn't reach the server. Check your internet connection and try again."
+          : error instanceof Error
             ? error.message
             : "There was an error reviewing your presentation.",
-        variant: "destructive",
-      });
+      );
     } finally {
       setIsReviewing(false);
     }
@@ -143,7 +208,10 @@ export function ReviewButton() {
       open={isOpen}
       onOpenChange={(open) => {
         setIsOpen(open);
-        if (!open) setResult(null);
+        if (!open) {
+          setResult(null);
+          setErrorMessage(null);
+        }
       }}
     >
       <DialogTrigger asChild>
@@ -240,11 +308,23 @@ export function ReviewButton() {
               )}
             </div>
           </ScrollArea>
+        ) : isReviewing ? (
+          <div className="flex items-start gap-2 py-2 text-sm text-muted-foreground">
+            <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin" />
+            <span>
+              {progressMessage(elapsedSeconds, slideCount)}
+              {elapsedSeconds >= 6 && ` (${elapsedSeconds}s)`}
+            </span>
+          </div>
+        ) : errorMessage ? (
+          <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
+            <span>{errorMessage}</span>
+          </div>
         ) : (
           <p className="py-2 text-sm text-muted-foreground">
-            {isReviewing
-              ? "The auditor is reading your slides — this usually takes a few seconds."
-              : "Runs on the configured AI backend. Slide text is sent for review; nothing is changed without you."}
+            Runs on the configured AI backend. Slide text is sent for review;
+            nothing is changed without you.
           </p>
         )}
 
@@ -263,7 +343,7 @@ export function ReviewButton() {
                 <Loader2 className="mr-2 size-4 animate-spin" />
                 Reviewing…
               </>
-            ) : result ? (
+            ) : result ?? errorMessage ? (
               "Review again"
             ) : (
               "Review my deck"
