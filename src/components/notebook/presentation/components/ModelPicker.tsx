@@ -176,10 +176,10 @@ export function ModelPicker({
             </SelectGroup>
           )}
 
-          {openRouterEnabled && (
-            <SelectGroup>
-              <SelectLabel>OpenRouter (paid)</SelectLabel>
-              {OPENROUTER_TEXT_MODELS.map((model) => (
+          <SelectGroup>
+            <SelectLabel>OpenRouter (paid)</SelectLabel>
+            {openRouterEnabled ? (
+              OPENROUTER_TEXT_MODELS.map((model) => (
                 <SelectItem
                   key={`openrouter-${model.value}`}
                   value={`openrouter-${model.value}`}
@@ -195,9 +195,28 @@ export function ModelPicker({
                     </div>
                   </div>
                 </SelectItem>
-              ))}
-            </SelectGroup>
-          )}
+              ))
+            ) : (
+              <SelectItem
+                value="openrouter-setup"
+                disabled
+                className="overflow-hidden"
+              >
+                <div className="flex min-w-0 max-w-full items-center gap-3">
+                  <Cloud className="h-4 w-4 flex-shrink-0" />
+                  <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                    <span className="line-clamp-2 whitespace-normal break-words text-sm leading-snug">
+                      {OPENROUTER_TEXT_MODELS.length} models available (GPT-5,
+                      Claude, Gemini, and more)
+                    </span>
+                    <span className="line-clamp-2 whitespace-normal break-words text-xs leading-snug text-muted-foreground">
+                      Ask an admin to set OPENROUTER_API_KEY to enable
+                    </span>
+                  </div>
+                </div>
+              </SelectItem>
+            )}
+          </SelectGroup>
         </SelectContent>
       </Select>
     </div>
