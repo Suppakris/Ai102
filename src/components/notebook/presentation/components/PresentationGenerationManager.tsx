@@ -1,6 +1,7 @@
 "use client";
 
 import { generateImageAction } from "@/app/_actions/apps/image-studio/generate";
+import { type ModelProvider } from "@/constants/text-models";
 import { getImageFromPixabay } from "@/app/_actions/apps/image-studio/pixabay";
 import { getImageFromUnsplash } from "@/app/_actions/apps/image-studio/unsplash";
 import { updatePresentation } from "@/app/_actions/notebook/presentation/presentationActions";
@@ -47,7 +48,7 @@ interface PresentationOutlineMessageMetadata {
   numberOfCards: number;
   language: string;
   modelId: string;
-  modelProvider: "ollama";
+  modelProvider: ModelProvider;
   webSearch: boolean;
   autoTheme: boolean;
   presentationId: string | null;

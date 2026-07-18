@@ -1,4 +1,5 @@
 import { search_tool } from "@/backend/agent/tools/search";
+import { type ModelProvider } from "@/constants/text-models";
 import { env } from "@/env";
 import {
   getLatestUserMessage,
@@ -35,7 +36,7 @@ interface OutlineMessageMetadata {
   numberOfCards?: number;
   language?: string;
   modelId?: string;
-  modelProvider?: "ollama";
+  modelProvider?: ModelProvider;
   webSearch?: boolean;
   autoTheme?: boolean;
   textContent?: "minimal" | "concise" | "detailed" | "extensive";

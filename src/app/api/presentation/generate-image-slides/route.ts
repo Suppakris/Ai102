@@ -1,4 +1,5 @@
 import { createUIMessageStreamResponse } from "ai";
+import { type ModelProvider } from "@/constants/text-models";
 import {
   assertModelIsConfigured,
   DEFAULT_OLLAMA_MODEL,
@@ -24,7 +25,7 @@ interface ImageSlidesRequest {
   outline: string[];
   language: string;
   modelId?: string;
-  modelProvider?: "ollama";
+  modelProvider?: ModelProvider;
   presentationId?: string;
 }
 

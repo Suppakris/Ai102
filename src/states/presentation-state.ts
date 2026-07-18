@@ -9,6 +9,7 @@ import {
 } from "@/components/notebook/presentation/utils/normalizePresentationSlate";
 import { type PlateSlide } from "@/components/notebook/presentation/utils/parser";
 import { type ImageModelList } from "@/constants/image-models";
+import { type ModelProvider } from "@/constants/text-models";
 import { type NotebookAgentToolCall } from "@/lib/notebook/agent-activity";
 import {
   type NotebookAttachment,
@@ -105,7 +106,7 @@ type PendingPresentationCreateRequest = {
   attachments?: NotebookAttachment[];
   language: string;
   modelId: string;
-  modelProvider: "ollama";
+  modelProvider: ModelProvider;
   numSlides: number;
   generationAspectRatio?: PresentationGenerationAspectRatio;
   outputFormat?: "flow" | "html";
@@ -130,7 +131,7 @@ interface PresentationState {
   themeDataByTheme: Record<string, ThemeProperties | null | undefined>;
   generatedThemeData: ThemeProperties | null;
   language: string;
-  modelProvider: "ollama";
+  modelProvider: ModelProvider;
   modelId: string;
   pageStyle: string;
   presentationInput: string;
@@ -259,7 +260,7 @@ interface PresentationState {
   thumbnailUrl?: string;
   setThumbnailUrl: (url: string | undefined) => void;
   setLanguage: (lang: string) => void;
-  setModelProvider: (provider: "ollama") => void;
+  setModelProvider: (provider: ModelProvider) => void;
   setModelId: (id: string) => void;
   setPageStyle: (style: string) => void;
   setPresentationInput: (input: string) => void;

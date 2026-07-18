@@ -13,6 +13,7 @@ interface ServiceStatus {
 interface IntegrationConfigStatus {
   pollinationsImages: boolean;
   falImages: boolean;
+  openrouterText: boolean;
   togetherAiImages: boolean;
   uploadthing: boolean;
   tavilySearch: boolean;

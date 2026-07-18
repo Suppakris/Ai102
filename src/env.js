@@ -29,6 +29,9 @@ export const env = createEnv({
     GOOGLE_CLIENT_SECRET: z.string().optional(),
     DISCORD_CLIENT_ID: z.string().optional(),
     DISCORD_CLIENT_SECRET: z.string().optional(),
+    // Optional, paid, opt-in text-generation upgrade over the free Ollama
+    // default — see src/constants/text-models.ts for the selectable models.
+    OPENROUTER_API_KEY: z.string().optional(),
     UNSPLASH_ACCESS_KEY: z.string().optional(),
     // Accepts a bare host (e.g. Vercel's own VERCEL_URL, or a value someone
     // pasted without a protocol) and normalizes it to a full URL. Without
@@ -56,6 +59,7 @@ export const env = createEnv({
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID,
     DISCORD_CLIENT_SECRET: process.env.DISCORD_CLIENT_SECRET,
+    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
     UNSPLASH_ACCESS_KEY: process.env.UNSPLASH_ACCESS_KEY,
     TAVILY_API_KEY: process.env.TAVILY_API_KEY,
     NODE_ENV: process.env.NODE_ENV,

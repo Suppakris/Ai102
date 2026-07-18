@@ -9,6 +9,7 @@ import {
   ensureModelIsReady,
   modelPicker,
 } from "@/lib/modelPicker";
+import { type ModelProvider } from "@/constants/text-models";
 import { createLogger } from "@/lib/observability/logger";
 import {
   buildPresentationPromptValues,
@@ -25,7 +26,7 @@ export const maxDuration = 60;
 
 type SlidesRequest = Omit<PresentationGenerationPromptInput, "currentDate"> & {
   modelId?: string;
-  modelProvider?: "ollama";
+  modelProvider?: ModelProvider;
   presentationId?: string;
 };
 
