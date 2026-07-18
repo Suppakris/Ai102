@@ -130,8 +130,12 @@ export async function reviewSlides(
     skipSparseGuard?: boolean;
   },
 ): Promise<ReviewSlidesResult> {
+  // Count only visible text: production sends XML-serialized slides, and
+  // markup alone (e.g. image-only slides) can exceed the threshold while
+  // giving the reviewer nothing real to read.
   const totalChars = input.slides.reduce(
-    (sum, slide) => sum + slide.content.trim().length,
+    (sum, slide) =>
+      sum + slide.content.replace(/<[^>]*>/g, " ").trim().length,
     0,
   );
 
@@ -159,9 +163,12 @@ export async function reviewSlides(
     { role: "system", content: REVIEWER_SYSTEM_PROMPT },
     {
       role: "user",
+      // source_context first: claims get matched against it, and small
+      // models match far better when the reference text precedes a long
+      // slide list rather than trailing it.
       content: JSON.stringify({
-        slides: input.slides,
         source_context: input.source_context ?? null,
+        slides: input.slides,
       }),
     },
   ]);
@@ -171,19 +178,21 @@ export async function reviewSlides(
   const hasUnsupportedClaims = review.claim_audit.some(
     (claim) => claim.status === "UNSUPPORTED",
   );
-  const needsMoreContext = review.clarifying_questions.length > 0;
 
   reviewLogger.info("Slide review completed", {
     documentId: input.document_id,
     average,
     hasUnsupportedClaims,
-    needsMoreContext,
+    clarifyingQuestionCount: review.clarifying_questions.length,
   });
 
   return {
     ...review,
-    needs_revision:
-      average < PASS_THRESHOLD || hasUnsupportedClaims || needsMoreContext,
+    // Clarifying questions are advisory: a model that scored the deck
+    // confidently shouldn't fail the gate for also asking optional
+    // questions. Truly unreviewable decks take the sparse-guard path
+    // above, which sets needs_revision explicitly.
+    needs_revision: average < PASS_THRESHOLD || hasUnsupportedClaims,
   };
 }
 
