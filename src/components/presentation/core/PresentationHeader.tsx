@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Brain } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { usePresentationState } from "@/states/presentation-state";
+import { ThemeToggleIcon } from "@/provider/theme-provider";
 
 interface PresentationHeaderProps {
   title?: string;
@@ -89,7 +90,10 @@ export default function PresentationHeader({ title }: PresentationHeaderProps) {
           </motion.div>
         </div>
 
-        <SystemStatusBadge />
+        <div className="flex items-center gap-2">
+          <ThemeToggleIcon />
+          <SystemStatusBadge />
+        </div>
 
         {/* <SideBarDropdown /> */}
       </header>
@@ -165,6 +169,9 @@ export default function PresentationHeader({ title }: PresentationHeaderProps) {
 
       {/* Right section with actions */}
       <div className="scrollbar-hide flex max-w-[56vw] shrink-0 items-center gap-2 overflow-x-auto md:max-w-none md:overflow-visible">
+        {/* Light/dark toggle - app follows system theme until toggled here */}
+        {!isPresenting && <ThemeToggleIcon />}
+
         {/* Backend status - always visible since generation depends on it */}
         {!isPresenting && <SystemStatusBadge />}
 

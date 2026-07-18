@@ -14,6 +14,26 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
 }
 
+/** Compact icon-only toggle for headers/toolbars. */
+export function ThemeToggleIcon() {
+  const { resolvedTheme, setTheme } = useTheme();
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="size-9 shrink-0 rounded-full md:size-9"
+      aria-label="Toggle light/dark theme"
+      title="Toggle light/dark theme"
+      onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+    >
+      {/* CSS-swapped icons keep server and client markup identical (no hydration flicker) */}
+      <Sun className="size-4 dark:hidden" />
+      <Moon className="hidden size-4 dark:block" />
+    </Button>
+  );
+}
+
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
 
