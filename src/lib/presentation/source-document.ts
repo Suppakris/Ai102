@@ -1,8 +1,35 @@
-export const MAX_PDF_FILE_SIZE_BYTES = 25 * 1024 * 1024;
+export const MAX_SOURCE_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 
-export function isPdfFile(file: File): boolean {
-  return file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+export type SourceFileKind = "pdf" | "docx" | "spreadsheet" | "text";
+
+/** Detects which extractor a file needs; null = unsupported. */
+export function getSourceFileKind(file: File): SourceFileKind | null {
+  if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
+    return "pdf";
+  }
+  if (/\.docx$/i.test(file.name)) {
+    return "docx";
+  }
+  if (/\.(xlsx|xls|csv)$/i.test(file.name)) {
+    return "spreadsheet";
+  }
+  if (/\.(txt|md)$/i.test(file.name)) {
+    return "text";
+  }
+  return null;
 }
+
+/** For the file-input accept attribute: everything getSourceFileKind allows. */
+export const SOURCE_FILE_ACCEPT = [
+  "application/pdf",
+  ".pdf",
+  ".docx",
+  ".xlsx",
+  ".xls",
+  ".csv",
+  ".txt",
+  ".md",
+].join(",");
 
 export type PresentationSourceDocument = {
   name: string;

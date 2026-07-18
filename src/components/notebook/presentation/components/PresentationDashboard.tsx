@@ -20,8 +20,10 @@ import {
 import { buildPresentationCustomization } from "@/lib/presentation/customization";
 import { LANGUAGE_OPTIONS } from "@/lib/presentation/languages";
 import {
-  isPdfFile,
-  MAX_PDF_FILE_SIZE_BYTES,
+  getSourceFileKind,
+  MAX_SOURCE_FILE_SIZE_BYTES,
+  SOURCE_FILE_ACCEPT,
+  type PresentationSourceDocument,
 } from "@/lib/presentation/source-document";
 import { cn } from "@/lib/utils";
 import { usePresentationState } from "@/states/presentation-state";
@@ -215,7 +217,7 @@ function NotebookInputBox({
   children,
   topRightContent,
   attachmentSlot,
-  onPdfFile,
+  onSourceFile,
 }: {
   placeholder: string;
   value: string;
@@ -226,7 +228,7 @@ function NotebookInputBox({
   children: ReactNode;
   topRightContent?: ReactNode;
   attachmentSlot?: ReactNode;
-  onPdfFile?: (file: File) => void;
+  onSourceFile?: (file: File) => void;
 }) {
   const [isDragActive, setIsDragActive] = useState(false);
   const dragDepthRef = useRef(0);
@@ -240,7 +242,7 @@ function NotebookInputBox({
     setIsDragActive(false);
   };
 
-  const dropHandlers = onPdfFile
+  const dropHandlers = onSourceFile
     ? {
         onDragEnter: (event: React.DragEvent) => {
           if (!dragContainsFiles(event)) return;
@@ -265,7 +267,7 @@ function NotebookInputBox({
           resetDragState();
           const file = event.dataTransfer.files[0];
           if (file) {
-            onPdfFile(file);
+            onSourceFile(file);
           }
         },
       }
@@ -280,7 +282,7 @@ function NotebookInputBox({
         <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-xl border-2 border-dashed border-primary bg-background/90">
           <p className="flex items-center gap-2 text-sm font-medium text-primary">
             <FileText className="size-4" />
-            Drop a PDF to use it as source material
+            Drop a PDF, Word, Excel, or text file to use it as source material
           </p>
         </div>
       ) : null}
@@ -308,17 +310,17 @@ function NotebookInputBox({
       {attachmentSlot}
       <div className="flex min-w-0 items-center justify-between gap-2">
         <div className="min-w-0 flex-1">{children}</div>
-        {onPdfFile ? (
+        {onSourceFile ? (
           <>
             <input
               ref={fileInputRef}
               type="file"
-              accept="application/pdf,.pdf"
+              accept={SOURCE_FILE_ACCEPT}
               className="hidden"
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 if (file) {
-                  onPdfFile(file);
+                  onSourceFile(file);
                 }
                 event.target.value = "";
               }}
@@ -1540,38 +1542,54 @@ export function PresentationDashboard() {
     [],
   );
 
-  const handlePdfFile = async (file: File) => {
-    if (!isPdfFile(file)) {
-      toast.error("Only PDF files can be used as source material");
+  const handleSourceFile = async (file: File) => {
+    const kind = getSourceFileKind(file);
+    if (!kind) {
+      toast.error(
+        "Unsupported file type. Use PDF, Word (.docx), Excel (.xlsx/.xls), CSV, or plain text.",
+      );
       return;
     }
 
-    if (file.size > MAX_PDF_FILE_SIZE_BYTES) {
-      toast.error("PDF is too large (max 25MB)");
+    if (file.size > MAX_SOURCE_FILE_SIZE_BYTES) {
+      toast.error("File is too large (max 25MB)");
       return;
     }
 
     setIsReadingPdf(true);
     try {
-      const { extractPdfSource } = await import(
-        "@/lib/presentation/pdf-extract"
-      );
-      const source = await extractPdfSource(file);
+      let source: PresentationSourceDocument;
+      if (kind === "pdf") {
+        const { extractPdfSource } = await import(
+          "@/lib/presentation/pdf-extract"
+        );
+        source = await extractPdfSource(file);
+      } else {
+        const officeExtract = await import("@/lib/presentation/office-extract");
+        source =
+          kind === "docx"
+            ? await officeExtract.extractDocxSource(file)
+            : kind === "spreadsheet"
+              ? await officeExtract.extractSpreadsheetSource(file)
+              : await officeExtract.extractPlainTextSource(file);
+      }
 
       if (!source.text) {
         toast.error(
-          "No selectable text found in this PDF. Scanned documents are not supported.",
+          kind === "pdf"
+            ? "No selectable text found in this PDF. Scanned documents are not supported."
+            : "No text found in this file.",
         );
         return;
       }
 
       setSourceDocument(source);
     } catch (error) {
-      console.error("Failed to read PDF:", error);
+      console.error("Failed to read source file:", error);
       toast.error(
         error instanceof Error
-          ? `Failed to read the PDF: ${error.message}`
-          : "Failed to read the PDF file",
+          ? `Failed to read the file: ${error.message}`
+          : "Failed to read the file",
       );
     } finally {
       setIsReadingPdf(false);
@@ -1653,7 +1671,7 @@ export function PresentationDashboard() {
           isReadingPdf
         }
         isSubmitting={isGeneratingOutline}
-        onPdfFile={handlePdfFile}
+        onSourceFile={handleSourceFile}
         attachmentSlot={
           isReadingPdf || sourceDocument ? (
             <div className="mb-3 flex min-w-0 items-center gap-2">
@@ -1661,7 +1679,7 @@ export function PresentationDashboard() {
                 {isReadingPdf ? (
                   <>
                     <Loader2 className="size-3.5 shrink-0 animate-spin" />
-                    <span>Reading PDF…</span>
+                    <span>Reading file…</span>
                   </>
                 ) : sourceDocument ? (
                   <>
@@ -1676,7 +1694,7 @@ export function PresentationDashboard() {
                     </span>
                     <button
                       type="button"
-                      aria-label="Remove attached PDF"
+                      aria-label="Remove attached file"
                       onClick={() => setSourceDocument(null)}
                       className="flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
                     >
