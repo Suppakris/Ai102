@@ -108,9 +108,6 @@ export default function PresentationHeader({ title }: PresentationHeaderProps) {
         ) : (
           <AppMenu />
         )}
-        {isPresentationPage && !isLoggedOut && (
-          <PresentationMenu readOnly={isReadOnly} />
-        )}
         {isLoggedOut && showPresentationTitle ? (
           <span className="truncate text-sm font-medium text-foreground sm:hidden">
             {presentationTitle}
@@ -147,6 +144,11 @@ export default function PresentationHeader({ title }: PresentationHeaderProps) {
             }}
           />
         ) : null}
+        {/* Document menu (File/Edit/View) rides with the title as a chevron
+            so it can't be mistaken for the app-wide hamburger menu */}
+        {isPresentationPage && !isLoggedOut && (
+          <PresentationMenu readOnly={isReadOnly} />
+        )}
       </div>
 
       {isLoggedOut && showPresentationTitle ? (

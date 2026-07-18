@@ -16,10 +16,10 @@ import { usePresentationHistoryState } from "@/states/presentation-history-state
 import { usePresentationState } from "@/states/presentation-state";
 import { useMutation } from "@tanstack/react-query";
 import {
+  ChevronDown,
   Copy,
   FileEdit,
   FolderOpen,
-  Menu,
   Palette,
   Plus,
   Redo,
@@ -119,9 +119,10 @@ export function PresentationMenu({
           variant="ghost"
           size="icon"
           aria-label="Open presentation menu"
-          className="rounded-full"
+          title="Presentation menu"
+          className="size-7 shrink-0 rounded-full text-muted-foreground hover:text-foreground md:size-7"
         >
-          <Menu className="h-5 w-5" />
+          <ChevronDown className="size-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-64 p-2">
