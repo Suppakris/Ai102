@@ -1,6 +1,6 @@
 # Ai102
 
-A local-first AI presentation generator — a customized, Ollama-only build derived from [ALLWEONE's presentation-ai](https://github.com/allweonedev/presentation-ai), stripped down for a college project. No cloud LLM required, no paid APIs required to run it end to end. Sign-in is real GitHub OAuth (free, no billing) — see [Admin access](#admin-access) for granting a user full access after their first sign-in.
+A local-first AI presentation generator — a customized, Ollama-only build derived from [ALLWEONE's presentation-ai](https://github.com/allweonedev/presentation-ai), stripped down for a college project. No cloud LLM required, no paid APIs required to run it end to end. Sign-in is real OAuth via GitHub (required), with optional Google and Discord login (free, no billing) — see [Admin access](#admin-access) for granting a user full access after their first sign-in.
 
 ## 🔗 Quick Links
 
@@ -30,8 +30,8 @@ A local-first AI presentation generator — a customized, Ollama-only build deri
 
 This fork disables everything that requires a paid account or a login system, so it can run as a self-contained coursework build:
 
-- **Auth is real GitHub OAuth** (`src/backend/auth.ts`, via Auth.js/NextAuth v5 + Prisma). GitHub OAuth Apps are free (no billing, unlike Google Cloud) — see `.env.example` for the required `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`/`NEXTAUTH_SECRET`/`NEXTAUTH_URL`. New sign-ins default to `role: USER` (not admin); see [Admin access](#admin-access) to grant someone full access.
-  - **Only test "Sign in with GitHub" against the real deployed domain, never a Vercel PR preview link.** GitHub OAuth Apps support exactly one callback URL (set to the production domain), so a sign-in started from a preview URL will always fail with `InvalidCheck`/`error=Configuration` — the PKCE cookie gets set on the preview's hostname but GitHub redirects the callback to production. This is expected, not a bug.
+- **Auth is real OAuth** (`src/backend/auth.ts`, via Auth.js/NextAuth v5 + Prisma). GitHub is the required provider — see `.env.example` for the required `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`/`NEXTAUTH_SECRET`/`NEXTAUTH_URL`. Google and Discord are optional extra login providers: set `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` and/or `DISCORD_CLIENT_ID`/`DISCORD_CLIENT_SECRET` to show their sign-in buttons, or leave them unset to keep GitHub-only (the sign-in page only renders buttons for providers with credentials configured). All three are free, no billing required. New sign-ins default to `role: USER` (not admin); see [Admin access](#admin-access) to grant someone full access.
+  - **Only test social sign-in against the real deployed domain, never a Vercel PR preview link.** OAuth Apps support exactly one callback URL (set to the production domain), so a sign-in started from a preview URL will always fail with `InvalidCheck`/`error=Configuration` — the PKCE cookie gets set on the preview's hostname but the provider redirects the callback to production. This is expected, not a bug.
 - **Text generation is Ollama-only.** All cloud text providers (OpenAI, LM Studio, OpenRouter, Groq/BYOK) have been removed from `src/lib/model-picker.ts`. Every request resolves to a model served from `OLLAMA_BASE_URL`'s OpenAI-compatible endpoint. Legacy provider values (`openai`, `lmstudio`) from old persisted client state are caught and silently redirected to the default Ollama model instead of erroring.
 - **Image generation is free by default.** [Pollinations.ai](https://pollinations.ai) (no API key) is the default provider everywhere images are generated (`src/backend/queue/image-generation.ts`). FAL (Flux models) is still wired in as an optional, admin-gated paid upgrade if `FAL_API_KEY` is set; Together AI's code path exists but isn't used by any active feature.
 - **Backend logic lives under `src/backend/`.** Db, auth, tenant, rate-limiting, the image queue, and the LangGraph presentation agent are consolidated there — see [ARCHITECTURE.md](ARCHITECTURE.md) for the full frontend/backend split.
@@ -152,7 +152,7 @@ Copy `.env.example` to `.env` and fill in what you need. `.env.example` is the s
 
 All optional integrations degrade gracefully when unset — features that need them just no-op with an error message instead of crashing.
 
-Auth vars are **required**, not optional: `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` — see `.env.example` for how to get each one (all free). Without them the app won't boot in production.
+Auth vars are **required**, not optional: `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` — see `.env.example` for how to get each one (all free). Without them the app won't boot in production. `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` and `DISCORD_CLIENT_ID`/`DISCORD_CLIENT_SECRET` are optional — set either pair to add that provider's "Sign in with..." button; leave both blank to skip it.
 
 ### Admin access
 

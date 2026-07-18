@@ -4,6 +4,8 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import NextAuth, { type DefaultSession, type Session } from "next-auth";
 import { type Adapter } from "next-auth/adapters";
 import GitHubProvider from "next-auth/providers/github";
+import GoogleProvider from "next-auth/providers/google";
+import DiscordProvider from "next-auth/providers/discord";
 declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
@@ -70,19 +72,19 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       return session;
     },
     async signIn({ user, account }) {
-      if (account?.provider === "github") {
-        const dbUser = await db.user.findUnique({
-          where: { email: user.email! },
-          select: { id: true, hasAccess: true, role: true },
-        });
+      if (!account || !user.email) return true;
 
-        if (dbUser) {
-          user.hasAccess = dbUser.hasAccess;
-          user.role = dbUser.role;
-        } else {
-          user.hasAccess = false;
-          user.role = "USER";
-        }
+      const dbUser = await db.user.findUnique({
+        where: { email: user.email },
+        select: { id: true, hasAccess: true, role: true },
+      });
+
+      if (dbUser) {
+        user.hasAccess = dbUser.hasAccess;
+        user.role = dbUser.role;
+      } else {
+        user.hasAccess = false;
+        user.role = "USER";
       }
 
       return true;
@@ -95,5 +97,21 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       clientId: env.GITHUB_CLIENT_ID,
       clientSecret: env.GITHUB_CLIENT_SECRET,
     }),
+    ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+      ? [
+          GoogleProvider({
+            clientId: env.GOOGLE_CLIENT_ID,
+            clientSecret: env.GOOGLE_CLIENT_SECRET,
+          }),
+        ]
+      : []),
+    ...(env.DISCORD_CLIENT_ID && env.DISCORD_CLIENT_SECRET
+      ? [
+          DiscordProvider({
+            clientId: env.DISCORD_CLIENT_ID,
+            clientSecret: env.DISCORD_CLIENT_SECRET,
+          }),
+        ]
+      : []),
   ],
 });

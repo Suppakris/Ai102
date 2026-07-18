@@ -9,14 +9,29 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { signIn } from "next-auth/react";
+import { getProviders, signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import { FaGithub } from "react-icons/fa";
+import { useEffect, useState } from "react";
+import { FaDiscord, FaGithub, FaGoogle } from "react-icons/fa";
+import { type IconType } from "react-icons";
+
+const PROVIDER_ICONS: Record<string, IconType> = {
+  github: FaGithub,
+  google: FaGoogle,
+  discord: FaDiscord,
+};
 
 export default function SignIn() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/";
   const error = searchParams.get("error");
+  const [providers, setProviders] = useState<Awaited<
+    ReturnType<typeof getProviders>
+  > | null>(null);
+
+  useEffect(() => {
+    void getProviders().then(setProviders);
+  }, []);
 
   const handleSignIn = async (provider: string) => {
     await signIn(provider, { callbackUrl });
@@ -40,14 +55,20 @@ export default function SignIn() {
           )}
         </CardHeader>
         <CardContent className="grid gap-4">
-          <Button
-            variant="outline"
-            className="flex items-center justify-center gap-2"
-            onClick={() => handleSignIn("github")}
-          >
-            <FaGithub className="h-4 w-4" />
-            Sign in with GitHub
-          </Button>
+          {Object.values(providers ?? {}).map((provider) => {
+            const Icon = PROVIDER_ICONS[provider.id];
+            return (
+              <Button
+                key={provider.id}
+                variant="outline"
+                className="flex items-center justify-center gap-2"
+                onClick={() => handleSignIn(provider.id)}
+              >
+                {Icon && <Icon className="h-4 w-4" />}
+                Sign in with {provider.name}
+              </Button>
+            );
+          })}
         </CardContent>
         <CardFooter className="flex flex-col items-center justify-center gap-2">
           <p className="text-sm text-gray-500 dark:text-gray-400">
