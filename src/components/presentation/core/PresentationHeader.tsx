@@ -17,10 +17,11 @@ import { PresentationMenu } from "@/components/presentation/controls/Presentatio
 import { SystemStatusBadge } from "@/components/presentation/core/SystemStatusBadge";
 import { PresentationSavingIndicator } from "@/components/presentation/core/PresentationSavingIndicator";
 import { Button } from "@/components/ui/button";
-import { Brain } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { usePresentationState } from "@/states/presentation-state";
 import { ThemeToggleIcon } from "@/provider/theme-provider";
+import { AppMenu } from "@/components/presentation/core/AppMenu";
+import { UserAvatarMenu } from "@/components/presentation/core/UserAvatarMenu";
 
 interface PresentationHeaderProps {
   title?: string;
@@ -71,13 +72,7 @@ export default function PresentationHeader({ title }: PresentationHeaderProps) {
         translate="no"
       >
         <div className="flex min-w-0 items-center gap-2">
-          {/* This component is suppose to be logo but for now its is actually hamburger menu */}
-
-          <Link href="/presentation">
-            <Button size={"icon"} className="rounded-full" variant={"ghost"}>
-              <Brain></Brain>
-            </Button>
-          </Link>
+          <AppMenu />
 
           <motion.div
             initial={false}
@@ -111,12 +106,7 @@ export default function PresentationHeader({ title }: PresentationHeaderProps) {
             <AllweoneText className="h-8 w-28" />
           </Link>
         ) : (
-          <Link
-            href="/presentation"
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <Brain className="h-5 w-5"></Brain>
-          </Link>
+          <AppMenu />
         )}
         {isPresentationPage && !isLoggedOut && (
           <PresentationMenu readOnly={isReadOnly} />
@@ -206,6 +196,8 @@ export default function PresentationHeader({ title }: PresentationHeaderProps) {
         {/* Present button - Only in presentation page, not outline */}
         {isPresentationPage && <PresentButton />}
 
+        {/* Account avatar - hidden while presenting */}
+        {!isPresenting && <UserAvatarMenu />}
       </div>
     </header>
   );

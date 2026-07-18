@@ -61,7 +61,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useTheme } from "next-themes";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useInView } from "react-intersection-observer";
 import { toast } from "sonner";
@@ -354,6 +354,38 @@ function NotebookInputBox({
         </button>
       </div>
     </div>
+  );
+}
+
+/** Thumbnail that swaps to the provided fallback when the image URL is dead. */
+function PresentationThumbnail({
+  src,
+  alt,
+  className,
+  fallback,
+}: {
+  src: string;
+  alt: string;
+  className: string;
+  fallback: ReactNode;
+}) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+
+  if (failed) return <>{fallback}</>;
+  return (
+    <Image
+      unoptimized
+      width={400}
+      height={300}
+      src={src}
+      alt={alt}
+      className={className}
+      onError={() => setFailed(true)}
+    />
   );
 }
 
@@ -833,15 +865,53 @@ function PresentationProjectFilesSection({
             )
           ) : visibleFiles.length === 0 ? (
             <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
-              <div className="mb-4 rounded-full bg-muted p-4">
-                <Folder className="size-8 text-muted-foreground" />
+              <div className="brand-gradient mb-4 rounded-full p-4 shadow-lg shadow-primary/25">
+                {activeTab === "favorites" ? (
+                  <Star className="size-8 text-white" />
+                ) : (
+                  <WandSparkles className="size-8 text-white" />
+                )}
               </div>
-              <p className="mb-2 text-sm font-medium text-foreground">
-                No presentations yet
-              </p>
-              <p className="mb-6 text-sm text-muted-foreground">
-                Create your first presentation to get started
-              </p>
+              {activeTab === "favorites" ? (
+                <>
+                  <p className="mb-2 text-base font-semibold text-foreground">
+                    No favorites yet
+                  </p>
+                  <p className="mb-6 max-w-sm text-sm text-muted-foreground">
+                    Star a presentation and it will show up here for quick
+                    access.
+                  </p>
+                  <Button variant="outline" onClick={() => onActiveTabChange("all")}>
+                    Browse all presentations
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="mb-2 text-base font-semibold text-foreground">
+                    Your deck library is empty
+                  </p>
+                  <p className="mb-6 max-w-sm text-sm text-muted-foreground">
+                    Describe a topic in the box above and AI will draft,
+                    design, and review your first presentation.
+                  </p>
+                  <Button
+                    className="brand-gradient border-0 text-white shadow-md shadow-primary/30 hover:brightness-110"
+                    onClick={() => {
+                      const promptBox = document.querySelector<HTMLTextAreaElement>(
+                        'textarea[aria-label="Presentation prompt"]',
+                      );
+                      promptBox?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                      });
+                      promptBox?.focus({ preventScroll: true });
+                    }}
+                  >
+                    <WandSparkles className="mr-2 size-4" />
+                    Create your first deck
+                  </Button>
+                </>
+              )}
             </div>
           ) : viewMode === "grid" ? (
             <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,10.5rem),1fr))] gap-3 p-3 sm:grid-cols-2 sm:gap-4 sm:p-4 lg:grid-cols-3 xl:grid-cols-4">
@@ -858,13 +928,15 @@ function PresentationProjectFilesSection({
                   />
                   <div className="pointer-events-none relative z-20 aspect-video w-full overflow-hidden bg-muted/30">
                     {file.thumbnailUrl ? (
-                      <Image
-                        unoptimized
-                        width={400}
-                        height={300}
+                      <PresentationThumbnail
                         src={file.thumbnailUrl}
                         alt={file.name}
                         className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        fallback={
+                          <div className="flex size-full items-center justify-center bg-accent/10">
+                            <Folder className="size-12 text-muted-foreground/40" />
+                          </div>
+                        }
                       />
                     ) : (
                       <div className="flex size-full items-center justify-center bg-accent/10">
@@ -924,13 +996,15 @@ function PresentationProjectFilesSection({
                   />
                   <div className="pointer-events-none relative z-20 flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
                     {file.thumbnailUrl ? (
-                      <Image
-                        unoptimized
-                        width={400}
-                        height={300}
+                      <PresentationThumbnail
                         src={file.thumbnailUrl}
                         alt={file.name}
                         className="h-12 w-20 shrink-0 rounded-md border border-border object-cover"
+                        fallback={
+                          <div className="flex h-12 w-20 shrink-0 items-center justify-center rounded-md border border-border bg-primary/10 text-primary">
+                            <Folder className="size-4" />
+                          </div>
+                        }
                       />
                     ) : (
                       <div className="flex h-12 w-20 shrink-0 items-center justify-center rounded-md border border-border bg-primary/10 text-primary">
@@ -1086,6 +1160,14 @@ export function PresentationDashboard() {
     );
   const [libraryTab, setLibraryTab] = useState<LibraryTab>("recent");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
+  // Deep link from the app menu: /presentation?tab=favorites
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("tab") === "favorites") {
+      setLibraryTab("favorites");
+    }
+  }, [searchParams]);
   const { createBlank: handleCreateBlank, isCreating: isCreatingBlank } =
     useBlankPresentationCreator();
   const {
