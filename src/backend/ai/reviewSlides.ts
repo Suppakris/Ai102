@@ -108,9 +108,9 @@ Step 2 — Score each dimension 0-10 only after the audit:
 - content_accuracy: 9-10 = all claims SUPPORTED or clearly framed as opinion; 7 = minor unverifiable details; 4 = several UNSUPPORTED claims; 1 = mostly fabricated.
 Score the same input the same way every time; do not vary scores for identical content.
 
-Step 3 — Write feedback: 2-5 sentences of concrete, actionable advice referencing specific slide numbers.
+Step 3 — Write feedback: 2-5 sentences of concrete, actionable advice referencing specific slide numbers. Detect the language the slide content is written in and write feedback and clarifying_questions in that same language; claim_audit status values stay in English.
 
-Step 4 — Clarifying questions: if the slide data is too sparse, ambiguous, or missing context to review confidently, put the questions you would need answered in clarifying_questions. Asking is always better than inventing an assessment.`;
+Step 4 — Clarifying questions: ONLY if the slide data is so sparse, ambiguous, or missing context that you cannot review it confidently, put the questions you would need answered in clarifying_questions. When you can review confidently, clarifying_questions must be an empty array — do not ask optional nice-to-have questions; put suggestions in feedback instead. When you truly cannot verify, asking is always better than inventing an assessment.`;
 
 /**
  * Reviews a slide deck and returns structured scores plus a revision gate.

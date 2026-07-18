@@ -69,6 +69,27 @@ const sampleDecks = [
     },
   },
   {
+    name: "THAI deck with one fake stat (expect: Thai feedback, fake claim caught)",
+    input: {
+      user_id: "test-user",
+      document_id: "deck-thai",
+      source_context:
+        "รายงานโครงงาน Ai102: ระบบสร้างสไลด์อัตโนมัติด้วย AI ทำงานบน Ollama โดยไม่มีค่าใช้จ่าย รองรับผู้ใช้พร้อมกันได้ 4-10 คน สร้างงานนำเสนอเสร็จภายในประมาณ 2 นาทีต่อชุด",
+      slides: [
+        {
+          slide_number: 1,
+          content:
+            "Ai102: ระบบสร้างสไลด์อัตโนมัติ\n• ใช้ AI สร้างงานนำเสนอจากหัวข้อเดียว\n• ทำงานบน Ollama ไม่มีค่าใช้จ่าย",
+        },
+        {
+          slide_number: 2,
+          content:
+            "ประสิทธิภาพ\n• รองรับผู้ใช้พร้อมกัน 4-10 คน\n• สร้างเสร็จใน 2 นาทีต่อชุด\n• มีผู้ใช้งานแล้วกว่า 50,000 คนทั่วประเทศ",
+        },
+      ],
+    },
+  },
+  {
     name: "SPARSE deck (expect: clarifying_questions, no LLM guessing)",
     input: {
       user_id: "test-user",
