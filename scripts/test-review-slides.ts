@@ -83,22 +83,47 @@ const sampleDecks = [
 ];
 
 async function main() {
-  const { reviewSlides } = await import("@/backend/ai/reviewSlides");
+  const { reviewSlides, reviewAndRevise } = await import(
+    "@/backend/ai/reviewSlides"
+  );
+  const opts = useOpenRouter
+    ? ({ modelProvider: "openrouter" } as const)
+    : undefined;
 
   for (const deck of sampleDecks) {
     console.log(`\n=== ${deck.name} ===`);
     const started = Date.now();
     try {
-      const result = await reviewSlides(
-        deck.input,
-        useOpenRouter ? { modelProvider: "openrouter" } : undefined,
-      );
+      const result = await reviewSlides(deck.input, opts);
       console.log(JSON.stringify(result, null, 2));
       console.log(`(took ${((Date.now() - started) / 1000).toFixed(1)}s)`);
     } catch (error) {
       console.error("REVIEW FAILED:", error);
       process.exitCode = 1;
     }
+  }
+
+  // Day 2: the weak deck should trigger exactly one corrective pass and the
+  // revised deck should score higher than the original.
+  const weakDeck = sampleDecks[1]!;
+  console.log("\n=== REVISION LOOP on weak deck (expect: one pass, improved score) ===");
+  const started = Date.now();
+  try {
+    const result = await reviewAndRevise(weakDeck.input, opts);
+    console.log(JSON.stringify(result, null, 2));
+    if (result.revision.applied && result.revision.initial_review) {
+      const before = result.revision.initial_review.score;
+      const after = result.score;
+      const avg = (s: typeof before) =>
+        (s.clarity + s.design + s.content_accuracy) / 3;
+      console.log(
+        `\nAverage score: ${avg(before).toFixed(1)} → ${avg(after).toFixed(1)} | still needs_revision: ${result.needs_revision}`,
+      );
+    }
+    console.log(`(took ${((Date.now() - started) / 1000).toFixed(1)}s)`);
+  } catch (error) {
+    console.error("REVISION LOOP FAILED:", error);
+    process.exitCode = 1;
   }
 }
 

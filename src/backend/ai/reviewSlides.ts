@@ -68,6 +68,30 @@ export type ReviewSlidesResult = z.infer<typeof reviewOutputSchema> & {
   needs_revision: boolean;
 };
 
+interface ModelOpts {
+  modelProvider?: string;
+  modelId?: string;
+}
+
+function buildStructuredLlm<Schema extends z.ZodType<Record<string, unknown>>>(
+  schema: Schema,
+  opts?: ModelOpts,
+) {
+  const llm =
+    opts?.modelProvider === "openrouter"
+      ? modelPicker("openrouter", opts.modelId)
+      : modelPicker(opts?.modelId ?? DEFAULT_OLLAMA_MODEL);
+
+  // Output must be repeatable across runs; both ChatOllama and ChatOpenAI
+  // otherwise default to a sampling temperature that shifts results between
+  // identical inputs.
+  llm.temperature = 0;
+
+  // Both providers share BaseChatModel; the cast collapses the union so the
+  // overloaded withStructuredOutput signature is callable.
+  return (llm as BaseChatModel).withStructuredOutput<z.infer<Schema>>(schema);
+}
+
 export const REVIEWER_SYSTEM_PROMPT = `You are an expert slide reviewer and presentation auditor. You evaluate presentation slides for visual hierarchy, layout structure, data accuracy, and presentation flow.
 
 Follow this process IN ORDER:
@@ -97,14 +121,21 @@ Step 4 — Clarifying questions: if the slide data is too sparse, ambiguous, or 
  */
 export async function reviewSlides(
   input: ReviewSlidesInput,
-  opts?: { modelProvider?: string; modelId?: string },
+  opts?: ModelOpts & {
+    /**
+     * Internal: the revision pass may legitimately shrink a deck below the
+     * sparse threshold (e.g. every fabricated claim got stripped), and its
+     * re-review must still produce real scores rather than the guard reply.
+     */
+    skipSparseGuard?: boolean;
+  },
 ): Promise<ReviewSlidesResult> {
   const totalChars = input.slides.reduce(
     (sum, slide) => sum + slide.content.trim().length,
     0,
   );
 
-  if (totalChars < MIN_REVIEWABLE_CHARS) {
+  if (totalChars < MIN_REVIEWABLE_CHARS && !opts?.skipSparseGuard) {
     reviewLogger.info("Slide content too sparse to review; asking instead", {
       documentId: input.document_id,
       totalChars,
@@ -122,21 +153,7 @@ export async function reviewSlides(
     };
   }
 
-  const llm =
-    opts?.modelProvider === "openrouter"
-      ? modelPicker("openrouter", opts.modelId)
-      : modelPicker(opts?.modelId ?? DEFAULT_OLLAMA_MODEL);
-
-  // Scoring must be repeatable across runs; both ChatOllama and ChatOpenAI
-  // otherwise default to a sampling temperature that shifts scores between
-  // identical inputs.
-  llm.temperature = 0;
-
-  // Both providers share BaseChatModel; the cast collapses the union so the
-  // overloaded withStructuredOutput signature is callable.
-  const structuredLlm = (llm as BaseChatModel).withStructuredOutput<
-    z.infer<typeof reviewOutputSchema>
-  >(reviewOutputSchema);
+  const structuredLlm = buildStructuredLlm(reviewOutputSchema, opts);
 
   const review = await structuredLlm.invoke([
     { role: "system", content: REVIEWER_SYSTEM_PROMPT },
@@ -167,5 +184,110 @@ export async function reviewSlides(
     ...review,
     needs_revision:
       average < PASS_THRESHOLD || hasUnsupportedClaims || needsMoreContext,
+  };
+}
+
+const revisionOutputSchema = z.object({
+  slides: z.array(
+    z.object({
+      slide_number: z.number().int(),
+      content: z.string(),
+    }),
+  ),
+  revision_summary: z
+    .string()
+    .describe("1-3 sentences describing what was changed and why"),
+});
+
+export const REVISER_SYSTEM_PROMPT = `You are an expert slide editor. You receive a slide deck, a reviewer's structured report (scores, claim audit, feedback), and optional source_context. Rewrite the slides to fix what the reviewer flagged.
+
+Rules, in priority order:
+1. NEVER invent facts, numbers, or names. You may only state facts that appear in the original slides or in source_context.
+2. Any claim the reviewer marked UNSUPPORTED must be removed, or rewritten using only what source_context actually supports, or softened into a clearly-labeled goal/opinion (e.g. "aiming for", "we believe").
+3. Claims marked INSUFFICIENT_CONTEXT should be softened or removed unless source_context supports them.
+4. Apply the reviewer's clarity and design feedback: one idea per slide, short parallel bullets, concrete titles. You may split an overloaded slide into two or merge trivial ones; renumber slides sequentially from 1.
+5. Keep the author's voice and intent. Fix problems; do not rewrite what already works.
+
+Return the complete revised deck (every slide, not just the changed ones) plus a short revision_summary.`;
+
+/** Superset of the review contract Dev A consumes when the loop is enabled. */
+export type ReviewAndReviseResult = ReviewSlidesResult & {
+  revision: {
+    /** True when a corrective pass ran and revised_slides is present. */
+    applied: boolean;
+    revised_slides?: Array<{ slide_number: number; content: string }>;
+    revision_summary?: string;
+    /** The failing review that triggered the pass; the top-level fields are the re-review of the revised deck. */
+    initial_review?: ReviewSlidesResult;
+  };
+};
+
+/**
+ * Full Day-2 flow: review, and if the deck fails the gate, run exactly ONE
+ * corrective pass (rewrite slides from the feedback, then re-review the
+ * rewrite). Never loops further — if the revised deck still fails, that is
+ * reported honestly via needs_revision on the final review.
+ *
+ * Sparse decks are never revised: with nothing to work from, a rewrite could
+ * only hallucinate, so the clarifying questions are returned as-is.
+ */
+export async function reviewAndRevise(
+  input: ReviewSlidesInput,
+  opts?: ModelOpts,
+): Promise<ReviewAndReviseResult> {
+  const initialReview = await reviewSlides(input, opts);
+
+  if (!initialReview.needs_revision) {
+    return { ...initialReview, revision: { applied: false } };
+  }
+
+  // Sparse-input path: claim_audit empty + all-zero scores means the LLM was
+  // never called and there is no real content to rewrite.
+  const wasSparse =
+    initialReview.claim_audit.length === 0 &&
+    initialReview.score.clarity === 0 &&
+    initialReview.score.design === 0 &&
+    initialReview.score.content_accuracy === 0;
+  if (wasSparse) {
+    return { ...initialReview, revision: { applied: false } };
+  }
+
+  const reviserLlm = buildStructuredLlm(revisionOutputSchema, opts);
+  const revised = await reviserLlm.invoke([
+    { role: "system", content: REVISER_SYSTEM_PROMPT },
+    {
+      role: "user",
+      content: JSON.stringify({
+        slides: input.slides,
+        source_context: input.source_context ?? null,
+        reviewer_report: {
+          score: initialReview.score,
+          claim_audit: initialReview.claim_audit,
+          feedback: initialReview.feedback,
+          clarifying_questions: initialReview.clarifying_questions,
+        },
+      }),
+    },
+  ]);
+
+  reviewLogger.info("Corrective revision pass completed", {
+    documentId: input.document_id,
+    slideCountBefore: input.slides.length,
+    slideCountAfter: revised.slides.length,
+  });
+
+  const finalReview = await reviewSlides(
+    { ...input, slides: revised.slides },
+    { ...opts, skipSparseGuard: true },
+  );
+
+  return {
+    ...finalReview,
+    revision: {
+      applied: true,
+      revised_slides: revised.slides,
+      revision_summary: revised.revision_summary,
+      initial_review: initialReview,
+    },
   };
 }
