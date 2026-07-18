@@ -60,7 +60,7 @@ export function usePresentationTheme() {
  */
 export function PresentationThemeProvider({
   children,
-  defaultTheme = "dark",
+  defaultTheme,
   storageKey: _storageKey, // kept for backward compatibility (ignored/unused now)
   syncWithDefaultTheme = false,
 }: {
@@ -69,50 +69,46 @@ export function PresentationThemeProvider({
   storageKey?: string | null;
   syncWithDefaultTheme?: boolean;
 }) {
-  const [theme, setThemeState] = useState<Theme>(defaultTheme);
+  const globalTheme = useGlobalTheme();
+  // null = no scoped override: follow the site-wide theme (so the header's
+  // light/dark toggle works on presentation routes). ThemeBackground sets an
+  // override when a deck theme demands a specific mode.
+  const [override, setOverride] = useState<Theme | null>(defaultTheme ?? null);
 
   // Sync state if syncWithDefaultTheme is true and defaultTheme changes
   useEffect(() => {
-    if (syncWithDefaultTheme) {
-      setThemeState(defaultTheme);
+    if (syncWithDefaultTheme && defaultTheme) {
+      setOverride(defaultTheme);
     }
   }, [defaultTheme, syncWithDefaultTheme]);
 
-  const setTheme = useCallback(
-    (newTheme: Theme) => {
-      setThemeState(newTheme);
-    },
-    [],
-  );
+  const setTheme = useCallback((newTheme: Theme) => {
+    setOverride(newTheme);
+  }, []);
+
+  const resolvedTheme: Theme =
+    override ?? (globalTheme.resolvedTheme === "dark" ? "dark" : "light");
 
   const value: PresentationThemeContextValue = {
-    theme,
+    theme: resolvedTheme,
     setTheme,
-    resolvedTheme: theme,
+    resolvedTheme,
   };
 
   return (
     <PresentationThemeContext.Provider value={value}>
-      <PresentationThemeWrapper>{children}</PresentationThemeWrapper>
+      {/* No class while un-overridden: the html-level theme class cascades
+          in, so Tailwind dark: variants and CSS variables follow the site
+          theme. Only an explicit override pins the scope to dark. */}
+      <div
+        className={
+          override === "dark"
+            ? "dark bg-background text-foreground h-full w-full"
+            : "bg-background text-foreground h-full w-full"
+        }
+      >
+        {children}
+      </div>
     </PresentationThemeContext.Provider>
-  );
-}
-
-/**
- * Inner wrapper that applies the theme class to a div element.
- * This ensures Tailwind's dark: variants work correctly within the presentation.
- */
-function PresentationThemeWrapper({ children }: { children: React.ReactNode }) {
-  const { theme } = usePresentationTheme();
-  return (
-    <div
-      className={
-        theme === "dark"
-          ? "dark bg-background text-foreground h-full w-full"
-          : "bg-background text-foreground h-full w-full"
-      }
-    >
-      {children}
-    </div>
   );
 }
