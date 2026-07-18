@@ -6,11 +6,17 @@ import {
   ClipboardCheck,
   HelpCircle,
   Loader2,
+  Wand2,
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import {
+  parseSlideXml,
+  type PlateSlide,
+} from "@/components/notebook/presentation/utils/parser";
 import { serializeSlideToXml } from "@/components/notebook/presentation/utils/slide-serializer";
+import { useDebouncedSave } from "@/hooks/presentation/useDebouncedSave";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +44,22 @@ interface ReviewResult {
   feedback: string;
   clarifying_questions: string[];
   needs_revision: boolean;
+  /** Present only on revise:true responses (reviewAndRevise contract). */
+  revision?: {
+    applied: boolean;
+    revised_slides?: Array<{ slide_number: number; content: string }>;
+    revision_summary?: string;
+    initial_review?: Omit<ReviewResult, "revision">;
+  };
+}
+
+function averageScore(result: Pick<ReviewResult, "score">): number {
+  return (
+    (result.score.clarity +
+      result.score.design +
+      result.score.content_accuracy) /
+    3
+  );
 }
 
 const CLAIM_STATUS_STYLE: Record<
@@ -94,6 +116,17 @@ function progressMessage(elapsedSeconds: number, slideCount: number): string {
   return "Hang tight — the AI server is under load. This can take a minute or two.";
 }
 
+/** Auto-fix is up to three sequential AI calls, so its stages run longer. */
+function fixProgressMessage(elapsedSeconds: number): string {
+  if (elapsedSeconds < 20) {
+    return "Re-checking your deck to pin down what needs fixing…";
+  }
+  if (elapsedSeconds < 60) {
+    return "Rewriting the flagged slides from the reviewer's feedback…";
+  }
+  return "Re-reviewing the revised deck — almost done…";
+}
+
 function ScoreTile({ label, value }: { label: string; value: number }) {
   const tone =
     value >= 7
@@ -112,88 +145,206 @@ function ScoreTile({ label, value }: { label: string; value: number }) {
 export function ReviewButton() {
   const [isOpen, setIsOpen] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
+  const [isFixing, setIsFixing] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [slideCount, setSlideCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fixNotice, setFixNotice] = useState<string | null>(null);
+  const [undoSnapshot, setUndoSnapshot] = useState<PlateSlide[] | null>(null);
   const [result, setResult] = useState<ReviewResult | null>(null);
   const { toast } = useToast();
+  const { saveImmediately } = useDebouncedSave();
+
+  const isBusy = isReviewing || isFixing;
 
   useEffect(() => {
-    if (!isReviewing) return;
+    if (!isBusy) return;
     setElapsedSeconds(0);
     const timer = setInterval(() => setElapsedSeconds((s) => s + 1), 1000);
     return () => clearInterval(timer);
-  }, [isReviewing]);
+  }, [isBusy]);
 
-  const handleReview = async () => {
+  /** Shared POST for review and auto-fix; throws Errors with user-facing messages. */
+  const requestReview = async (revise: boolean): Promise<ReviewResult> => {
     const { slides, currentPresentationId, outline, presentationInput } =
       usePresentationState.getState();
 
+    setSlideCount(slides.length);
+    const response = await fetch("/api/presentation/review-deck", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        document_id: currentPresentationId,
+        slides: slides.map((slide, index) => ({
+          slide_number: index + 1,
+          content: serializeSlideToXml(slide),
+        })),
+        source_context: buildSourceContext(presentationInput, outline),
+        ...(revise ? { revise: true } : {}),
+      }),
+    });
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (response.status === 401) {
+        throw new Error(
+          "Your session has expired. Refresh the page and sign in again.",
+        );
+      }
+      if (response.status === 429) {
+        throw new Error(
+          "You've run a lot of reviews recently — wait a few minutes and try again.",
+        );
+      }
+      if (response.status === 503) {
+        throw new Error(
+          body?.error ??
+            "The AI review server is offline right now. Try again in a few minutes.",
+        );
+      }
+      throw new Error(
+        body?.error ?? `Something went wrong (error ${response.status}). Try again.`,
+      );
+    }
+
+    return (await response.json()) as ReviewResult;
+  };
+
+  const friendlyError = (error: unknown): string =>
+    // fetch rejects with a TypeError when the request never reached the server
+    error instanceof TypeError
+      ? "Couldn't reach the server. Check your internet connection and try again."
+      : error instanceof Error
+        ? error.message
+        : "There was an error reviewing your presentation.";
+
+  const hasDeck = (): boolean => {
+    const { slides, currentPresentationId } = usePresentationState.getState();
     if (!currentPresentationId || slides.length === 0) {
       toast({
         title: "Nothing to review",
         description: "Generate or add slides first.",
         variant: "destructive",
       });
-      return;
+      return false;
     }
+    return true;
+  };
+
+  const handleReview = async () => {
+    if (!hasDeck()) return;
 
     setIsReviewing(true);
-    setSlideCount(slides.length);
     setResult(null);
     setErrorMessage(null);
+    setFixNotice(null);
     try {
-      const response = await fetch("/api/presentation/review-deck", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          document_id: currentPresentationId,
-          slides: slides.map((slide, index) => ({
-            slide_number: index + 1,
-            content: serializeSlideToXml(slide),
-          })),
-          source_context: buildSourceContext(presentationInput, outline),
-        }),
-      });
-
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        if (response.status === 401) {
-          throw new Error(
-            "Your session has expired. Refresh the page and sign in again.",
-          );
-        }
-        if (response.status === 429) {
-          throw new Error(
-            "You've run a lot of reviews recently — wait a few minutes and try again.",
-          );
-        }
-        if (response.status === 503) {
-          throw new Error(
-            body?.error ??
-              "The AI review server is offline right now. Try again in a few minutes.",
-          );
-        }
-        throw new Error(
-          body?.error ?? `Something went wrong (error ${response.status}). Try again.`,
-        );
-      }
-
-      setResult((await response.json()) as ReviewResult);
+      setResult(await requestReview(false));
     } catch (error) {
-      // fetch rejects with a TypeError when the request never reached the server
-      setErrorMessage(
-        error instanceof TypeError
-          ? "Couldn't reach the server. Check your internet connection and try again."
-          : error instanceof Error
-            ? error.message
-            : "There was an error reviewing your presentation.",
-      );
+      setErrorMessage(friendlyError(error));
     } finally {
       setIsReviewing(false);
     }
+  };
+
+  /**
+   * Converts the reviser's XML back into editor slides and swaps them in.
+   * All-or-nothing: if any slide fails to parse, the deck is left untouched.
+   * Position-matched originals keep their id/rootImage/aspect ratio (same
+   * approach as the chat agent's regenerateSlide).
+   */
+  const applyRevisedSlides = (
+    revised: Array<{ slide_number: number; content: string }>,
+  ): boolean => {
+    const { slides, setSlides } = usePresentationState.getState();
+
+    const parsed: PlateSlide[] = [];
+    for (const slide of revised) {
+      try {
+        const sections = parseSlideXml(slide.content);
+        if (!sections?.[0]) return false;
+        parsed.push(sections[0]);
+      } catch {
+        return false;
+      }
+    }
+    if (parsed.length === 0) return false;
+
+    const reference = slides[0];
+    const merged = parsed.map((slide, index) => {
+      const original = slides[index];
+      return {
+        ...slide,
+        ...(original
+          ? { id: original.id, rootImage: original.rootImage }
+          : {}),
+        aspectRatio: (original ?? reference)?.aspectRatio ?? slide.aspectRatio,
+        formatCategory:
+          (original ?? reference)?.formatCategory ?? slide.formatCategory,
+      };
+    });
+
+    setUndoSnapshot(slides);
+    setSlides(merged as PlateSlide[]);
+    void saveImmediately();
+    return true;
+  };
+
+  const handleAutoFix = async () => {
+    if (!hasDeck()) return;
+
+    setIsFixing(true);
+    setErrorMessage(null);
+    setFixNotice(null);
+    try {
+      const data = await requestReview(true);
+      const revision = data.revision;
+
+      if (revision?.applied && revision.revised_slides?.length) {
+        if (!applyRevisedSlides(revision.revised_slides)) {
+          // Keep the previous review on screen: `data` describes a rewrite
+          // that was never applied to the deck.
+          setErrorMessage(
+            "The AI rewrote the deck, but the result couldn't be converted back into slides — your deck was left untouched. Try again.",
+          );
+          return;
+        }
+        const before = revision.initial_review
+          ? averageScore(revision.initial_review).toFixed(1)
+          : null;
+        const after = averageScore(data).toFixed(1);
+        setFixNotice(
+          `${revision.revision_summary ?? "The deck was rewritten from the reviewer's feedback."}${
+            before ? ` Score: ${before} → ${after}.` : ""
+          }`,
+        );
+      } else {
+        setFixNotice(
+          "On a second look, the deck passed review — nothing needed changing.",
+        );
+      }
+      setResult(data);
+    } catch (error) {
+      setErrorMessage(friendlyError(error));
+    } finally {
+      setIsFixing(false);
+    }
+  };
+
+  const handleUndo = () => {
+    if (!undoSnapshot) return;
+    usePresentationState.getState().setSlides(undoSnapshot);
+    void saveImmediately();
+    setUndoSnapshot(null);
+    setFixNotice(null);
+    // The last review describes the now-reverted deck, so clear it too.
+    setResult(null);
+    toast({
+      title: "Deck restored",
+      description: "Your slides are back to how they were before Auto-fix.",
+    });
   };
 
   const average = result
@@ -211,6 +362,10 @@ export function ReviewButton() {
         if (!open) {
           setResult(null);
           setErrorMessage(null);
+          setFixNotice(null);
+          // App-level undo (Ctrl+Z) still works after this — setSlides
+          // records every change in presentation history.
+          setUndoSnapshot(null);
         }
       }}
     >
@@ -234,9 +389,27 @@ export function ReviewButton() {
           </DialogDescription>
         </DialogHeader>
 
-        {result ? (
+        {result && !isBusy ? (
           <ScrollArea className="max-h-[55vh] pr-3">
             <div className="space-y-4">
+              {fixNotice && (
+                <div className="space-y-2 rounded-lg border border-emerald-600/40 bg-emerald-500/5 p-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <Wand2 className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                    <span>{fixNotice}</span>
+                  </div>
+                  {undoSnapshot && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleUndo}
+                    >
+                      Undo — restore my original slides
+                    </Button>
+                  )}
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">
                   Overall: {average?.toFixed(1)} / 10
@@ -308,11 +481,13 @@ export function ReviewButton() {
               )}
             </div>
           </ScrollArea>
-        ) : isReviewing ? (
+        ) : isBusy ? (
           <div className="flex items-start gap-2 py-2 text-sm text-muted-foreground">
             <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin" />
             <span>
-              {progressMessage(elapsedSeconds, slideCount)}
+              {isFixing
+                ? fixProgressMessage(elapsedSeconds)
+                : progressMessage(elapsedSeconds, slideCount)}
               {elapsedSeconds >= 6 && ` (${elapsedSeconds}s)`}
             </span>
           </div>
@@ -328,20 +503,31 @@ export function ReviewButton() {
           </p>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="flex-wrap gap-2">
           <Button
             type="button"
             variant="secondary"
             onClick={() => setIsOpen(false)}
-            disabled={isReviewing}
+            disabled={isBusy}
           >
             Close
           </Button>
-          <Button type="button" onClick={handleReview} disabled={isReviewing}>
+          {result?.needs_revision && !isBusy && (
+            <Button type="button" variant="outline" onClick={handleAutoFix}>
+              <Wand2 className="mr-2 size-4" />
+              Auto-fix deck
+            </Button>
+          )}
+          <Button type="button" onClick={handleReview} disabled={isBusy}>
             {isReviewing ? (
               <>
                 <Loader2 className="mr-2 size-4 animate-spin" />
                 Reviewing…
+              </>
+            ) : isFixing ? (
+              <>
+                <Loader2 className="mr-2 size-4 animate-spin" />
+                Fixing…
               </>
             ) : result ?? errorMessage ? (
               "Review again"
