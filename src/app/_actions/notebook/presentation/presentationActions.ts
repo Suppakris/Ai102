@@ -8,7 +8,11 @@ import { getPresentationThumbnailUrl } from "@/lib/presentation/thumbnail";
 import { isPresentationAutoTheme } from "@/lib/presentation/theme-resolution";
 import { auth } from "@/backend/auth";
 import { db } from "@/backend/db";
-import { canEditDocument, canReadDocument } from "@/backend/share/authorization";
+import {
+  canEditDocument,
+  canReadDocument,
+  getDocumentAccessForUser,
+} from "@/backend/share/authorization";
 import { getOrCreatePersonalTenant } from "@/backend/tenant";
 import { normalizeShareEmail } from "@/backend/share/utils";
 import { type InputJsonValue } from "@prisma/client/runtime/client";
@@ -358,28 +362,27 @@ export async function deletePresentations(ids: string[]) {
 
 export async function getPresentation(id: string) {
   const session = await auth();
-  const canRead = await canReadDocument(id, {
-    userId: session?.user.id ?? null,
-    userEmail: normalizeShareEmail(session?.user.email),
-  });
-  const canEdit = await canEditDocument(id, {
-    userId: session?.user.id ?? null,
-    userEmail: normalizeShareEmail(session?.user.email),
-  });
 
   try {
-    const presentation = await db.baseDocument.findUnique({
-      where: { id },
-      include: {
-        presentation: true,
-        favorites: session?.user.id
-          ? {
-              where: { userId: session.user.id },
-              select: { id: true },
-            }
-          : false,
-      },
-    });
+    const [{ canRead, canEdit }, presentation] = await Promise.all([
+      getDocumentAccessForUser(
+        id,
+        session?.user.id ?? null,
+        normalizeShareEmail(session?.user.email),
+      ),
+      db.baseDocument.findUnique({
+        where: { id },
+        include: {
+          presentation: true,
+          favorites: session?.user.id
+            ? {
+                where: { userId: session.user.id },
+                select: { id: true },
+              }
+            : false,
+        },
+      }),
+    ]);
 
     if (!presentation) {
       notFound();
@@ -463,24 +466,26 @@ export async function duplicatePresentation(id: string, newTitle?: string) {
     throw new Error("Unauthorized");
   }
 
-  const canRead = await canReadDocument(id, {
-    userId: session.user.id,
-    userEmail: normalizeShareEmail(session.user.email),
-  });
-  if (!canRead) {
-    return {
-      success: false,
-      message: "You do not have permission to view this presentation",
-    };
-  }
-
   try {
-    const original = await db.baseDocument.findUnique({
-      where: { id },
-      include: {
-        presentation: true,
-      },
-    });
+    const [canRead, original] = await Promise.all([
+      canReadDocument(id, {
+        userId: session.user.id,
+        userEmail: normalizeShareEmail(session.user.email),
+      }),
+      db.baseDocument.findUnique({
+        where: { id },
+        include: {
+          presentation: true,
+        },
+      }),
+    ]);
+
+    if (!canRead) {
+      return {
+        success: false,
+        message: "You do not have permission to view this presentation",
+      };
+    }
 
     if (!original?.presentation) {
       return {
