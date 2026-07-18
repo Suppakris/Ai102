@@ -6,6 +6,7 @@ A local-first AI presentation generator — a customized, Ollama-only build deri
 
 - [Architecture](ARCHITECTURE.md) — folder layout, frontend/backend split, request flow
 - [Contributing Guidelines](CONTRIBUTING.md)
+- 📕 [Project Manual (English)](<Ai102-Project-Manual-EN .pdf>) · [คู่มือภาษาไทย](<Ai102-Project-Manual-TH .pdf>) — full PDF manual (V2.0): setup, Docker, migrations, review/auto-fix usage
 
 ## 📋 Table of Contents
 
