@@ -10,8 +10,12 @@ import { Inter } from "next/font/google";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Presentation AI",
-  description: "AI-powered presentation creation and editing.",
+  title: {
+    default: "Presentation AI",
+    template: "%s · Presentation AI",
+  },
+  description:
+    "Local-first AI presentation generator that drafts, designs, reviews, and auto-fixes your decks — free to run on open models.",
 };
 
 export default async function RootLayout({
