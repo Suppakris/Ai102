@@ -46,6 +46,16 @@ This fork disables everything that requires a paid account or a login system, so
 - Auto-save
 - In-editor chat agent (`presentation_agent`, LangGraph + Postgres-backed memory) that can edit an existing deck: change slide layout/background, replace or regenerate images, create/delete/regenerate slides, switch or create themes, and run a web search (needs `TAVILY_API_KEY`)
 
+### AI Deck Review
+
+- One-click **Review** button in the editor header: an AI auditor scores the deck 0-10 on clarity, design, and content accuracy, with a pass / needs-revision verdict
+- Claim audit: every verifiable factual claim (numbers, dates, named entities) is marked Supported / Unsupported / Unverifiable — the reviewer is instructed to flag what it can't verify rather than guess (advice and opinions are judged under clarity, not audited)
+- Asks clarifying questions instead of reviewing when a deck is too sparse to judge; image-only decks are never scored blind
+- Feedback comes back in the deck's own language (Thai decks get Thai feedback)
+- Backend: `reviewSlides()` / `reviewAndRevise()` in `src/backend/ai/reviewSlides.ts` (the latter runs at most ONE corrective rewrite pass and re-reviews it), served by `POST /api/presentation/review-deck` (session auth + rate limit). JSON output is schema-enforced — no fence-stripping or parse-and-hope
+- Test harnesses: `pnpm review:test` (5 sample decks + revision loop) and `pnpm review:bash` (8 adversarial decks incl. the production XML slide format); both need a reachable Ollama (`OLLAMA_BASE_URL`) or `OPENROUTER_API_KEY` with the `--openrouter` flag
+- v1 scope: reviews are shown in the dialog but not persisted — stored review history is a planned post-MVP addition
+
 ### Design & Customization
 
 - Multiple built-in themes (see `src/lib/presentation/themes.ts`)
