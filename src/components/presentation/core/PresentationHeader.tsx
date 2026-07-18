@@ -12,6 +12,7 @@ import { updatePresentationTitle } from "@/app/_actions/notebook/presentation/pr
 import AllweoneText from "@/components/globals/allweone-logo";
 import { ExportButton } from "@/components/presentation/buttons/ExportButton";
 import { PresentButton } from "@/components/presentation/buttons/PresentButton";
+import { ReviewButton } from "@/components/presentation/buttons/ReviewButton";
 import { PresentationMenu } from "@/components/presentation/controls/PresentationMenu";
 import { SystemStatusBadge } from "@/components/presentation/core/SystemStatusBadge";
 import { PresentationSavingIndicator } from "@/components/presentation/core/PresentationSavingIndicator";
@@ -188,6 +189,9 @@ export default function PresentationHeader({ title }: PresentationHeaderProps) {
             </span>
           </Button>
         )}
+
+        {/* AI deck review - Only in presentation page, not outline or present mode */}
+        {isPresentationPage && !isPresenting && !isReadOnly && <ReviewButton />}
 
         {/* Export button - Only in presentation page, not outline or present mode */}
         {isPresentationPage && !isPresenting && !isReadOnly && <ExportButton />}
