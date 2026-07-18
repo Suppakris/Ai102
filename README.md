@@ -41,6 +41,7 @@ This fork disables everything that requires a paid account or a login system, so
 ### Core Functionality
 
 - AI-powered outline generation, then full slide generation, running on a local Ollama model
+- Use your own documents as source material: drop a **PDF, Word (.docx), Excel (.xlsx/.xls), CSV, or text/Markdown** file into the prompt box — parsed entirely in the browser (never uploaded), trimmed to the model's context budget (`src/lib/presentation/pdf-extract.ts`, `office-extract.ts`)
 - Editable outlines before finalizing
 - Real-time slide generation
 - Auto-save
@@ -52,6 +53,8 @@ This fork disables everything that requires a paid account or a login system, so
 - Claim audit: every verifiable factual claim (numbers, dates, named entities) is marked Supported / Unsupported / Unverifiable — the reviewer is instructed to flag what it can't verify rather than guess (advice and opinions are judged under clarity, not audited)
 - Asks clarifying questions instead of reviewing when a deck is too sparse to judge; image-only decks are never scored blind
 - Feedback comes back in the deck's own language (Thai decks get Thai feedback)
+- The presentation's own prompt + outline are sent as `source_context`, so claims that trace back to the outline can be genuinely verified instead of all coming back "Unverifiable"
+- **Auto-fix**: when a deck fails review, one click has the AI rewrite the flagged slides (unsupported claims removed or softened, never given invented backing), re-review the result, and apply it to the editor — with a one-click Undo and full history (Ctrl+Z) support. All-or-nothing apply: if the rewrite can't be parsed back into slides, the deck is left untouched
 - Backend: `reviewSlides()` / `reviewAndRevise()` in `src/backend/ai/reviewSlides.ts` (the latter runs at most ONE corrective rewrite pass and re-reviews it), served by `POST /api/presentation/review-deck` (session auth + rate limit). JSON output is schema-enforced — no fence-stripping or parse-and-hope
 - Test harnesses: `pnpm review:test` (5 sample decks + revision loop) and `pnpm review:bash` (8 adversarial decks incl. the production XML slide format); both need a reachable Ollama (`OLLAMA_BASE_URL`) or `OPENROUTER_API_KEY` with the `--openrouter` flag
 - v1 scope: reviews are shown in the dialog but not persisted — stored review history is a planned post-MVP addition
@@ -83,7 +86,7 @@ This fork disables everything that requires a paid account or a login system, so
 | ------------------- | -------------------------------------------------------------------- |
 | **Framework**       | Next.js 16, React 19, TypeScript                                     |
 | **Styling**         | Tailwind CSS v4                                                      |
-| **Database**        | Supabase with Prisma ORM.                                            |
+| **Database**        | PostgreSQL (Supabase in prod, Docker Postgres locally) via Prisma ORM + committed SQL migrations |
 | **Text Generation**| Ollama (local, OpenAI-compatible endpoint), via LangChain + LangGraph agent |
 | **Image Generation**| Pollinations.ai (free, default), FAL (Flux models, optional/paid)     |
 | **UI Components**   | Radix UI                                                              |
@@ -140,7 +143,7 @@ This fork disables everything that requires a paid account or a login system, so
    pnpm dev
    ```
 
-   The app runs at `http://localhost:3000` and redirects straight to `/presentation` (there's no separate marketing page). You'll be asked to sign in with GitHub first — see [What's Different From Upstream](#-whats-different-from-upstream).
+   The app runs at `http://localhost:3000`. Signed-out visitors see the landing page; signing in (GitHub, or Google/Discord if configured) takes you to the `/presentation` dashboard — see [What's Different From Upstream](#-whats-different-from-upstream).
 
 ### Environment Variables
 
@@ -192,20 +195,29 @@ pnpm db:migrate:dev      # prisma migrate dev — generates a new SQL migration 
 
 Commit the generated folder under `prisma/migrations/` — that SQL file *is* the schema change. `pnpm db:push` still exists for throwaway prototyping, but it bypasses migration history; don't use it on a shared database.
 
-> **Migrating an existing `db push` database:** if your DB already has the schema (created via `db:push` before migrations existed), baseline it once instead of re-running the initial migration:
-> `pnpm exec prisma migrate resolve --applied 0_init`
+> **Migrating an existing `db push` database:** if your DB already has the schema (created via `db:push` before migrations existed), baseline it once instead of re-running the migrations — mark **each** folder under `prisma/migrations/` as applied:
+>
+> ```bash
+> pnpm exec prisma migrate resolve --applied 0_init
+> pnpm exec prisma migrate resolve --applied 20260714110000_add_slide_audit
+> pnpm exec prisma migrate resolve --applied 20260718150000_add_tenancy_and_agent_threads
+> ```
+>
+> After baselining, `pnpm db:migrate:deploy` reports "No pending migrations" and future migrations apply normally.
 
 There's no separate seed step required — signing in with GitHub creates the user record automatically via the Prisma adapter. See [Admin access](#admin-access) above to grant a user elevated access afterward.
 
 ### Run on Docker
 
-The whole stack (front-end + back-end + Postgres) runs on Docker with nothing installed on the host except Docker itself:
+The whole stack (front-end + back-end + Postgres + Redis + the image-generation worker) runs on Docker with nothing installed on the host except Docker itself:
 
 ```bash
 docker compose up --build
 ```
 
-Boot order is handled for you: Postgres starts and becomes healthy → a one-shot `migrate` container runs `prisma migrate deploy` → the app starts at `http://localhost:3000`.
+Boot order is handled for you: Postgres starts and becomes healthy → a one-shot `migrate` container runs `prisma migrate deploy` (SQL migrations from `prisma/migrations/`) → the app starts at `http://localhost:3000`, alongside a separate BullMQ worker container that consumes the Redis-backed image-generation queue.
+
+Auth inside Docker uses the same env vars as everywhere else: set real `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET` (and optionally the Google/Discord pairs) in a `.env` file next to `docker-compose.yml`; with the placeholder defaults the stack boots but sign-in won't work.
 
 LLM access from inside the container:
 
@@ -258,7 +270,7 @@ request-flow diagram. Quick map of `src/`:
 **Backend** (`src/backend/**` — see [ARCHITECTURE.md](ARCHITECTURE.md))
 ```text
 ├── db.ts                Prisma client.
-├── auth.ts              the demo-user stub.
+├── auth.ts              Auth.js/NextAuth v5 config (GitHub required; Google/Discord optional).
 ├── tenant.ts            multi-tenant resolution.
 ├── rate-limit.ts        request rate limiting.
 ├── share/`              share-link authorization.

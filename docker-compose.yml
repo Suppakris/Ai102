@@ -76,6 +76,12 @@ services:
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-dev-only-secret-change-me}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-dev-placeholder-client-id}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-dev-placeholder-client-secret}
+      # Optional extra sign-in providers; each only registers when both of
+      # its values are set (src/backend/auth.ts).
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_DEFAULT_MODEL: ${OLLAMA_DEFAULT_MODEL:-}
