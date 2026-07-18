@@ -163,10 +163,14 @@ function NotebookPageLayout({ children }: { children: ReactNode }) {
 
 function GreetingSection() {
   return (
-    <section className="mb-5 flex flex-col items-center text-center sm:mb-6">
-      <h1 className="max-w-4xl text-2xl font-semibold tracking-normal text-foreground sm:text-3xl">
-        What presentation would you like to create today?
+    <section className="mb-5 flex flex-col items-center gap-2 text-center sm:mb-6">
+      <h1 className="max-w-4xl text-2xl font-semibold tracking-tight text-foreground sm:text-4xl">
+        What would you like to{" "}
+        <span className="brand-gradient-text">create today?</span>
       </h1>
+      <p className="max-w-xl text-sm text-muted-foreground">
+        Describe your topic and let AI draft, design, and review your deck.
+      </p>
     </section>
   );
 }
@@ -269,7 +273,7 @@ function NotebookInputBox({
 
   return (
     <div
-      className="relative mb-4 min-w-0 rounded-xl border border-border bg-background p-2.5 shadow sm:p-4"
+      className="relative mb-4 min-w-0 rounded-2xl border border-border bg-card p-2.5 shadow-lg shadow-primary/5 transition-all focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/15 sm:p-4"
       {...dropHandlers}
     >
       {isDragActive ? (
@@ -336,16 +340,16 @@ function NotebookInputBox({
           disabled={submitDisabled}
           aria-busy={isSubmitting}
           className={cn(
-            "flex size-8 shrink-0 items-center justify-center rounded-full bg-foreground transition-colors sm:h-9 sm:w-9",
+            "brand-gradient flex size-8 shrink-0 items-center justify-center rounded-full shadow-md shadow-primary/30 transition-all sm:h-9 sm:w-9",
             isSubmitting
               ? "cursor-wait opacity-100"
-              : "hover:bg-foreground/90 disabled:opacity-50",
+              : "hover:brightness-110 disabled:opacity-50 disabled:shadow-none",
           )}
         >
           {isSubmitting ? (
-            <Loader2 className="size-4 animate-spin text-background" />
+            <Loader2 className="size-4 animate-spin text-white" />
           ) : (
-            <ArrowRight className="size-4 text-background" />
+            <ArrowRight className="size-4 text-white" />
           )}
         </button>
       </div>
@@ -844,7 +848,7 @@ function PresentationProjectFilesSection({
               {visibleFiles.map((file) => (
                 <div
                   key={file.id}
-                  className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card text-left transition-all duration-200 hover:border-primary/50 hover:shadow-md focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+                  className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
                 >
                   <button
                     type="button"

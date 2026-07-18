@@ -97,7 +97,7 @@ export default function PresentationHeader({ title }: PresentationHeaderProps) {
 
   return (
     <header
-      className="notranslate flex min-h-12 w-full items-center justify-between gap-3 overflow-hidden border-b border-accent bg-background px-3 py-2 sm:px-4"
+      className="notranslate glass-panel flex min-h-12 w-full items-center justify-between gap-3 overflow-hidden border-b border-border/60 px-3 py-2 sm:px-4"
       translate="no"
     >
       {/* Left section with breadcrumb navigation */}
