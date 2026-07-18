@@ -19,6 +19,7 @@
     "start": "next start",
     "type": "tsc --noEmit",
     "queue:worker": "tsx src/backend/queue/worker.ts",
+    "review:test": "tsx scripts/test-review-slides.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
