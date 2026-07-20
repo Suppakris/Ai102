@@ -1,6 +1,6 @@
 "use client";
 
-import { Image as ImageIcon, Link, Youtube } from "lucide-react";
+import { Youtube } from "lucide-react";
 import { nanoid } from "nanoid";
 import { KEYS, type TElement } from "platejs";
 // NOTE: These are React components now!
@@ -37,16 +37,6 @@ const EMBED_CONFIGS: Record<string, EmbedConfig> = {
       return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
     },
   },
-  website: {
-    name: "Website",
-    urlPattern: /^https?:\/\/.+/i,
-    embedUrlGenerator: (url: string) => url,
-  },
-  image: {
-    name: "Image",
-    urlPattern: /^https?:\/\/.+/i,
-    embedUrlGenerator: (url: string) => url,
-  },
 };
 
 export type MediaEmbedItem = {
@@ -64,20 +54,6 @@ export const mediaEmbedItems: MediaEmbedItem[] = [
     embedType: "youtube",
     icon: <Youtube className="size-7" />,
     description: "Embed YouTube videos",
-  },
-  {
-    key: "image",
-    label: "Image",
-    embedType: "image",
-    icon: <ImageIcon className="size-7" />,
-    description: "Embed an image from a URL",
-  },
-  {
-    key: "website",
-    label: "Website",
-    embedType: "website",
-    icon: <Link className="size-7" />,
-    description: "Embed any website link",
   },
 ];
 

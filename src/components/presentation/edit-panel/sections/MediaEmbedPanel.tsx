@@ -18,11 +18,7 @@ import { PanelSearchFilter } from "./PanelSearchFilter";
 import { matchesPanelSearch } from "./PanelSearchFilter";
 
 function getMediaFilterValue(item: MediaEmbedItem): string {
-  if (["youtube", "vimeo", "loom"].includes(item.embedType)) return "video";
-  if (["twitter"].includes(item.embedType)) return "social";
-  if (["figma", "codepen"].includes(item.embedType)) return "design";
-  if (["image", "infographic"].includes(item.embedType)) return "media";
-  return "web";
+  return item.embedType === "youtube" ? "video" : "web";
 }
 
 export function MediaEmbedPanel() {
@@ -70,9 +66,6 @@ function MediaEmbedCard({ item }: { item: MediaEmbedItem }) {
   const currentSlideId = usePresentationState((s) => s.currentSlideId);
   const slides = usePresentationState((s) => s.slides);
   const setSlides = usePresentationState((s) => s.setSlides);
-  const openInfographicGenerationEditor = usePresentationState(
-    (s) => s.openInfographicGenerationEditor,
-  );
   const { saveImmediately } = useDebouncedSave();
 
   const [{ isDragging }, drag] = useDrag(() => ({
@@ -107,9 +100,6 @@ function MediaEmbedCard({ item }: { item: MediaEmbedItem }) {
       );
       void saveImmediately();
       toast.success(`Changed to ${item.label} embed`);
-      if (item.embedType === "infographic") {
-        openInfographicGenerationEditor();
-      }
     } else {
       toast.error("Please select a root image first");
     }
