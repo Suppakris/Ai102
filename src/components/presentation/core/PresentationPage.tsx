@@ -13,15 +13,11 @@ import {
 
 import TouchAwareDndProvider from "@/components/globals/TouchAwareDndProvider";
 import { ThemeBackground } from "@/components/notebook/presentation/components/theme/ThemeBackground";
-import RecordingControls from "@/components/notebook/presentation/recording/RecordingControls";
-import RecordingPreviewDialog from "@/components/notebook/presentation/recording/RecordingPreviewDialog";
-import WebcamOverlay from "@/components/notebook/presentation/recording/WebcamOverlay";
 import { usePresentationAutoScroll } from "@/hooks/presentation/usePresentationAutoScroll";
 import { usePresentationData } from "@/hooks/presentation/usePresentationData";
 import { usePresentationHistory } from "@/hooks/presentation/usePresentationHistory";
 import { type ThemeProperties } from "@/lib/presentation/themes";
 import { cn } from "@/lib/utils";
-import { usePresentationRecordingState } from "@/states/presentation-recording-state";
 import {
   MAX_PRESENTATION_ZOOM_LEVEL,
   MIN_PRESENTATION_ZOOM_LEVEL,
@@ -53,7 +49,6 @@ export default function PresentationPage({
     (s) => s.isPresentingLoading,
   );
   // const activeRightPanel = usePresentationState((s) => s.activeRightPanel);
-  const wantsToRecord = usePresentationRecordingState((s) => s.wantsToRecord);
   // Load presentation data
   const { isLoading, currentThemeData } = usePresentationData(id, readOnly);
   const currentPresentationTitle = usePresentationState(
@@ -249,15 +244,6 @@ export default function PresentationPage({
 
               {/* RightEditPanel shows buttons, hidden when any panel is open */}
               {showEditPanels && <RightEditPanel />}
-
-              {/* Recording UI (not captured) */}
-              {isPresenting && wantsToRecord && (
-                <>
-                  <WebcamOverlay />
-                  <RecordingControls />
-                  <RecordingPreviewDialog />
-                </>
-              )}
             </div>
           </div>
 

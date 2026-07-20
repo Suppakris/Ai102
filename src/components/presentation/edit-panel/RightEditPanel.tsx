@@ -6,12 +6,10 @@ import {
   ChartNoAxesCombined,
   ChartPie,
   Link as LinkIcon,
-  Video,
 } from "lucide-react";
 
 import { HelpMenu } from "@/components/sidebar/help-menu";
 import { Button } from "@/components/ui/button";
-import { usePresentationRecordingState } from "@/states/presentation-recording-state";
 import { usePresentationState } from "@/states/presentation-state";
 import { ZoomControl } from "../controls/ZoomControl";
 
@@ -74,21 +72,6 @@ export function RightEditPanel() {
             onClick={() => setActiveRightPanel("embed")}
           >
             <LinkIcon className="size-5" />
-          </Button>
-
-          <Button
-            size="icon"
-            variant="ghost"
-            className={RIGHT_PANEL_BUTTON_CLASSNAME}
-            onClick={() => {
-              // enter present mode and open recording setup
-              usePresentationState.getState().resetPresentingScaleLocks();
-              usePresentationState.getState().setIsPresentingLoading(true);
-              usePresentationState.getState().setIsPresenting(true);
-              usePresentationRecordingState.getState().setWantsToRecord(true);
-            }}
-          >
-            <Video className="size-5" />
           </Button>
         </div>
         <div className="ml-1 flex items-center gap-1 rounded-2xl border border-border/70 bg-background/90 p-1 shadow-sm backdrop-blur-md lg:absolute lg:bottom-4 lg:left-1/2 lg:ml-0 lg:-translate-x-1/2 lg:flex-col">

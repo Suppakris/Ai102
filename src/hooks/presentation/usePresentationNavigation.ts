@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 
-import { usePresentationRecordingState } from "@/states/presentation-recording-state";
 import { usePresentationState } from "@/states/presentation-state";
 
 const WHEEL_NAVIGATION_THRESHOLD = 42;
@@ -168,7 +167,6 @@ export function usePresentationNavigation() {
         usePresentationState.getState().setIsPresenting(false);
         usePresentationState.getState().setIsPresentingLoading(false);
         usePresentationState.getState().resetPresentingScaleLocks();
-        usePresentationRecordingState.getState().setWantsToRecord(false);
       }
     };
 

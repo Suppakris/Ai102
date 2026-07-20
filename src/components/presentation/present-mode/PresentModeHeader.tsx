@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Button } from "@/components/ui/button";
-import { usePresentationRecordingState } from "@/states/presentation-recording-state";
 import { usePresentationState } from "@/states/presentation-state";
 
 type ScreenOrientationController = ScreenOrientation & {
@@ -70,9 +69,6 @@ export function PresentModeHeader({
                 usePresentationState.getState().setIsPresenting(false);
                 usePresentationState.getState().setIsPresentingLoading(false);
                 usePresentationState.getState().resetPresentingScaleLocks();
-                usePresentationRecordingState
-                  .getState()
-                  .setWantsToRecord(false);
 
                 if (document.fullscreenElement) {
                   await document.exitFullscreen().catch(() => undefined);
