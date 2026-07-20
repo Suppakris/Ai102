@@ -9,7 +9,10 @@ import {
   SelectLabel,
   SelectTrigger,
 } from "@/components/ui/select";
-import { OPENROUTER_TEXT_MODELS } from "@/constants/text-models";
+import {
+  FREE_OPENROUTER_TEXT_MODELS,
+  OPENROUTER_TEXT_MODELS,
+} from "@/constants/text-models";
 import {
   getSelectedModel,
   setSelectedModel,
@@ -177,7 +180,7 @@ export function ModelPicker({
           )}
 
           <SelectGroup>
-            <SelectLabel>OpenRouter (paid)</SelectLabel>
+            <SelectLabel>OpenRouter (free + paid)</SelectLabel>
             {openRouterEnabled ? (
               OPENROUTER_TEXT_MODELS.map((model) => (
                 <SelectItem
@@ -190,7 +193,9 @@ export function ModelPicker({
                     <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                       <span className="truncate text-sm">{model.label}</span>
                       <span className="line-clamp-2 whitespace-normal break-words text-xs leading-snug text-muted-foreground">
-                        OpenRouter model
+                        {model.free
+                          ? "Free tier — no cost, rate limited"
+                          : "Paid — billed to the configured API key"}
                       </span>
                     </div>
                   </div>
@@ -206,8 +211,8 @@ export function ModelPicker({
                   <Cloud className="h-4 w-4 flex-shrink-0" />
                   <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                     <span className="line-clamp-2 whitespace-normal break-words text-sm leading-snug">
-                      {OPENROUTER_TEXT_MODELS.length} models available (GPT-5,
-                      Claude, Gemini, and more)
+                      {OPENROUTER_TEXT_MODELS.length} models available,{" "}
+                      {FREE_OPENROUTER_TEXT_MODELS.length} of them free
                     </span>
                     <span className="line-clamp-2 whitespace-normal break-words text-xs leading-snug text-muted-foreground">
                       Ask an admin to set OPENROUTER_API_KEY to enable

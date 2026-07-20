@@ -158,7 +158,7 @@ Copy `.env.example` to `.env` and fill in what you need. `.env.example` is the s
 | `OLLAMA_DEFAULT_MODEL` | Optional | Override the default model (`llama3.2:3b`). |
 | `OLLAMA_NUM_CTX` | Optional | Context window in tokens (default: 8192). Ollama's own default (often 2048) is smaller than this app's generation system prompt, which makes the model see truncated instructions and produce broken decks. Lower it only if generation requests start timing out on slow/CPU-only hardware. |
 | `OLLAMA_MAX_OUTPUT_TOKENS` | Optional | Max output tokens per generation request. Unset by default. Same trade-off as `OLLAMA_NUM_CTX`. |
-| `OPENROUTER_API_KEY` | Optional | Paid text-generation upgrade ([OpenRouter](https://openrouter.ai)), not admin-gated — any signed-in user can pick one of 6 preset cloud models once this key is set. Text generation works with no key at all via the free Ollama default. |
+| `OPENROUTER_API_KEY` | Optional | Cloud text-generation alternative ([OpenRouter](https://openrouter.ai)), not admin-gated — any signed-in user can pick a preset cloud model once this key is set. The list has **4 free-tier models and 6 paid ones**, so this key can be created and used without spending anything (see below). Text generation works with no key at all via the free Ollama default. |
 | `TOGETHER_AI_API_KEY` | Optional | Legacy code path, not used by any active feature. |
 | `UPLOADTHING_TOKEN` | Optional | Image storage for AI-generated images. |
 | `UNSPLASH_ACCESS_KEY` | Optional | Stock photo search. |
@@ -166,6 +166,20 @@ Copy `.env.example` to `.env` and fill in what you need. `.env.example` is the s
 | `TAVILY_API_KEY` | Optional | Web search tool for the outline generator and the in-editor chat agent. |
 
 All optional integrations degrade gracefully when unset — features that need them just no-op with an error message instead of crashing.
+
+### OpenRouter free tier
+
+`OPENROUTER_API_KEY` does **not** require a credit card. OpenRouter publishes free-tier models (ids ending in `:free`) that cost nothing per token, and four of them are preset in `src/constants/text-models.ts`. Creating a key without adding billing means the paid models in the picker simply fail rather than charging anyone — useful when the project has no budget.
+
+This exists mainly as a **fallback**: the app's default text provider is a self-hosted Ollama server, and when that machine is off or its tunnel URL has rotated, generation and review stop working entirely. A free OpenRouter model keeps them running.
+
+Measured behaviour of the default free model (`nvidia/nemotron-3-super-120b-a12b:free`) against `pnpm review:test`:
+
+- **Structured output is reliable** — valid schema-conforming JSON on every run, no parse failures. Claim auditing on flawed decks is accurate, and the Auto-fix loop lifted test decks 4.0 → 10.0 and 3.7 → 9.0.
+- **Scoring of *good* decks is not repeatable.** The same passing deck scored 9.33 with no unsupported claims on one run, and 7.0 *with* an unsupported claim on the next — meaning a sound deck can occasionally be told it needs revision. Local `qwen2.5:7b` returns identical scores for identical input, so Ollama remains the better default.
+- **Latency varies a lot.** Individual reviews took 10–24s, but consecutive runs queued far longer. Free-tier requests are rate limited and share capacity with everyone else, which is a real risk during a live demo.
+
+Free models may also log prompts for provider training. The paid ids in the picker (GPT-5, Claude Haiku 4.5, Gemini 2.5 Flash, and others) need no code change to start using — set a funded key and pick one.
 
 Auth vars are **required**, not optional: `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` — see `.env.example` for how to get each one (all free). Without them the app won't boot in production. `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` and `DISCORD_CLIENT_ID`/`DISCORD_CLIENT_SECRET` are optional — set either pair to add that provider's "Sign in with..." button; leave both blank to skip it.
 

@@ -25,6 +25,12 @@ try {
 
 const useOpenRouter = process.argv.includes("--openrouter");
 
+// --model <id> overrides the provider's default model, so each free
+// OpenRouter model can be checked for structured-output support.
+const modelFlagIndex = process.argv.indexOf("--model");
+const modelId =
+  modelFlagIndex !== -1 ? process.argv[modelFlagIndex + 1] : undefined;
+
 const sampleDecks = [
   {
     name: "GOOD deck (expect: pass, no revision)",
@@ -127,8 +133,12 @@ async function main() {
     "@/backend/ai/reviewSlides"
   );
   const opts = useOpenRouter
-    ? ({ modelProvider: "openrouter" } as const)
+    ? ({ modelProvider: "openrouter" as const, ...(modelId ? { modelId } : {}) })
     : undefined;
+
+  if (useOpenRouter) {
+    console.log(`Provider: openrouter, model: ${modelId ?? "(default)"}`);
+  }
 
   for (const deck of sampleDecks) {
     console.log(`\n=== ${deck.name} ===`);
