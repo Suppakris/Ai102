@@ -3,7 +3,6 @@
 import {
   Blocks,
   CaseSensitive,
-  ChartNoAxesCombined,
   ChartPie,
   Link as LinkIcon,
 } from "lucide-react";
@@ -54,15 +53,6 @@ export function RightEditPanel() {
             onClick={() => setActiveRightPanel("charts")}
           >
             <ChartPie className="size-5" />
-          </Button>
-
-          <Button
-            size="icon"
-            variant="ghost"
-            className={RIGHT_PANEL_BUTTON_CLASSNAME}
-            onClick={() => setActiveRightPanel("diagrams")}
-          >
-            <ChartNoAxesCombined className="size-5" />
           </Button>
 
           <Button

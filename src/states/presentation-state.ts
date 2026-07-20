@@ -74,7 +74,6 @@ export type RightPanelType =
   | "basicBlocks"
   | "elements"
   | "charts"
-  | "diagrams"
   | "embed"
   | "background"
   | "theme"

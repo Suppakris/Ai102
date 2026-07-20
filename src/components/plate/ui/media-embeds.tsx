@@ -1,17 +1,6 @@
 "use client";
 
-import {
-  ChartNoAxesColumnIncreasing,
-  Code,
-  Figma,
-  Image as ImageIcon,
-  Link,
-  MapPin,
-  Play,
-  Twitter,
-  Video,
-  Youtube,
-} from "lucide-react";
+import { Image as ImageIcon, Link, Youtube } from "lucide-react";
 import { nanoid } from "nanoid";
 import { KEYS, type TElement } from "platejs";
 // NOTE: These are React components now!
@@ -48,75 +37,6 @@ const EMBED_CONFIGS: Record<string, EmbedConfig> = {
       return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
     },
   },
-  vimeo: {
-    name: "Vimeo",
-    // Supports: vimeo.com/123456, vimeo.com/video/123456, player.vimeo.com/video/123456
-    urlPattern: /vimeo\.com\/(?:video\/)?(\d+)/i,
-    embedUrlGenerator: (url: string) => {
-      const match = url.match(/vimeo\.com\/(?:video\/)?(\d+)/i);
-      const videoId = match?.[1];
-      return videoId ? `https://player.vimeo.com/video/${videoId}` : url;
-    },
-  },
-  loom: {
-    name: "Loom",
-    // Supports: loom.com/share/, loom.com/embed/
-    urlPattern: /loom\.com\/(?:share|embed)\/([a-zA-Z0-9]+)/i,
-    embedUrlGenerator: (url: string) => {
-      const match = url.match(/loom\.com\/(?:share|embed)\/([a-zA-Z0-9]+)/i);
-      const videoId = match?.[1];
-      return videoId ? `https://www.loom.com/embed/${videoId}` : url;
-    },
-  },
-  twitter: {
-    name: "Twitter/X",
-    // Supports both twitter.com and x.com
-    urlPattern: /(?:twitter\.com|x\.com)\/([^/]+)\/status\/(\d+)/i,
-    embedUrlGenerator: (url: string) => {
-      // Normalize to x.com format
-      return url.replace("twitter.com", "x.com");
-    },
-  },
-  figma: {
-    name: "Figma",
-    // Supports: figma.com/file/, figma.com/proto/, figma.com/design/
-    urlPattern: /figma\.com\/(?:file|proto|design)\/([a-zA-Z0-9]+)/i,
-    embedUrlGenerator: (url: string) => {
-      return `https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(url)}`;
-    },
-  },
-  maps: {
-    name: "Google Maps",
-    urlPattern: /google\.com\/maps/i,
-    embedUrlGenerator: (url: string) => {
-      // Extract coordinates or place info if available
-      const placeMatch = url.match(/place\/([^/]+)/);
-      const coordMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-
-      if (placeMatch) {
-        return `https://www.google.com/maps/embed/v1/place?key=&q=${encodeURIComponent(placeMatch[1] || "")}`;
-      } else if (coordMatch) {
-        return `https://www.google.com/maps/embed/v1/view?key=&center=${coordMatch[1]},${coordMatch[2]}&zoom=14`;
-      }
-
-      // Fallback: try to convert to embed format
-      return url.replace("/maps/", "/maps/embed/");
-    },
-  },
-  codepen: {
-    name: "CodePen",
-    urlPattern: /codepen\.io\/([^/]+)\/(?:pen|embed)\/([a-zA-Z0-9]+)/i,
-    embedUrlGenerator: (url: string) => {
-      const match = url.match(
-        /codepen\.io\/([^/]+)\/(?:pen|embed)\/([a-zA-Z0-9]+)/i,
-      );
-      const username = match?.[1];
-      const penId = match?.[2];
-      return username && penId
-        ? `https://codepen.io/${username}/embed/${penId}?default-tab=result`
-        : url;
-    },
-  },
   website: {
     name: "Website",
     urlPattern: /^https?:\/\/.+/i,
@@ -124,11 +44,6 @@ const EMBED_CONFIGS: Record<string, EmbedConfig> = {
   },
   image: {
     name: "Image",
-    urlPattern: /^https?:\/\/.+/i,
-    embedUrlGenerator: (url: string) => url,
-  },
-  infographic: {
-    name: "Infographic",
     urlPattern: /^https?:\/\/.+/i,
     embedUrlGenerator: (url: string) => url,
   },
@@ -151,60 +66,11 @@ export const mediaEmbedItems: MediaEmbedItem[] = [
     description: "Embed YouTube videos",
   },
   {
-    key: "vimeo",
-    label: "Vimeo",
-    embedType: "vimeo",
-    icon: <Video className="size-7" />,
-    description: "Embed Vimeo videos",
-  },
-  {
-    key: "loom",
-    label: "Loom",
-    embedType: "loom",
-    icon: <Play className="size-7" />,
-    description: "Embed Loom recordings",
-  },
-  {
-    key: "twitter",
-    label: "Twitter",
-    embedType: "twitter",
-    icon: <Twitter className="size-7" />,
-    description: "Embed Twitter posts",
-  },
-  {
-    key: "figma",
-    label: "Figma",
-    embedType: "figma",
-    icon: <Figma className="size-7" />,
-    description: "Embed Figma designs",
-  },
-  {
-    key: "maps",
-    label: "Google Maps",
-    embedType: "maps",
-    icon: <MapPin className="size-7" />,
-    description: "Embed Google Maps",
-  },
-  {
-    key: "codepen",
-    label: "CodePen",
-    embedType: "codepen",
-    icon: <Code className="size-7" />,
-    description: "Embed CodePen demos",
-  },
-  {
     key: "image",
     label: "Image",
     embedType: "image",
     icon: <ImageIcon className="size-7" />,
     description: "Embed an image from a URL",
-  },
-  {
-    key: "infographic",
-    label: "Infographic",
-    embedType: "infographic",
-    icon: <ChartNoAxesColumnIncreasing className="size-7" />,
-    description: "Generate an AI infographic",
   },
   {
     key: "website",

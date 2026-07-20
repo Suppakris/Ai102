@@ -1,11 +1,7 @@
 import { KEYS, nanoid, NodeApi, type TElement } from "platejs";
 import { type PlateEditor } from "platejs/react";
 
-export type PaletteDropSource =
-  | "basicBlocks"
-  | "charts"
-  | "diagrams"
-  | "elements";
+export type PaletteDropSource = "basicBlocks" | "charts" | "elements";
 
 export type PaletteDropTarget = {
   editorId: string;
@@ -131,8 +127,7 @@ export function getPaletteDragSource(
 
   return sourcePanel === "basicBlocks" ||
     sourcePanel === "elements" ||
-    sourcePanel === "charts" ||
-    sourcePanel === "diagrams"
+    sourcePanel === "charts"
     ? sourcePanel
     : null;
 }

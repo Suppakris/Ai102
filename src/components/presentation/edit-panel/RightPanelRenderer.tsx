@@ -3,7 +3,6 @@
 import {
   Blocks,
   CaseSensitive,
-  ChartNoAxesCombined,
   ChartPie,
   Edit3,
   ImageIcon,
@@ -29,7 +28,6 @@ import { BackgroundPanel } from "./sections/BackgroundPanel";
 import { BasicBlocksPanel } from "./sections/BasicBlocksPanel";
 import { ChartEditorPanel } from "./sections/ChartEditorPanel";
 import { ChartPanel } from "./sections/ChartPanel";
-import { DiagramPanel } from "./sections/DiagramPanel";
 import { ElementsPanel } from "./sections/ElementsPanel";
 import { ImageEditorPanel } from "./sections/ImageEditorPanel";
 import { InfographicEditorPanel } from "./sections/InfographicEditorPanel";
@@ -65,10 +63,6 @@ const PANEL_INFO = {
   charts: {
     title: "Add Charts",
     icon: <ChartPie className="size-4 text-primary" />,
-  },
-  diagrams: {
-    title: "Add Diagrams",
-    icon: <ChartNoAxesCombined className="size-4 text-primary" />,
   },
   embed: {
     title: "Media Embeds",
@@ -142,8 +136,6 @@ function PanelContent({
       return <ElementsPanel isLoaded />;
     case "charts":
       return <ChartPanel isLoaded />;
-    case "diagrams":
-      return <DiagramPanel isLoaded />;
     case "embed":
       return <MediaEmbedPanel />;
     case "background":
