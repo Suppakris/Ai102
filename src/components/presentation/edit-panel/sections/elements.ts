@@ -19,13 +19,11 @@ import {
   BULLET_ITEM,
   BUTTON_ELEMENT,
   CANDLESTICK_CHART_ELEMENT,
-  CHORD_CHART_ELEMENT,
   CIRCULAR_GRID_GROUP,
   CIRCULAR_GRID_ITEM,
   COMPARE_GROUP,
   COMPARE_SIDE,
   COMPOSED_CHART_ELEMENT,
-  CONE_FUNNEL_CHART_ELEMENT,
   CONNECTED_CIRCLES_GROUP,
   CONNECTED_CIRCLES_ITEM,
   CONS_ITEM,
@@ -42,8 +40,6 @@ import {
   LABEL_ELEMENT,
   LINE_CHART_ELEMENT,
   LINEAR_GAUGE_ELEMENT,
-  NIGHTINGALE_CHART_ELEMENT,
-  OHLC_CHART_ELEMENT,
   PIE_CHART_ELEMENT,
   PRESENTATION_TITLE_ELEMENT,
   PROS_CONS_GROUP,
@@ -532,32 +528,6 @@ export const chartItems: PaletteItem[] = [
       { date: "Fri", open: 125, high: 140, low: 118, close: 135 },
     ]),
   },
-  // OHLC - Open-High-Low-Close
-  {
-    key: "chart-ohlc",
-    label: "OHLC",
-    node: createChartNode(OHLC_CHART_ELEMENT, [
-      { date: "Week 1", open: 50, high: 58, low: 48, close: 55 },
-      { date: "Week 2", open: 55, high: 62, low: 52, close: 60 },
-      { date: "Week 3", open: 60, high: 68, low: 55, close: 58 },
-      { date: "Week 4", open: 58, high: 72, low: 56, close: 70 },
-    ]),
-  },
-  // Nightingale - rose/wind chart
-  {
-    key: "chart-nightingale",
-    label: "Nightingale",
-    node: createChartNode(NIGHTINGALE_CHART_ELEMENT, [
-      { label: "North", value: 85 },
-      { label: "Northeast", value: 65 },
-      { label: "East", value: 45 },
-      { label: "Southeast", value: 35 },
-      { label: "South", value: 55 },
-      { label: "Southwest", value: 75 },
-      { label: "West", value: 90 },
-      { label: "Northwest", value: 70 },
-    ]),
-  },
   // Sunburst - hierarchical radial
   {
     key: "chart-sunburst",
@@ -576,18 +546,6 @@ export const chartItems: PaletteItem[] = [
       { from: "Trial", to: "Churn", size: 30 },
     ]),
   },
-  // Chord - relationship visualization
-  {
-    key: "chart-chord",
-    label: "Chord",
-    node: createChartNode(CHORD_CHART_ELEMENT, [
-      { from: "Sales", to: "Marketing", size: 30 },
-      { from: "Marketing", to: "Engineering", size: 20 },
-      { from: "Engineering", to: "Sales", size: 25 },
-      { from: "Sales", to: "Support", size: 15 },
-      { from: "Support", to: "Engineering", size: 10 },
-    ]),
-  },
   // Funnel - pipeline visualization
   {
     key: "chart-funnel",
@@ -598,18 +556,6 @@ export const chartItems: PaletteItem[] = [
       { label: "Leads", value: 2500 },
       { label: "Opportunities", value: 1000 },
       { label: "Customers", value: 500 },
-    ]),
-  },
-  // Cone Funnel - funnel variant
-  {
-    key: "chart-cone-funnel",
-    label: "Cone Funnel",
-    node: createChartNode(CONE_FUNNEL_CHART_ELEMENT, [
-      { label: "Awareness", value: 8000 },
-      { label: "Interest", value: 4500 },
-      { label: "Consideration", value: 2200 },
-      { label: "Intent", value: 1100 },
-      { label: "Purchase", value: 600 },
     ]),
   },
   // Pyramid Chart - triangular visualization
