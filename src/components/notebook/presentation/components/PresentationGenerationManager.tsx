@@ -103,7 +103,12 @@ function hasGeneratedOutline(outline: string[]): boolean {
 const OUTLINE_HEADING_PATTERN = /^#{1,3}[ \t]+/m;
 const OUTLINE_HEADING_SPLIT_PATTERN = /^#{1,3}[ \t]+/gm;
 
-function parseOutlineItems(content: string): string[] {
+// The model is asked for exactly `numberOfCards` topics but small models
+// overshoot, and the 1-3 hash split above turns any stray sub-heading into an
+// extra item. Both show up as an unrequested trailing slide that repeats the
+// topic before it, so the requested count is enforced here rather than trusted
+// from the model output.
+function parseOutlineItems(content: string, maxItems: number): string[] {
   if (!OUTLINE_HEADING_PATTERN.test(content)) {
     return [];
   }
@@ -113,7 +118,10 @@ function parseOutlineItems(content: string): string[] {
     .map((section) => section.trim())
     .filter(Boolean);
 
-  return sections.map((section) => `# ${section}`);
+  const limited =
+    maxItems > 0 ? sections.slice(0, maxItems) : sections;
+
+  return limited.map((section) => `# ${section}`);
 }
 
 function usesStockSearchForPresentation(
@@ -324,7 +332,13 @@ export function PresentationGenerationManager() {
       }
 
       const generatedTheme = extractGeneratedPresentationTheme(cleanContent);
-      const outlineItems = parseOutlineItems(generatedTheme.cleanContent);
+      // Read through getState() rather than the closed-over numSlides: this
+      // runs from streaming callbacks that can outlive the render they were
+      // created in.
+      const outlineItems = parseOutlineItems(
+        generatedTheme.cleanContent,
+        usePresentationState.getState().numSlides,
+      );
       if (outlineItems.length > 0) {
         latestOutlineItems = outlineItems;
       }
