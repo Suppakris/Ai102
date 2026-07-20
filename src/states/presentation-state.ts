@@ -438,7 +438,7 @@ interface PresentationState {
   isReorderingSlides: boolean;
   setIsReorderingSlides: (isReordering: boolean) => void;
 
-  // Attached files (uploaded via UploadThing) for outline with docs
+  // Attached files (uploaded to /api/files/upload) for outline with docs
   attachedFiles: NotebookAttachment[];
   setAttachedFiles: (files: NotebookAttachment[]) => void;
   isUploadingAttachment: boolean;

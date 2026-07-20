@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useWatch, type Control } from "react-hook-form";
 import { toast } from "sonner";
 
-import { useUploadThing } from "@/hooks/globals/useUploadthing";
+import { useUploadThing } from "@/hooks/globals/useUpload";
 import { loadCustomFont } from "@/lib/presentation/loadCustomFont";
 import { type ThemeFormValues } from "../../types";
 import { type LocalFont } from "./types";
@@ -48,20 +48,24 @@ export function useFontUpload({ setValue, control }: UseFontUploadOptions) {
       try {
         const result = await startUpload([file]);
         if (result?.[0]) {
-          const { serverData, ufsUrl } = result[0];
+          const { name, ufsUrl } = result[0];
+          // The family name was previously derived server-side by the upload
+          // provider; it is just the filename without its extension.
+          const familyName =
+            (name ?? file.name).replace(/\.[^.]+$/, "") || "Custom font";
           const options = { shouldDirty: true };
 
           if (target === "heading") {
-            setValue("fonts.heading", serverData.familyName, options);
+            setValue("fonts.heading", familyName, options);
             setValue("fonts.headingUrl", ufsUrl, options);
           } else {
-            setValue("fonts.body", serverData.familyName, options);
+            setValue("fonts.body", familyName, options);
             setValue("fonts.bodyUrl", ufsUrl, options);
           }
 
           // Load the font immediately using FontFace API
           try {
-            await loadCustomFont(serverData.familyName, ufsUrl, 400);
+            await loadCustomFont(familyName, ufsUrl, 400);
             toast.success("Font uploaded and loaded successfully");
           } catch (fontLoadError) {
             console.error("Font uploaded but failed to load:", fontLoadError);

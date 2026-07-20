@@ -4,7 +4,6 @@ import { db } from "@/backend/db";
 import { fal } from "@fal-ai/client";
 import { Queue, QueueEvents, type JobsOptions } from "bullmq";
 import Together from "together-ai";
-import { UTApi, UTFile } from "uploadthing/server";
 import { getRedisConnection } from "./redis";
 
 export const IMAGE_GENERATION_QUEUE_NAME = "image-generation";
@@ -42,27 +41,21 @@ const DEFAULT_JOB_OPTIONS: JobsOptions = {
   removeOnFail: { age: 86400 },
 };
 
-const utapi = new UTApi();
-
-async function uploadGeneratedImage(
-  sourceUrl: string,
-  filenamePrefix: string,
-): Promise<string> {
-  const imageResponse = await fetch(sourceUrl);
-  if (!imageResponse.ok) {
-    throw new Error(`Failed to download generated image from ${sourceUrl}`);
-  }
-
-  const imageBuffer = await imageResponse.arrayBuffer();
-  const filename = `${filenamePrefix}_${Date.now()}.png`;
-  const utFile = new UTFile([new Uint8Array(imageBuffer)], filename);
-
-  const uploadResult = await utapi.uploadFiles([utFile]);
-  const permanentUrl = uploadResult[0]?.data?.ufsUrl;
-  if (!permanentUrl) {
-    throw new Error("Failed to upload generated image to UploadThing");
-  }
-  return permanentUrl;
+/**
+ * AI-generated images are referenced by their provider URL rather than copied
+ * into this app's storage.
+ *
+ * They used to be re-uploaded to a third-party host to get a "permanent" URL.
+ * That dependency is gone, and re-hosting them in our own Postgres storage
+ * would consume the free database tier quickly for images that can be
+ * regenerated on demand.
+ *
+ * The trade-off: Pollinations URLs are deterministic GETs and stay resolvable,
+ * but provider-hosted results (FAL, Together) can expire — a deck kept for a
+ * long time may end up with dead image links and need regenerating.
+ */
+function toGeneratedImageUrl(sourceUrl: string): string {
+  return sourceUrl;
 }
 
 async function generateWithTogether(
@@ -89,7 +82,7 @@ async function generateWithTogether(
 
   const imageUrl = response.data[0]?.url;
   if (!imageUrl) throw new Error("Together AI did not return an image");
-  return uploadGeneratedImage(imageUrl, prompt.substring(0, 20).replace(/[^a-z0-9]/gi, "_"));
+  return toGeneratedImageUrl(imageUrl);
 }
 
 // Pollinations.ai's image API is a plain GET that renders and streams the
@@ -112,7 +105,7 @@ async function generateWithPollinations(
   prompt: string,
   model?: string,
 ): Promise<string> {
-  return uploadGeneratedImage(buildPollinationsUrl(prompt, model), "slide");
+  return toGeneratedImageUrl(buildPollinationsUrl(prompt, model));
 }
 
 // Shared entry point for callers that just want a permanent image URL
@@ -145,7 +138,7 @@ async function generateWithFal(prompt: string, model: string): Promise<string> {
 
   const imageUrl = result.data?.images?.[0]?.url;
   if (!imageUrl) throw new Error("fal.ai did not return an image");
-  return uploadGeneratedImage(imageUrl, "slide");
+  return toGeneratedImageUrl(imageUrl);
 }
 
 // The unit of work run by the worker (see worker.ts) — or inline, in-process,

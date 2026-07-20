@@ -1,6 +1,5 @@
 "use server";
 
-import { utapi } from "@/app/api/uploadthing/core";
 import { auth } from "@/backend/auth";
 import { db } from "@/backend/db";
 import { getOrCreatePersonalTenant } from "@/backend/tenant";
@@ -145,7 +144,10 @@ export async function deleteFontPair(fontPairId: string) {
       };
     }
 
-    // Delete files from UploadThing if they exist
+    // Font files are stored by this app (see /api/files/upload), and their
+    // URLs end in the row id — so the trailing path segment is the id to
+    // delete. Ids that don't match anything (e.g. left over from the previous
+    // third-party host) simply delete nothing.
     const filesToDelete: string[] = [];
 
     if (existingFontPair.headingUrl) {
@@ -160,9 +162,11 @@ export async function deleteFontPair(fontPairId: string) {
 
     if (filesToDelete.length > 0) {
       try {
-        await utapi.deleteFiles(filesToDelete);
+        await db.uploadedFile.deleteMany({
+          where: { id: { in: filesToDelete }, userId: session.user.id },
+        });
       } catch (error) {
-        console.error("Failed to delete font files from UploadThing:", error);
+        console.error("Failed to delete stored font files:", error);
         // Continue with database deletion even if file deletion fails
       }
     }

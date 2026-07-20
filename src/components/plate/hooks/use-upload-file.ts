@@ -1,99 +1,59 @@
-// @ts-nocheck
 import * as React from "react";
 import { toast } from "sonner";
-import {
-  type ClientUploadedFileData,
-  type UploadFilesOptions,
-} from "uploadthing/types";
 import * as z from "zod";
 
-import { type OurFileRouter } from "@/app/api/uploadthing/core";
-import { uploadFiles } from "@/hooks/globals/useUploadthing";
+import {
+  type UploadedFileResult,
+  type UploadProgressEvent,
+  uploadFile as uploadToServer,
+} from "@/lib/upload/client";
 
-export type UploadedFile<T = unknown> = ClientUploadedFileData<T>;
+export type UploadedFile = UploadedFileResult;
 
-interface UseUploadFileProps extends Partial<
-  Pick<
-    UploadFilesOptions<OurFileRouter["editorUploader"]>,
-    "headers" | "input" | "onUploadBegin" | "onUploadProgress" | "skipPolling"
-  >
-> {
+interface UseUploadFileProps {
   onUploadComplete?: (file: UploadedFile) => void;
   onUploadError?: (error: unknown) => void;
+  onUploadBegin?: (fileName: string) => void;
+  onUploadProgress?: (event: UploadProgressEvent) => void;
 }
 
 export function useUploadFile({
   onUploadComplete,
   onUploadError,
-  ...props
+  onUploadBegin,
+  onUploadProgress,
 }: UseUploadFileProps = {}) {
   const [uploadedFile, setUploadedFile] = React.useState<UploadedFile>();
   const [uploadingFile, setUploadingFile] = React.useState<File>();
   const [progress, setProgress] = React.useState<number>(0);
   const [isUploading, setIsUploading] = React.useState(false);
 
-  async function uploadThing(file: File) {
+  async function uploadFile(file: File) {
     setIsUploading(true);
     setUploadingFile(file);
+    onUploadBegin?.(file.name);
 
     try {
-      const res = await uploadFiles("editorUploader", {
-        ...props,
-        files: [file],
+      const result = await uploadToServer(file, {
         onUploadProgress: (event) => {
-          const { progress } = event;
-          setProgress(Math.min(progress, 100));
-          props.onUploadProgress?.(event);
+          setProgress(Math.min(event.progress, 100));
+          onUploadProgress?.(event);
         },
       });
 
-      const nextUploadedFile = res[0];
-      setUploadedFile(nextUploadedFile);
+      setUploadedFile(result);
+      onUploadComplete?.(result);
 
-      onUploadComplete?.(nextUploadedFile ?? ({} as UploadedFile));
-
-      return nextUploadedFile;
+      return result;
     } catch (error) {
-      const errorMessage = getErrorMessage(error);
+      // Previously this fell back to a mock upload backed by
+      // URL.createObjectURL, which looked like success but produced a URL that
+      // only existed in the current tab — the image silently disappeared on
+      // reload. Surfacing the real failure is the honest behaviour.
+      toast.error(getErrorMessage(error));
+      onUploadError?.(error);
 
-      const message =
-        errorMessage.length > 0
-          ? errorMessage
-          : "Something went wrong, please try again later.";
-
-      toast.error(message);
-
-      // Note: We don't call onUploadError here because we'll fall back to mock upload
-      // The toast already notifies the user of the original error
-
-      // Mock upload for unauthenticated users
-      // toast.info('User not logged in. Mocking upload process.');
-      const mockUploadedFile = {
-        key: "mock-key-0",
-        appUrl: `https://mock-app-url.com/${file.name}`,
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        ufsUrl: URL.createObjectURL(file),
-        url: URL.createObjectURL(file),
-      } as UploadedFile;
-
-      // Simulate upload progress
-      let progress = 0;
-
-      const simulateProgress = async () => {
-        while (progress < 100) {
-          await new Promise((resolve) => setTimeout(resolve, 50));
-          progress += 2;
-          setProgress(Math.min(progress, 100));
-        }
-      };
-
-      await simulateProgress();
-
-      setUploadedFile(mockUploadedFile);
-
-      return mockUploadedFile;
+      return undefined;
     } finally {
       setProgress(0);
       setIsUploading(false);
@@ -105,7 +65,7 @@ export function useUploadFile({
     isUploading,
     progress,
     uploadedFile,
-    uploadFile: uploadThing,
+    uploadFile,
     uploadingFile,
   };
 }

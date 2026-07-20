@@ -63,6 +63,7 @@ model User {
   documents                  BaseDocument[]
   favorites                  FavoriteDocument[]
   generatedImages            GeneratedImage[]
+  uploadedFiles              UploadedFile[]
   presentationThemes         PresentationTheme[]
   favoritePresentationThemes FavoritePresentationTheme[]
   presentationThemeLikes     PresentationThemeLike[]
@@ -262,6 +263,28 @@ model GeneratedImage {
   userId    String
   prompt    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// User-uploaded file bytes (slide images, custom fonts, source documents),
+// served back by GET /api/files/[id].
+//
+// Bytes live in Postgres rather than on disk because the app's deployment
+// target (Vercel) has an ephemeral, read-only filesystem — files written to a
+// folder would survive locally and then silently vanish on every redeploy.
+// Object storage would be the conventional choice at scale; this keeps the
+// project on free infrastructure with no third-party account. Images are
+// shrunk client-side before they get here, so rows stay small.
+model UploadedFile {
+  id        String   @id @default(cuid())
+  data      Bytes
+  mimeType  String
+  size      Int
+  name      String?
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // Audit reports produced by the slide verification pipeline

@@ -110,7 +110,6 @@ services:
       REDIS_URL: redis://redis:6379
       TOGETHER_AI_API_KEY: ${TOGETHER_AI_API_KEY:-}
       FAL_API_KEY: ${FAL_API_KEY:-}
-      UPLOADTHING_TOKEN: ${UPLOADTHING_TOKEN:-}
     depends_on:
       migrate:
         condition: service_completed_successfully

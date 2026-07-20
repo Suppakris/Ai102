@@ -44,7 +44,7 @@ export async function generateImageAction(
       userId: session.user.id,
     });
 
-    console.log(`Uploaded to UploadThing URL: ${generatedImage.url}`);
+    console.log(`Generated image URL: ${generatedImage.url}`);
 
     return {
       success: true,
