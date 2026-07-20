@@ -130,6 +130,31 @@ export default function RootImage({
     slideId,
     layoutType: resolvedLayoutType,
   });
+  // Whether the browser has actually finished fetching computedImageUrl.
+  //
+  // For the free Pollinations provider the server action returns a URL
+  // immediately without rendering anything — the image is produced when the
+  // browser requests that URL, which can take tens of seconds. Generation
+  // therefore reports "success" while the slide still shows an empty frame,
+  // so the real <img> load is tracked here to keep a spinner up until pixels
+  // actually arrive.
+  const [loadedImageUrl, setLoadedImageUrl] = useState<string | null>(null);
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+  // Bumped by the retry action. A failed image stays failed in the browser
+  // cache, so re-requesting the identical URL would not refetch anything.
+  const [retryNonce, setRetryNonce] = useState(0);
+  const displayedImageUrl = useMemo(() => {
+    if (!computedImageUrl || retryNonce === 0) return computedImageUrl;
+    const separator = computedImageUrl.includes("?") ? "&" : "?";
+    return `${computedImageUrl}${separator}_retry=${retryNonce}`;
+  }, [computedImageUrl, retryNonce]);
+  const isImageDownloading =
+    !!computedImageUrl &&
+    !image.embedType &&
+    !image.chartType &&
+    loadedImageUrl !== computedImageUrl &&
+    failedImageUrl !== computedImageUrl;
+
   const isRootImageGenerating =
     image.isQueryStreaming ||
     computedGen?.status === "queued" ||
@@ -791,20 +816,59 @@ export default function RootImage({
                       >
                         {/** biome-ignore lint/performance/noImgElement: This is a valid use case */}
                         <img
-                          src={computedImageUrl}
+                          src={displayedImageUrl}
                           alt={image.query}
                           className="" // Removed h-full w-full to avoid conflicts with inline styles
                           style={{
                             ...imageStyles,
                           }} // All sizing and crop styles handled here
+                          onLoad={() => {
+                            setLoadedImageUrl(computedImageUrl ?? null);
+                            setFailedImageUrl(null);
+                          }}
                           onError={(e) => {
                             console.error(
                               "Image failed to load:",
                               e,
                               computedImageUrl,
                             );
+                            setFailedImageUrl(computedImageUrl ?? null);
                           }}
                         />
+                        {isImageDownloading && (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-muted/60 p-4 text-center backdrop-blur-sm">
+                            <Spinner className="size-8" />
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-foreground">
+                                Rendering image
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                The free image service draws this on request,
+                                so it can take a moment.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        {failedImageUrl === computedImageUrl && (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/60 p-4 text-center">
+                            <ImageOff className="size-7 text-muted-foreground" />
+                            <p className="text-sm font-medium text-foreground">
+                              Image failed to load
+                            </p>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="h-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setFailedImageUrl(null);
+                                setRetryNonce((nonce) => nonce + 1);
+                              }}
+                            >
+                              Retry
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </PopoverTrigger>
 
