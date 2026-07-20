@@ -25,8 +25,11 @@ export type TextModelOption = {
 // An OPENROUTER_API_KEY is still required for every model below, but the
 // `free: true` ones cost nothing to run — so the default is a free one. A
 // deployment with no budget can enable OpenRouter without incurring charges.
+// Nemotron is the default because it is the one free model actually verified
+// against the review pipeline (valid structured output on every run). The
+// other free ids are offered but untested — see README "OpenRouter free tier".
 export const DEFAULT_OPENROUTER_MODEL: OpenRouterModelId =
-  "google/gemma-4-31b-it:free";
+  "nvidia/nemotron-3-super-120b-a12b:free";
 
 // Free models first (largest context first), then paid cheapest to priciest.
 export const OPENROUTER_TEXT_MODELS: TextModelOption[] = [
