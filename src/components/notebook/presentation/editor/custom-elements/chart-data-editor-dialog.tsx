@@ -25,12 +25,13 @@ import {
 import { importChartDataFromFile } from "./chart-data-editor/import-data";
 import { ChartRenderer } from "./charts/ChartRenderer";
 
-// Credenza portals its DOM to document.body, but React's synthetic keydown
-// event still bubbles through the React tree, which nests this dialog under
-// the Plate editor when opened from a chart's floating toolbar. Without this,
-// keystrokes typed into the grid get swallowed by the editor's own keydown
-// handling before they reach the input. Same fix as InfographicDataEditorDialog.
-const stopEditorKeyPropagation = (event: SyntheticEvent) => {
+// Credenza portals its DOM to document.body, but React's synthetic events
+// still bubble through the React tree, which nests this dialog under the
+// Plate editor when opened from a chart's floating toolbar. Without this,
+// clicks never focus the grid's inputs (swallowed as selection/pointer
+// events by the editor) and keystrokes get swallowed the same way even if
+// focus does land. Same fix as InfographicDataEditorDialog.
+const stopEditorEventPropagation = (event: SyntheticEvent) => {
   event.stopPropagation();
 };
 
@@ -145,8 +146,11 @@ export function ChartDataEditorDialog({
       <CredenzaContent
         overlayClassName={PRESENTATION_PORTAL_OVERLAY_CLASS}
         shouldHaveClose={false}
-        onKeyDown={stopEditorKeyPropagation}
-        className={`${PRESENTATION_PORTAL_CONTENT_CLASS} ignore-click-outside/toolbar flex h-[92dvh] max-h-[92dvh] w-screen max-w-none flex-col overflow-hidden rounded-t-xl p-0 sm:rounded-xl md:h-[calc(100dvh-3rem)] md:max-h-[calc(100dvh-3rem)] md:rounded-xl`}
+        onPointerDown={stopEditorEventPropagation}
+        onMouseDown={stopEditorEventPropagation}
+        onClick={stopEditorEventPropagation}
+        onKeyDown={stopEditorEventPropagation}
+        className={`${PRESENTATION_PORTAL_CONTENT_CLASS} ignore-click-outside/toolbar pointer-events-auto flex h-[92dvh] max-h-[92dvh] w-screen max-w-none flex-col overflow-hidden rounded-t-xl p-0 sm:rounded-xl md:h-[calc(100dvh-3rem)] md:max-h-[calc(100dvh-3rem)] md:rounded-xl`}
       >
         <CredenzaHeader className="shrink-0 border-b px-4 py-3 sm:px-5 sm:py-4">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
