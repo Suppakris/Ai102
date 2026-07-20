@@ -59,15 +59,20 @@ export function ChartDataEditorDialog({
   const [importVersion, setImportVersion] = useState(0);
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const wasOpenRef = useRef(false);
 
-  // Sync with external data when dialog opens
+  // Sync with external data only on the closed -> open transition. Re-running
+  // this on every `data` reference change (which happens periodically from
+  // background re-renders while the dialog stays open) was wiping out
+  // in-progress edits and remounting the grid mid-keystroke.
   useEffect(() => {
-    if (open) {
+    if (open && !wasOpenRef.current) {
       setLocalData(data);
       setLocalSeriesChartTypes(initialSeriesChartTypes ?? {});
       setImportError(null);
       setImportVersion((version) => version + 1);
     }
+    wasOpenRef.current = open;
   }, [open, data, initialSeriesChartTypes]);
 
   const handleSave = () => {
