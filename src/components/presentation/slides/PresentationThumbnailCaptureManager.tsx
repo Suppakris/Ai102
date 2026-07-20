@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { updatePresentationThumbnailUrl } from "@/app/_actions/presentation/presentation-thumbnail-actions";
 import StaticPresentationEditor from "@/components/notebook/presentation/editor/presentation-editor-static";
 import { slideSignature } from "@/components/notebook/presentation/editor/utils/slideSignature";
-import { uploadFiles } from "@/hooks/globals/useUploadthing";
+import { uploadFiles } from "@/hooks/globals/useUpload";
 import { getPresentationImageGenerationKey } from "@/lib/presentation/image-generation";
 import { usePresentationState } from "@/states/presentation-state";
 

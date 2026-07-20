@@ -35,6 +35,7 @@ This fork disables everything that requires a paid account or a login system, so
   - **Only test social sign-in against the real deployed domain, never a Vercel PR preview link.** OAuth Apps support exactly one callback URL (set to the production domain), so a sign-in started from a preview URL will always fail with `InvalidCheck`/`error=Configuration` — the PKCE cookie gets set on the preview's hostname but the provider redirects the callback to production. This is expected, not a bug.
 - **Text generation defaults to Ollama, with OpenRouter as an optional paid upgrade** (`src/lib/model-picker.ts`). Every request resolves to a model served from `OLLAMA_BASE_URL`'s native API (not the OpenAI-compat endpoint — that silently drops Ollama-specific options like `num_ctx`) unless `OPENROUTER_API_KEY` is set, in which case an "OpenRouter (paid)" group appears in the model picker with 6 preset cloud models (`src/constants/text-models.ts`) that any signed-in user can select — whoever owns the key gets billed per token, same pattern as the FAL image upgrade below. Legacy provider values (`openai`, `lmstudio`) from old persisted client state are caught and silently redirected to the default Ollama model instead of erroring.
 - **Image generation is free by default.** [Pollinations.ai](https://pollinations.ai) (no API key) is the default provider everywhere images are generated (`src/backend/queue/image-generation.ts`). FAL (Flux models) is still wired in as an optional, admin-gated paid upgrade if `FAL_API_KEY` is set; Together AI's code path exists but isn't used by any active feature.
+- **File uploads are self-hosted.** Images, fonts, and document attachments are stored by the app itself (`POST /api/files/upload`, served back from `GET /api/files/[id]`) instead of a third-party file host that needed its own account and token. Bytes live in Postgres — see the `UploadedFile` model for why the filesystem isn't used. Uploaded images are resized and re-encoded to WebP in the browser before upload, so typical slide images land around 200KB.
 - **Backend logic lives under `src/backend/`.** Db, auth, tenant, rate-limiting, the image queue, and the LangGraph presentation agent are consolidated there — see [ARCHITECTURE.md](ARCHITECTURE.md) for the full frontend/backend split.
 
 ## 🌟 Features
@@ -160,12 +161,25 @@ Copy `.env.example` to `.env` and fill in what you need. `.env.example` is the s
 | `OLLAMA_MAX_OUTPUT_TOKENS` | Optional | Max output tokens per generation request. Unset by default. Same trade-off as `OLLAMA_NUM_CTX`. |
 | `OPENROUTER_API_KEY` | Optional | Cloud text-generation alternative ([OpenRouter](https://openrouter.ai)), not admin-gated — any signed-in user can pick a preset cloud model once this key is set. The list has **4 free-tier models and 6 paid ones**, so this key can be created and used without spending anything (see below). Text generation works with no key at all via the free Ollama default. |
 | `TOGETHER_AI_API_KEY` | Optional | Legacy code path, not used by any active feature. |
-| `UPLOADTHING_TOKEN` | Optional | Image storage for AI-generated images. |
 | `UNSPLASH_ACCESS_KEY` | Optional | Stock photo search. |
 | `GOOGLE_CUSTOM_SEARCH_API_KEY` + `SEARCH_ENGINE_CX` | Optional | Google Custom Search image lookup. |
 | `TAVILY_API_KEY` | Optional | Web search tool for the outline generator and the in-editor chat agent. |
 
 All optional integrations degrade gracefully when unset — features that need them just no-op with an error message instead of crashing.
+
+### File uploads
+
+Uploads go to this app's own storage, not a third-party host:
+
+- `POST /api/files/upload` — session-authenticated, rate limited (30 per 5 min), MIME-allowlisted, 4MB maximum
+- `GET /api/files/[id]` — serves the bytes; unauthenticated by design, because these URLs are embedded in slides, exports, thumbnails and `@font-face` rules. Ids are cuids, so the security model is "unguessable URL" — don't put genuinely private files here.
+
+**Size limit, and why it can't simply be raised:** Vercel caps serverless request bodies at ~4.5MB. Self-hosted uploads pass through the app's own function, so that platform limit is the app's limit too. The previous third-party uploader avoided it by sending bytes directly to the vendor. Practical consequences:
+
+- Images are resized to 1600px and re-encoded as WebP in the browser first, so real photos comfortably fit. SVG and GIF are passed through untouched (rasterising them would lose vector data or animation).
+- **Video upload is not supported** and returns a clear error rather than failing confusingly.
+
+Storing bytes in Postgres is not what a large product would do — object storage is the conventional answer. It's chosen here because it needs no third-party account and no budget. The practical ceiling is the database's free-tier size, so keep an eye on it if uploads become heavy.
 
 ### OpenRouter free tier
 

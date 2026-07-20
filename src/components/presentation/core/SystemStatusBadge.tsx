@@ -122,10 +122,6 @@ export function SystemStatusBadge() {
             online={integrations?.togetherAiImages ?? null}
           />
           <StatusRow
-            label="UploadThing (storage)"
-            online={integrations?.uploadthing ?? null}
-          />
-          <StatusRow
             label="Tavily (web search)"
             online={integrations?.tavilySearch ?? null}
           />

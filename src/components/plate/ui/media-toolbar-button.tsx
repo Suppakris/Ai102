@@ -74,18 +74,19 @@ const MEDIA_CONFIG: Record<
   },
 };
 
-const UPLOADTHING_HOSTS = ["utfs.io", "ufs.sh"] as const;
-
-function isUploadThingHostname(hostname: string): boolean {
-  return UPLOADTHING_HOSTS.some(
-    (host) => hostname === host || hostname.endsWith(`.${host}`),
-  );
+/**
+ * Files this app stores are served as /api/files/<id>, so the last path
+ * segment is an opaque id rather than a display name — there's no filename to
+ * recover from the URL.
+ */
+function isStoredFileUrl(pathname: string): boolean {
+  return pathname.startsWith("/api/files/");
 }
 
 function resolveFileNameFromUrl(url: string): string | undefined {
   try {
-    const parsedUrl = new URL(url);
-    if (isUploadThingHostname(parsedUrl.hostname)) {
+    const parsedUrl = new URL(url, window.location.origin);
+    if (isStoredFileUrl(parsedUrl.pathname)) {
       return undefined;
     }
 

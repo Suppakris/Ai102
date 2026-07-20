@@ -58,7 +58,6 @@ function checkIntegrationConfig() {
     falImages: Boolean(env.FAL_API_KEY),
     openrouterText: Boolean(env.OPENROUTER_API_KEY),
     togetherAiImages: Boolean(env.TOGETHER_AI_API_KEY),
-    uploadthing: Boolean(env.UPLOADTHING_TOKEN),
     tavilySearch: Boolean(env.TAVILY_API_KEY),
     unsplashImages: Boolean(env.UNSPLASH_ACCESS_KEY),
     googleImageSearch: Boolean(

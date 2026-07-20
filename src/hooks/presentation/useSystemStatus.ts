@@ -15,7 +15,6 @@ interface IntegrationConfigStatus {
   falImages: boolean;
   openrouterText: boolean;
   togetherAiImages: boolean;
-  uploadthing: boolean;
   tavilySearch: boolean;
   unsplashImages: boolean;
   googleImageSearch: boolean;
