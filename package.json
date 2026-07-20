@@ -21,6 +21,7 @@
     "queue:worker": "tsx src/backend/queue/worker.ts",
     "review:test": "tsx scripts/test-review-slides.ts",
     "review:bash": "tsx scripts/bug-bash-review.ts",
+    "parser:test": "tsx scripts/test-streaming-parser.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

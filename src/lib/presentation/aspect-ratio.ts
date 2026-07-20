@@ -100,9 +100,23 @@ export function applyGenerationAspectRatioToSlides(
 ): PlateSlide[] {
   const aspectRatio = getSlideAspectRatioForGenerationAspectRatio(value);
 
-  return slides.map((slide) => ({
-    ...slide,
-    formatCategory: "presentation",
-    aspectRatio,
-  }));
+  // Slides that already carry the target ratio are returned by reference
+  // rather than cloned. This runs on every frame of a streaming generation,
+  // where cloning every slide invalidated the memoized slide components and
+  // re-rendered the whole deck even though only the last slide had changed.
+  return slides.map((slide) => {
+    if (
+      slide.formatCategory === "presentation" &&
+      slide.aspectRatio?.type === aspectRatio.type &&
+      slide.aspectRatio?.value === aspectRatio.value
+    ) {
+      return slide;
+    }
+
+    return {
+      ...slide,
+      formatCategory: "presentation",
+      aspectRatio,
+    };
+  });
 }

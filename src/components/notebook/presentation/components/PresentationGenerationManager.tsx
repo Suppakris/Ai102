@@ -78,6 +78,9 @@ interface PresentationOutlineMessageMetadata {
 
 const generationLogger = createLogger("client:presentation-generation");
 
+// Minimum gap between autosaves while slides are still streaming in.
+const STREAMING_SAVE_INTERVAL_MS = 5000;
+
 function stripXmlCodeBlock(input: string): string {
   let result = input.trim();
   if (result.startsWith("```xml")) {
@@ -87,6 +90,35 @@ function stripXmlCodeBlock(input: string): string {
     result = result.slice(0, -3).trimEnd();
   }
   return result;
+}
+
+// Renders the slide currently being streamed, which has no closing
+// </SECTION> yet and so is not a completed section the main parser will
+// emit. A throwaway parser over just the pending tail keeps the live preview
+// cheap: its cost is one slide's text, not the whole deck's.
+//
+// The caller supplies a positional id so the preview keeps a stable React
+// identity across frames; it is replaced by the real parsed slide (with the
+// real id) as soon as the section closes.
+function parsePreviewSlide(
+  pendingBuffer: string,
+  previewId: string,
+): PlateSlide | null {
+  if (!pendingBuffer.includes("<SECTION")) {
+    return null;
+  }
+
+  try {
+    const previewParser = new SlideParser();
+    previewParser.parseChunk(stripXmlCodeBlock(pendingBuffer));
+    previewParser.finalize();
+    const [slide] = previewParser.getAllSlides();
+    return slide ? { ...slide, id: previewId } : null;
+  } catch {
+    // A half-written slide is routinely unparseable; skipping the preview
+    // for this frame is correct, and the next frame retries.
+    return null;
+  }
 }
 
 function hasGeneratedOutline(outline: string[]): boolean {
@@ -199,21 +231,94 @@ export function PresentationGenerationManager() {
   // Set by the presentation-generation onError handler so the batch loop
   // stops requesting further batches after one fails.
   const batchGenerationErroredRef = useRef<boolean>(false);
+  // How much of the current completion stream has been handed to the parser,
+  // so each frame only appends what is new.
+  const streamedLengthRef = useRef<number>(0);
+  // Timestamp of the last autosave requested during streaming (see
+  // saveDuringGeneration).
+  const lastStreamingSaveRef = useRef<number>(0);
+  // Caches the image-merged copy of a slide, keyed by slide id + image url and
+  // validated against the source slide's identity, so repeat frames reuse it.
+  const mergedImageSlideCacheRef = useRef<
+    Map<string, { source: PlateSlide; merged: PlateSlide }>
+  >(new Map());
+
+  // Parser state and the stream offset feeding it must always be cleared
+  // together — a stale offset would skip or re-feed text on the next stream.
+  const resetStreamingParser = (): void => {
+    streamingParserRef.current.reset();
+    streamedLengthRef.current = 0;
+    mergedImageSlideCacheRef.current.clear();
+  };
+
+  // Autosave while slides stream in.
+  //
+  // The underlying save is debounced at 1s with maxWait 2s, so calling it
+  // every frame posted the entire deck every two seconds for the whole
+  // generation — and each call synchronously writes "saving" to global state,
+  // re-rendering every subscriber (the header status) on every frame. Slides
+  // are still fully persisted by the explicit save() once generation
+  // finishes; this is only a crash-safety checkpoint, so a slower cadence
+  // costs nothing.
+  const saveDuringGeneration = (): void => {
+    const now = Date.now();
+    if (now - lastStreamingSaveRef.current < STREAMING_SAVE_INTERVAL_MS) {
+      return;
+    }
+    lastStreamingSaveRef.current = now;
+    save();
+  };
 
   // Function to update slides using requestAnimationFrame
   const updateSlidesWithRAF = (): void => {
-    const processedPresentationCompletion = stripXmlCodeBlock(
-      presentationCompletion,
+    // Feed the parser only what arrived since the last frame.
+    //
+    // This used to reset the parser and re-parse the entire accumulated
+    // stream every frame, which made each frame's cost grow with the deck
+    // (quadratic over a generation) AND rebuilt every slide object, so every
+    // SlideItem re-rendered on every frame even though only the last slide
+    // was changing. Appending deltas keeps finished slides referentially
+    // stable, so their memoized components stand still while streaming.
+    //
+    // The raw completion is fed rather than the code-block-stripped version:
+    // a trailing "```" is only stripped once the stream ends, so the stripped
+    // length is not monotonic and cannot be used to slice deltas. Fences are
+    // harmless here — section scanning locates "<SECTION" by index, and a
+    // trailing fence sits after the last "</SECTION>" in the pending buffer.
+    if (presentationCompletion.length < streamedLengthRef.current) {
+      // The stream restarted (new batch/retry) — drop stale parser state.
+      resetStreamingParser();
+    }
+
+    streamingParserRef.current.appendChunk(
+      presentationCompletion.slice(streamedLengthRef.current),
     );
-    streamingParserRef.current.reset();
-    streamingParserRef.current.parseChunk(processedPresentationCompletion);
-    streamingParserRef.current.finalize();
-    const allSlides = streamingParserRef.current.getAllSlides();
-    // Merge any completed root image URLs from state into streamed slides
+    streamedLengthRef.current = presentationCompletion.length;
+
+    const completedSlides = streamingParserRef.current.getAllSlides();
+    // The slide still being written is not a completed section yet, so parse
+    // just the pending tail to keep the live "typing" preview. This is bounded
+    // by one slide's worth of text instead of the whole document.
+    const previewSlide = parsePreviewSlide(
+      streamingParserRef.current.getPendingBuffer(),
+      `streaming-preview-${completedSlides.length}`,
+    );
+    const allSlides = previewSlide
+      ? [...completedSlides, previewSlide]
+      : completedSlides;
+    // Merge any completed root image URLs from state into streamed slides.
+    // The merged result is cached per slide+url so a slide whose image has
+    // already landed is not rebuilt (and re-rendered) on every later frame.
     const mergedSlides = allSlides.map((slide) => {
       const gen = rootImageGeneration[slide.id];
       if (gen?.status === "success" && slide.rootImage?.query) {
-        return {
+        const cacheKey = `${slide.id}:${gen.url}`;
+        const cached = mergedImageSlideCacheRef.current.get(cacheKey);
+        if (cached?.source === slide) {
+          return cached.merged;
+        }
+
+        const merged = {
           ...slide,
           rootImage: {
             ...slide.rootImage,
@@ -223,6 +328,11 @@ export function PresentationGenerationManager() {
               | "generate",
           },
         };
+        mergedImageSlideCacheRef.current.set(cacheKey, {
+          source: slide,
+          merged,
+        });
+        return merged;
       }
       return slide;
     });
@@ -243,8 +353,8 @@ export function PresentationGenerationManager() {
         generationAspectRatio,
       ),
     );
-    // Debounced save during generation to avoid excessive writes
-    save();
+    // Throttled checkpoint save during generation to avoid excessive writes
+    saveDuringGeneration();
     slidesRafIdRef.current = null;
   };
 
@@ -648,7 +758,7 @@ export function PresentationGenerationManager() {
         toast.error("Failed to generate presentation: " + error.message);
         batchGenerationErroredRef.current = true;
         resetGeneration();
-        streamingParserRef.current.reset();
+        resetStreamingParser();
 
         // Cancel any pending animation frame
         if (slidesRafIdRef.current !== null) {
@@ -703,7 +813,7 @@ export function PresentationGenerationManager() {
         });
         toast.error("Failed to generate image slides: " + error.message);
         resetGeneration();
-        streamingParserRef.current.reset();
+        resetStreamingParser();
 
         // Cancel any pending animation frame
         if (slidesRafIdRef.current !== null) {
@@ -734,7 +844,7 @@ export function PresentationGenerationManager() {
     if (imageSlidesCompletion) {
       try {
         const processedCompletion = stripXmlCodeBlock(imageSlidesCompletion);
-        streamingParserRef.current.reset();
+        resetStreamingParser();
         streamingParserRef.current.parseChunk(processedCompletion);
         streamingParserRef.current.finalize();
         const allSlides = streamingParserRef.current.getAllSlides();
@@ -834,7 +944,7 @@ export function PresentationGenerationManager() {
       // setSlides call, a stale slide from before generation started could
       // otherwise remain visible/persisted underneath the new ones.
       setSlides([]);
-      streamingParserRef.current.reset();
+      resetStreamingParser();
       setIsGeneratingPresentation(true);
       setThumbnailUrl(undefined);
       generationLogger.info("Presentation generation started", {
@@ -854,7 +964,7 @@ export function PresentationGenerationManager() {
             return;
           }
 
-          streamingParserRef.current.reset();
+          resetStreamingParser();
           generationLogger.info("Presentation generation batch started", {
             presentationId: currentPresentationId,
             batchStartIndex: batch.startIndex,
@@ -961,7 +1071,7 @@ export function PresentationGenerationManager() {
       }
 
       // Reset the parser before starting a new generation
-      streamingParserRef.current.reset();
+      resetStreamingParser();
       setIsGeneratingPresentation(true);
       setThumbnailUrl(undefined);
       generationLogger.info("Image slide generation started", {

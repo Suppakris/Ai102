@@ -580,6 +580,40 @@ export class SlideParser {
   }
 
   /**
+   * Append newly streamed text and parse only what it completes.
+   *
+   * `parseChunk` expects to be handed the whole accumulated stream every
+   * time and diffs it against `lastInputLength` — but `extractCompleteSections`
+   * trims consumed sections off `buffer`, so that comparison starts failing
+   * once the first slide completes and the whole document gets re-parsed
+   * (duplicating slides). Streaming callers should feed deltas through here
+   * instead: already-parsed slides keep their object identity, which is what
+   * lets memoized slide components skip re-rendering on every frame.
+   */
+  public appendChunk(chunk: string): PlateSlide[] {
+    if (!chunk) return [];
+
+    this.buffer += chunk;
+    this.latestContent = this.buffer;
+    // `lastInputLength` belongs to the parseChunk diffing path; keeping it at
+    // zero makes a later parseChunk call treat its input as a fresh buffer
+    // rather than mis-diffing against text this method already consumed.
+    this.lastInputLength = 0;
+
+    this.extractCompleteSections();
+    return this.processSections();
+  }
+
+  /**
+   * Text received but not yet consumed into a completed slide — i.e. the
+   * slide currently being written. Used to render a live preview of it
+   * without re-parsing the slides already finished.
+   */
+  public getPendingBuffer(): string {
+    return this.buffer;
+  }
+
+  /**
    * Finalize parsing with any remaining content
    */
   public finalize(): PlateSlide[] {
