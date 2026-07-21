@@ -6,7 +6,7 @@ A local-first AI presentation generator — a customized, Ollama-only build deri
 
 - [Architecture](ARCHITECTURE.md) — folder layout, frontend/backend split, request flow
 - [Contributing Guidelines](CONTRIBUTING.md)
-- 📕 [Project Manual (English)](<Ai102-Project-Manual-EN .pdf>) · [คู่มือภาษาไทย](<Ai102-Project-Manual-TH .pdf>) — full PDF manual (V2.0): setup, Docker, migrations, review/auto-fix usage
+- 📕 [Project Manual (English)](<Ai102-Project-Manual-EN .pdf>) · [คู่มือภาษาไทย](<Ai102-Project-Manual-TH .pdf>) — full PDF manual (V2.2): setup, Docker, migrations, review/auto-fix usage
 
 ## 📋 Table of Contents
 
@@ -59,6 +59,7 @@ This fork disables everything that requires a paid account or a login system, so
 - **Auto-fix**: when a deck fails review, one click has the AI rewrite the flagged slides (unsupported claims removed or softened, never given invented backing), re-review the result, and apply it to the editor — with a one-click Undo and full history (Ctrl+Z) support. All-or-nothing apply: if the rewrite can't be parsed back into slides, the deck is left untouched
 - Backend: `reviewSlides()` / `reviewAndRevise()` in `src/backend/ai/reviewSlides.ts` (the latter runs at most ONE corrective rewrite pass and re-reviews it), served by `POST /api/presentation/review-deck` (session auth + rate limit). JSON output is schema-enforced — no fence-stripping or parse-and-hope
 - Test harnesses: `pnpm review:test` (5 sample decks + revision loop) and `pnpm review:bash` (8 adversarial decks incl. the production XML slide format); both need a reachable Ollama (`OLLAMA_BASE_URL`) or `OPENROUTER_API_KEY` with the `--openrouter` flag
+- If Ollama is unreachable (tunnel down, machine off), Review automatically retries against the OpenRouter free tier when `OPENROUTER_API_KEY` is set, and flags the result in the dialog as having run on a backup model. This fallback is Review-specific — deck **generation** doesn't auto-switch; pick OpenRouter from the model picker by hand if Ollama is down.
 - v1 scope: reviews are shown in the dialog but not persisted — stored review history is a planned post-MVP addition
 
 ### Design & Customization
@@ -185,7 +186,7 @@ Storing bytes in Postgres is not what a large product would do — object storag
 
 `OPENROUTER_API_KEY` does **not** require a credit card. OpenRouter publishes free-tier models (ids ending in `:free`) that cost nothing per token, and four of them are preset in `src/constants/text-models.ts`. Creating a key without adding billing means the paid models in the picker simply fail rather than charging anyone — useful when the project has no budget.
 
-This exists mainly as a **fallback**: the app's default text provider is a self-hosted Ollama server, and when that machine is off or its tunnel URL has rotated, generation and review stop working entirely. A free OpenRouter model keeps them running.
+This exists mainly as a **fallback** for when the app's default text provider — a self-hosted Ollama server — is off or its tunnel URL has rotated. AI Deck Review detects an unreachable Ollama automatically and retries on the OpenRouter free tier by itself. Deck **generation** doesn't do this automatically — if Ollama is down, a user has to manually pick an OpenRouter model from the picker to keep generating.
 
 Measured behaviour of the default free model (`nvidia/nemotron-3-super-120b-a12b:free`) against `pnpm review:test`:
 

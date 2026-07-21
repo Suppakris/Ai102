@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>คู่มือโปรเจกต์ Ai102 (TH)</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Leelawadee UI", "Segoe UI", Tahoma, sans-serif; color: #1a2333; font-size: 10.5pt; line-height: 1.7; margin: 0; }
+  h1 { font-size: 30pt; margin: 0 0 4px; letter-spacing: -0.5px; }
+  h2 { font-size: 15pt; border-bottom: 2px solid #2563eb; padding-bottom: 5px; margin: 0 0 12px; page-break-after: avoid; }
+  h3 { font-size: 11.5pt; color: #1d4ed8; margin: 14px 0 6px; page-break-after: avoid; }
+  p { margin: 6px 0; }
+  ul, ol { margin: 6px 0; padding-left: 22px; }
+  li { margin: 3px 0; }
+  code { font-family: Consolas, monospace; font-size: 9pt; background: #eef2f9; border: 1px solid #dbe3f0; border-radius: 3px; padding: 0 3px; color: #b3366b; }
+  pre { font-family: Consolas, monospace; font-size: 9pt; background: #101725; color: #e6edf7; padding: 10px 12px; border-radius: 6px; overflow: hidden; white-space: pre-wrap; }
+  pre code { background: none; border: none; color: inherit; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 9.5pt; }
+  th { background: #2563eb; color: #fff; text-align: left; padding: 6px 8px; }
+  td { border-bottom: 1px solid #e3e9f2; padding: 6px 8px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f6f8fc; }
+  .section { page-break-before: always; }
+  .cover { padding-top: 55mm; }
+  .badge { display: inline-block; color: #2563eb; font-weight: 600; letter-spacing: 2.5px; font-size: 9pt; text-transform: uppercase; }
+  .subtitle { font-size: 12.5pt; color: #46536b; margin: 10px 0 26px; }
+  .kv td:first-child { color: #64748b; width: 130px; }
+  .kv td { border: none; background: none !important; padding: 4px 8px 4px 0; }
+  .note { background: #eef6ff; border-left: 3px solid #2563eb; padding: 8px 12px; margin: 8px 0; }
+  .warn { background: #fff5f2; border-left: 3px solid #e05744; padding: 8px 12px; margin: 8px 0; }
+  .toc li { margin: 4.5px 0; }
+  .rule { height: 3px; background: linear-gradient(90deg, #2563eb, #06b6d4); border: none; margin: 14px 0 24px; width: 100%; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <span class="badge">คู่มือโปรเจกต์ · V2.2 · 21 ก.ค. 2026</span>
+  <h1>Ai102</h1>
+  <hr class="rule">
+  <p class="subtitle">โปรแกรมสร้างงานนำเสนอด้วย AI แบบ local-first ที่ทั้งร่างเนื้อหา ออกแบบ <b>ตรวจรีวิว และแก้ไขสไลด์อัตโนมัติ</b> — รันได้ฟรีด้วยโมเดลโอเพนซอร์ส พร้อมระบบล็อกอิน OAuth จริง</p>
+  <table class="kv">
+    <tr><td>Repository</td><td>github.com/Suppakris/Ai102</td></tr>
+    <tr><td>เว็บไซต์ที่ deploy</td><td>ai102-psi.vercel.app</td></tr>
+    <tr><td>พัฒนาต่อจาก</td><td>presentation-ai ของ ALLWEONE (fork ปรับแต่งสำหรับงานเรียน)</td></tr>
+    <tr><td>License</td><td>MIT</td></tr>
+    <tr><td>Framework</td><td>Next.js 16 · React 19 · TypeScript</td></tr>
+    <tr><td>แทนที่</td><td>คู่มือ V1.0 (16 ก.ค. 2026) — สิ่งที่เปลี่ยนไปทั้งหมดอยู่ในหัวข้อ 2</td></tr>
+  </table>
+</div>
+
+<div class="section">
+<h2>สารบัญ</h2>
+<ol class="toc">
+  <li>ภาพรวมโปรเจกต์</li>
+  <li>สิ่งที่เปลี่ยนไปจากคู่มือ V1.0</li>
+  <li>ความแตกต่างจากโปรเจกต์ต้นทาง (Upstream)</li>
+  <li>ฟีเจอร์</li>
+  <li>เทคโนโลยีที่ใช้ (Tech Stack)</li>
+  <li>เริ่มต้นใช้งาน</li>
+  <li>ตัวแปรสภาพแวดล้อม (Environment Variables)</li>
+  <li>การตั้งค่าฐานข้อมูล (SQL Migrations)</li>
+  <li>การรันบน Docker</li>
+  <li>การทำงานเป็นทีม</li>
+  <li>วิธีใช้งาน</li>
+  <li>โครงสร้างโปรเจกต์</li>
+  <li>ปัญหาที่ทราบแล้ว</li>
+  <li>การมีส่วนร่วมพัฒนา</li>
+  <li>License</li>
+</ol>
+</div>
+
+<div class="section">
+<h2>1. ภาพรวมโปรเจกต์</h2>
+<p><b>Ai102</b> คือโปรแกรมสร้างงานนำเสนอด้วย AI แบบ local-first ปรับแต่งจากโปรเจกต์โอเพนซอร์ส presentation-ai ของ ALLWEONE โดยค่าเริ่มต้นการสร้างข้อความทำงานบนโมเดล <b>Ollama</b> ในเครื่อง (หรือผ่าน tunnel) — ไม่ต้องจ่ายค่า LLM คลาวด์ — และมี OpenRouter เป็นตัวเลือกอัปเกรดแบบเสียเงิน (แอดมินเป็นผู้ออกค่าใช้จ่าย)</p>
+<p>แอปรับหัวข้อ (หรือไฟล์เอกสารต้นทาง: PDF, Word, Excel, CSV, ไฟล์ข้อความ) แล้วสร้างโครงร่างที่แก้ไขได้ จากนั้นสร้างสไลด์เต็มชุดพร้อมรูปภาพ AI ฟรี ธีมที่ปรับแต่งได้ ข้อความ rich text กราฟ และส่งออกเป็น PowerPoint</p>
+<p>ฟีเจอร์เด่นที่ต่อยอดจากการสร้างสไลด์คือ <b>AI Deck Review</b>: โมเดลผู้ตรวจจะให้คะแนนความชัดเจน การออกแบบ และความถูกต้องของเนื้อหา ตรวจสอบข้อกล่าวอ้าง (claim) ทุกข้อ และกดปุ่มเดียวเพื่อ<b>แก้ไขอัตโนมัติ (Auto-fix)</b> โดยเขียนสไลด์ที่มีปัญหาใหม่ (พร้อมปุ่ม Undo)</p>
+<p>การล็อกอินเป็น OAuth จริง (GitHub จำเป็น; Google และ Discord เป็นตัวเลือกเสริม) ฟีเจอร์หลักทั้งหมดใช้ฟรีสำหรับผู้ใช้ที่ล็อกอินทุกคน</p>
+</div>
+
+<div class="section">
+<h2>2. สิ่งที่เปลี่ยนไปจากคู่มือ V1.0</h2>
+<p>คู่มือ V1.0 (เขียนเมื่อ 16 ก.ค. 2026) บันทึกสถานะโค้ดรุ่นก่อนหน้า ซึ่งตอนนี้เปลี่ยนไปมากแล้ว ถ้าเคยอ่าน V1.0 ให้ยกเลิกความเข้าใจเหล่านี้:</p>
+<table>
+  <tr><th>คู่มือ V1.0 บอกว่า</th><th>ปัจจุบัน (V2.0)</th></tr>
+  <tr><td>ระบบล็อกอินถูกปิด ทุกคนเป็น demo admin</td><td><b>OAuth จริง</b>ผ่าน Auth.js/NextAuth v5: GitHub จำเป็น, Google/Discord เสริม ผู้ใช้ใหม่เริ่มที่ <code>role: USER</code> การให้สิทธิ์แอดมินทำผ่านฐานข้อมูล (หัวข้อ 7)</td></tr>
+  <tr><td>เส้นทาง OpenRouter ใน Docker เป็นโค้ดที่ตายแล้ว</td><td><b>ใช้งานได้จริงแล้ว</b> ตั้ง <code>OPENROUTER_API_KEY</code> จะมีกลุ่มโมเดลคลาวด์ 6 ตัวปรากฏใน model picker ให้ผู้ใช้ทุกคน</td></tr>
+  <tr><td>การสร้างรูปใช้ FAL (เสียเงิน) เป็นหลัก</td><td><b>ฟรีเป็นค่าเริ่มต้น</b>ผ่าน Pollinations.ai (ไม่ต้องมี API key) ส่วน FAL เป็นตัวเลือกเสริมที่จำกัดเฉพาะแอดมิน</td></tr>
+  <tr><td>Slide audit agent ยังไม่ถูกสร้าง (ไม่มี API route)</td><td><b>เปิดตัวแล้วในชื่อ AI Deck Review</b>: <code>POST /api/presentation/review-deck</code>, ปุ่ม Review ในตัวแก้ไข, Auto-fix พร้อม Undo, ให้ feedback สองภาษา (EN/TH), พร้อมชุดทดสอบ <code>pnpm review:test</code> และ <code>pnpm review:bash</code></td></tr>
+  <tr><td>แนบไฟล์ต้นทางได้เฉพาะ PDF</td><td>รองรับ PDF, <b>Word (.docx), Excel (.xlsx/.xls), CSV และไฟล์ข้อความ/Markdown</b> — แปลงในเบราว์เซอร์ทั้งหมด ไฟล์ไม่ถูกอัปโหลดขึ้นเซิร์ฟเวอร์</td></tr>
+  <tr><td>ไม่มีหน้าแรก เข้าแอปแล้วเด้งเข้า /presentation ทันที</td><td>มี<b>หน้า Landing</b> สำหรับผู้ที่ยังไม่ล็อกอิน พร้อมปุ่มสลับโหมดสว่าง/มืด เมนูนำทาง (แฮมเบอร์เกอร์) ที่มีปุ่มออกจากระบบ และเอกลักษณ์สีน้ำเงิน/ฟ้าใหม่ทั้งแอป</td></tr>
+  <tr><td>Migration มีแค่ <code>0_init</code></td><td>มี 3 migrations โดย <code>20260718150000_add_tenancy_and_agent_threads</code> ปิดช่องโหว่ที่ตาราง multi-tenancy อยู่ใน schema แต่ไม่อยู่ใน migrations (ทำให้ Docker DB ใหม่ขาดตาราง)</td></tr>
+</table>
+<h3>ตั้งแต่ V2.1 (21 ก.ค. 2026)</h3>
+<p>วันแก้บั๊กแบบสด ๆ วันเดียวปิดปัญหาที่ระบุไว้ในหัวข้อ "ปัญหาที่ทราบแล้ว" ของ V2.1 ไปเกือบหมด สรุปที่สำคัญ:</p>
+<ul>
+  <li>อัปโหลดรูปภาพของตัวเองลงสไลด์ได้แล้วแบบครบวงจร (ระบบจัดเก็บไฟล์ของแอปเอง ต่อเข้ากับแผงแก้ไขพื้นหลัง/รูปภาพแล้ว) — ไม่ใช่ข้อจำกัดอีกต่อไป</li>
+  <li>แก้ต้นตอของการสร้างสไลด์หลายแผ่นที่ไม่เสถียร: การแบ่งชุดสร้างสไลด์ (batch) ที่ไม่รู้บริบทร่วมกัน (ทำให้โครงร่าง 12 สไลด์กลับมาเหลือ ~6 สไลด์เพราะถูกกรองซ้ำ) และการหยุดเงียบ ๆ หลัง batch หนึ่งล้มเหลว ตอนนี้ลองใหม่อัตโนมัติหนึ่งครั้งและแจ้งข้อผิดพลาดจริงแทนการเงียบหายไป</li>
+  <li>โหมดนำเสนอ: แก้ปัญหาการออกจากโหมดแล้วล้าง/สร้างเด็คใหม่ทับของเดิม รูปภาพไม่เต็ม/ไม่อยู่กึ่งกลางจอ อาการภาพกระตุกและหน้าเด้ง และอาการค้างเมื่อเปลี่ยนธีมขณะนำเสนอ</li>
+  <li>แก้ปัญหาล็อกอินด้วย Google ไม่สำเร็จสำหรับบัญชีที่เคยสมัครผ่าน GitHub ไว้แล้ว (ก่อนหน้านี้ระบบปฏิเสธการเชื่อมบัญชี)</li>
+  <li>AI Deck Review ตอนนี้สลับไปใช้โมเดล OpenRouter ฟรีอัตโนมัติเมื่อ Ollama tunnel ที่แชร์กันเข้าไม่ถึง และมีข้อความแจ้งใน UI ว่ารีวิวนั้นรันบนโมเดลสำรอง</li>
+  <li>ความเสถียรของตัวแก้ไข: แก้ปัญหาตัวแก้ไขค้าง เคอร์เซอร์เลื่อนเองโดยไม่ได้สั่ง และ Slate ค้าง/พังตอน undo/redo บนเด็คขนาดใหญ่</li>
+  <li>ปรับ UI ให้เรียบง่ายขึ้น: แถบปุ่มแทรกด้านขวากลับมาเป็น 4 ปุ่มที่เห็นตลอดเวลา (ข้อความ/องค์ประกอบ/กราฟ/สื่อฝัง) และเอาไดอะล็อกแก้ข้อมูลอินโฟกราฟิกที่ซ้ำซ้อนออก เหลือแค่ทางเลือก "เปลี่ยนเทมเพลต" ที่มีอยู่แล้ว</li>
+</ul>
+</div>
+
+<div class="section">
+<h2>3. ความแตกต่างจากโปรเจกต์ต้นทาง (Upstream)</h2>
+<ul>
+  <li><b>ระบบล็อกอินเป็น OAuth จริง</b> (<code>src/backend/auth.ts</code>) GitHub จำเป็น; Google และ Discord เป็นตัวเลือก — ปุ่มล็อกอินของแต่ละ provider จะแสดงเมื่อตั้งค่า credentials แล้วเท่านั้น ทั้งหมดฟรี ผู้ใช้ใหม่เริ่มที่ <code>role: USER</code>
+    <div class="warn"><b>ทดสอบล็อกอินบนโดเมนจริงที่ deploy เท่านั้น ห้ามใช้ลิงก์ Vercel PR preview</b> — OAuth app มี callback URL ได้เพียงหนึ่งเดียว (production) การล็อกอินจาก preview URL จะล้มเหลวด้วย <code>error=Configuration</code> เสมอ นี่คือพฤติกรรมปกติ ไม่ใช่บั๊ก</div></li>
+  <li><b>การสร้างข้อความใช้ Ollama เป็นค่าเริ่มต้น และมี OpenRouter เป็นตัวเลือกเสียเงิน</b> (<code>src/lib/model-picker.ts</code>) — ตั้ง <code>OPENROUTER_API_KEY</code> เพื่อปลดล็อกโมเดลคลาวด์ 6 ตัว (เจ้าของ key จ่ายตามโทเคน)</li>
+  <li><b>การสร้างรูปฟรีเป็นค่าเริ่มต้น</b> — Pollinations.ai (ไม่ต้องมี key) ทุกจุดที่สร้างรูป; FAL (Flux) เป็นตัวเลือกเสียเงินเฉพาะแอดมิน</li>
+  <li><b>โค้ดฝั่ง backend อยู่ใน <code>src/backend/</code></b> — db, auth, tenant, rate limiting, คิวรูปภาพ และ LangGraph agent (ดู ARCHITECTURE.md)</li>
+</ul>
+</div>
+
+<div class="section">
+<h2>4. ฟีเจอร์</h2>
+<h3>ฟีเจอร์หลัก</h3>
+<ul>
+  <li>สร้างโครงร่างด้วย AI แล้วสร้างสไลด์เต็มชุด บนโมเดล Ollama ในเครื่อง</li>
+  <li>ใช้เอกสารของคุณเป็นข้อมูลต้นทาง: ลากไฟล์ <b>PDF, Word (.docx), Excel (.xlsx/.xls), CSV หรือไฟล์ข้อความ/Markdown</b> ลงช่องพิมพ์ — แปลงในเบราว์เซอร์ทั้งหมด (ไฟล์ไม่ถูกอัปโหลด) และตัดให้พอดีกับ context ของโมเดล</li>
+  <li>แก้ไขโครงร่างก่อนสร้างจริง · สร้างแบบเรียลไทม์ · บันทึกอัตโนมัติ</li>
+  <li>แชท agent ในตัวแก้ไข (LangGraph + หน่วยความจำ Postgres): แก้เลย์เอาต์/พื้นหลัง เปลี่ยน/สร้างรูปใหม่ เพิ่ม/ลบสไลด์ เปลี่ยนธีม ค้นเว็บ (ต้องมี <code>TAVILY_API_KEY</code>)</li>
+</ul>
+<h3>AI Deck Review และ Auto-fix (ฟีเจอร์เด่น)</h3>
+<ul>
+  <li>ปุ่ม <b>Review</b> ในแถบด้านบนของตัวแก้ไข: ให้คะแนน 0–10 ด้านความชัดเจน การออกแบบ ความถูกต้องของเนื้อหา พร้อมผลตัดสิน ผ่าน / ต้องแก้ไข</li>
+  <li><b>Claim audit</b>: ข้อกล่าวอ้างเชิงข้อเท็จจริงทุกข้อถูกระบุเป็น Supported / Unsupported / Unverifiable — ระบบส่ง prompt และโครงร่างของงานนำเสนอไปเป็นข้อมูลอ้างอิง ทำให้ตรวจสอบ claim ที่มาจากโครงร่างได้จริง</li>
+  <li><b>Auto-fix</b>: เด็คที่ไม่ผ่านจะถูก AI แก้หนึ่งรอบ — claim ที่ไม่มีหลักฐานจะถูกลบหรือปรับให้อ่อนลง (ไม่มีการแต่งหลักฐานปลอมเด็ดขาด) แล้วตรวจซ้ำและนำผลไปใช้ในตัวแก้ไข พร้อมปุ่ม <b>Undo</b> หากแปลงผลลัพธ์กลับเป็นสไลด์ไม่ได้ เด็คเดิมจะไม่ถูกแตะต้องเลย</li>
+  <li>Feedback เป็นภาษาเดียวกับเด็ค (เด็คภาษาไทยได้ feedback ภาษาไทย) เด็คที่ข้อมูลน้อยเกินไปจะได้คำถามขอข้อมูลเพิ่มแทนคะแนนมั่ว ๆ</li>
+  <li>ฝั่ง backend: <code>reviewSlides()</code> / <code>reviewAndRevise()</code> ใน <code>src/backend/ai/reviewSlides.ts</code> ให้บริการผ่าน <code>POST /api/presentation/review-deck</code> (ตรวจ session + rate limit) ผลลัพธ์ JSON ถูกบังคับด้วย schema</li>
+  <li>ชุดทดสอบ: <code>pnpm review:test</code> และ <code>pnpm review:bash</code> (เด็คทดสอบเชิงรุก)</li>
+</ul>
+<h3>การออกแบบและปรับแต่ง</h3>
+<ul><li>ธีมในตัวหลายแบบ สร้างธีมเอง นำเข้าธีม PPTX; การเลือกธีมไม่ทำให้สีพื้นหลังของหน้าเปลี่ยนอีกต่อไป</li></ul>
+<h3>เครื่องมือนำเสนอ</h3>
+<ul><li>นำเสนอจากแอปโดยตรง · ลิงก์แชร์สาธารณะ · ส่งออก PPTX · กราฟ/อินโฟกราฟิก/สื่อฝัง · ตัวแก้ไข rich text (Plate) · คอมเมนต์ในสไลด์</li></ul>
+<h3>รูปภาพ</h3>
+<ul><li>Pollinations.ai (ฟรี ค่าเริ่มต้น) · FAL Flux (เสียเงิน ตัวเลือก) · ภาพสต็อก Unsplash/Pixabay/Giphy · Google Custom Search</li></ul>
+</div>
+
+<div class="section">
+<h2>5. เทคโนโลยีที่ใช้ (Tech Stack)</h2>
+<table>
+  <tr><th>หมวด</th><th>เทคโนโลยี</th></tr>
+  <tr><td>Framework</td><td>Next.js 16, React 19, TypeScript</td></tr>
+  <tr><td>Styling</td><td>Tailwind CSS v4 (โทนสีน้ำเงิน/ฟ้า รองรับโหมดสว่างและมืด)</td></tr>
+  <tr><td>ฐานข้อมูล</td><td>PostgreSQL (Supabase บน production, Docker Postgres ในเครื่อง) ผ่าน Prisma ORM + SQL migrations</td></tr>
+  <tr><td>ระบบล็อกอิน</td><td>Auth.js / NextAuth v5 — GitHub (จำเป็น), Google + Discord (ตัวเลือก)</td></tr>
+  <tr><td>สร้างข้อความ</td><td>Ollama (ค่าเริ่มต้น, native API) หรือ OpenRouter (ตัวเลือกเสียเงิน) ผ่าน LangChain + LangGraph</td></tr>
+  <tr><td>สร้างรูปภาพ</td><td>Pollinations.ai (ฟรี ค่าเริ่มต้น), FAL Flux (ตัวเลือกเสียเงิน)</td></tr>
+  <tr><td>คิวงาน</td><td>BullMQ + Redis (ตั้ง <code>REDIS_URL</code> เพื่อย้ายงานสร้างรูปออกจากเว็บโปรเซส)</td></tr>
+  <tr><td>UI / Editor</td><td>Radix UI · Plate Editor (platejs)</td></tr>
+  <tr><td>Lint/format</td><td>Biome (ตัวหลัก)</td></tr>
+</table>
+</div>
+
+<div class="section">
+<h2>6. เริ่มต้นใช้งาน</h2>
+<h3>สิ่งที่ต้องมี</h3>
+<ul>
+  <li>pnpm (ล็อกที่ <code>pnpm@11.1.3</code>)</li>
+  <li>ฐานข้อมูล PostgreSQL (Supabase, Neon หรือ Docker Postgres จากหัวข้อ 9)</li>
+  <li><b>Ollama</b> รันในเครื่องหรือเข้าถึงได้ผ่าน <code>OLLAMA_BASE_URL</code> พร้อมโมเดลอย่างน้อยหนึ่งตัว (เช่น <code>ollama pull qwen2.5:7b</code> — โมเดลอ้างอิงของฟีเจอร์รีวิว)</li>
+  <li>GitHub OAuth app credentials (ฟรี) สำหรับล็อกอิน</li>
+</ul>
+<h3>ติดตั้ง</h3>
+<pre><code>git clone https://github.com/Suppakris/Ai102.git
+cd Ai102
+pnpm install                  # postinstall รัน prisma generate ให้
+cp .env.example .env          # ใส่ DATABASE_URL + ตัวแปร auth (หัวข้อ 7)
+pnpm db:migrate:deploy        # ติดตั้ง SQL migrations (หัวข้อ 8)
+ollama pull qwen2.5:7b
+pnpm dev</code></pre>
+<p>แอปรันที่ <code>http://localhost:3000</code> ผู้ที่ยังไม่ล็อกอินจะเห็นหน้า Landing; ล็อกอินด้วย GitHub (หรือ Google/Discord ถ้าตั้งค่าไว้) เพื่อเข้าแดชบอร์ด <code>/presentation</code></p>
+</div>
+
+<div class="section">
+<h2>7. ตัวแปรสภาพแวดล้อม (Environment Variables)</h2>
+<p><code>.env.example</code> คือแหล่งอ้างอิงหลัก ตัวแปรสำคัญ:</p>
+<table>
+  <tr><th>ตัวแปร</th><th>จำเป็น?</th><th>หน้าที่</th></tr>
+  <tr><td><code>DATABASE_URL</code></td><td><b>จำเป็น</b></td><td>Connection string ของ Postgres สำหรับ Supabase ให้ใช้ <b>Transaction pooler</b> (พอร์ต 6543)</td></tr>
+  <tr><td><code>NEXTAUTH_SECRET</code> / <code>NEXTAUTH_URL</code></td><td><b>จำเป็น</b></td><td>เซ็นชื่อ session ของ Auth.js + URL หลักของแอป</td></tr>
+  <tr><td><code>GITHUB_CLIENT_ID</code> / <code>GITHUB_CLIENT_SECRET</code></td><td><b>จำเป็น</b></td><td>GitHub OAuth app (ฟรี) ขาดตัวแปร auth แล้วแอปจะไม่บูตบน production</td></tr>
+  <tr><td><code>GOOGLE_CLIENT_ID</code> / <code>GOOGLE_CLIENT_SECRET</code></td><td>ตัวเลือก</td><td>เพิ่มปุ่มล็อกอิน Google อย่าลืมเพิ่ม callback URL ในช่อง <b>Authorized redirect URIs</b> ของ Google Cloud Console</td></tr>
+  <tr><td><code>DISCORD_CLIENT_ID</code> / <code>DISCORD_CLIENT_SECRET</code></td><td>ตัวเลือก</td><td>เพิ่มปุ่มล็อกอิน Discord</td></tr>
+  <tr><td><code>OLLAMA_BASE_URL</code></td><td>ตัวเลือก</td><td>ชี้ไปยัง Ollama ระยะไกล/ผ่าน tunnel (เช่น ngrok) <b>ระวัง: URL ของ ngrok เปลี่ยนทุกครั้งที่รีสตาร์ต</b> — ต้องอัปเดตตัวแปรนี้ (แล้ว redeploy) เมื่อ tunnel รีสตาร์ต</td></tr>
+  <tr><td><code>OLLAMA_DEFAULT_MODEL</code></td><td>ตัวเลือก</td><td>โมเดลเริ่มต้น ควรตั้ง <code>qwen2.5:7b</code> บน production — โมเดลเล็กตัว fallback ให้ผลรีวิวที่ใช้ไม่ได้ ต้องตั้งในที่ที่แอปรันจริง (เช่น Vercel) ไม่ใช่แค่ในเครื่อง</td></tr>
+  <tr><td><code>OLLAMA_NUM_CTX</code></td><td>ตัวเลือก</td><td>ขนาด context (ค่าเริ่มต้น 8192) — ค่า 2048 ของ Ollama เองเล็กเกินไปจน prompt ถูกตัด</td></tr>
+  <tr><td><code>OPENROUTER_API_KEY</code></td><td>ตัวเลือก</td><td>ปลดล็อกโมเดลคลาวด์ 6 ตัวให้ผู้ใช้ทุกคน เจ้าของ key จ่ายตามโทเคน</td></tr>
+  <tr><td><code>FAL_API_KEY</code></td><td>ตัวเลือก</td><td>อัปเกรดรูปภาพแบบเสียเงิน (เฉพาะแอดมิน) ไม่มี key ก็สร้างรูปฟรีผ่าน Pollinations.ai ได้</td></tr>
+  <tr><td><code>REDIS_URL</code></td><td>ตัวเลือก</td><td>ย้ายงานสร้างรูปไปที่ BullMQ worker; ไม่ตั้งก็รันแบบ inline</td></tr>
+  <tr><td><code>TAVILY_API_KEY</code></td><td>ตัวเลือก</td><td>เครื่องมือค้นเว็บของตัวสร้างโครงร่างและแชท agent</td></tr>
+</table>
+<h3>การให้สิทธิ์แอดมิน</h3>
+<p>ผู้ใช้ใหม่เริ่มที่ <code>role: USER</code> การให้สิทธิ์แอดมิน (โมเดลรูป FAL แบบเสียเงิน, แก้ธีมระบบ):</p>
+<pre><code>pnpm db:studio    # เปิดตาราง User แล้วตั้ง role = ADMIN
+-- หรือใช้ SQL:
+UPDATE "User" SET role = 'ADMIN' WHERE email = 'their@email.com';</code></pre>
+</div>
+
+<div class="section">
+<h2>8. การตั้งค่าฐานข้อมูล (SQL Migrations)</h2>
+<p>Schema จัดการด้วย SQL migrations ที่ commit ไว้ใน <code>prisma/migrations/</code>:</p>
+<pre><code>pnpm db:migrate:deploy   # ติดตั้ง migrations ที่ค้างอยู่ทั้งหมด
+pnpm db:migrate:dev      # หลังแก้ schema.prisma: สร้าง + ติดตั้ง migration ใหม่
+pnpm db:studio           # เปิดดูฐานข้อมูล</code></pre>
+<p>Commit โฟลเดอร์ที่ถูกสร้างทุกครั้ง — ไฟล์ SQL นั้น<i>คือ</i>ตัวการเปลี่ยน schema ส่วน <code>pnpm db:push</code> มีไว้ทดลองเล่นเท่านั้น ห้ามใช้กับฐานข้อมูลที่ใช้ร่วมกัน</p>
+<p>Migrations ปัจจุบัน: <code>0_init</code> → <code>20260714110000_add_slide_audit</code> → <code>20260718150000_add_tenancy_and_agent_threads</code></p>
+<div class="warn"><b>ฐานข้อมูลเดิมที่สร้างด้วย <code>db push</code></b> (รวมถึง Supabase production) มีตารางครบอยู่แล้ว ให้ baseline หนึ่งครั้งแทนการติดตั้งซ้ำ — ไม่งั้น <code>migrate deploy</code> จะพยายามสร้างตารางที่มีอยู่แล้ว:
+<pre><code>pnpm exec prisma migrate resolve --applied 0_init
+pnpm exec prisma migrate resolve --applied 20260714110000_add_slide_audit
+pnpm exec prisma migrate resolve --applied 20260718150000_add_tenancy_and_agent_threads</code></pre>
+หลัง baseline แล้ว <code>pnpm db:migrate:deploy</code> จะรายงาน "No pending migrations" และ migration ใหม่ ๆ ในอนาคตจะติดตั้งได้ตามปกติ</div>
+<p>ไม่ต้อง seed — การล็อกอินสร้าง record ผู้ใช้ให้อัตโนมัติผ่าน Prisma adapter</p>
+</div>
+
+<div class="section">
+<h2>9. การรันบน Docker</h2>
+<p>ทั้งระบบ — front-end + back-end + Postgres + Redis + worker สร้างรูปภาพ — รันบน Docker โดยเครื่อง host ต้องมีแค่ Docker:</p>
+<pre><code>docker compose up --build</code></pre>
+<p>ลำดับการบูตจัดการให้อัตโนมัติ: Postgres พร้อม → คอนเทนเนอร์ <code>migrate</code> รัน <code>prisma migrate deploy</code> หนึ่งครั้ง → แอปเปิดที่ <code>http://localhost:3000</code> พร้อมคอนเทนเนอร์ worker (BullMQ) แยกต่างหากที่กินงานจากคิว Redis</p>
+<h3>การเข้าถึง LLM จากในคอนเทนเนอร์</h3>
+<ul>
+  <li><b>Ollama บนเครื่อง host</b> (ค่าเริ่มต้น): compose ชี้ <code>OLLAMA_BASE_URL</code> ไป <code>host.docker.internal:11434</code></li>
+  <li><b>OpenRouter</b>: ใส่ <code>OPENROUTER_API_KEY=sk-or-...</code> ในไฟล์ <code>.env</code> ข้าง <code>docker-compose.yml</code> (เส้นทางนี้ใช้งานได้จริงแล้ว — คำเตือน "โค้ดตาย" ของ V1.0 ไม่มีผลอีกต่อไป)</li>
+</ul>
+<h3>ระบบล็อกอินใน Docker</h3>
+<p>ตั้ง <code>GITHUB_CLIENT_ID</code>/<code>GITHUB_CLIENT_SECRET</code> จริง (และคู่ Google/Discord ถ้าต้องการ) ในไฟล์ <code>.env</code> เดียวกัน — ค่า placeholder ทำให้ระบบบูตและเปิดหน้าเว็บได้ แต่ล็อกอินไม่ได้</p>
+<p>ข้อมูล Postgres เก็บใน volume <code>db-data</code>; คำสั่ง <code>docker compose down -v</code> จะลบทิ้ง</p>
+</div>
+
+<div class="section">
+<h2>10. การทำงานเป็นทีม</h2>
+<table>
+  <tr><th></th><th>Track 1 — Prompt Testing</th><th>Track 2 — DevOps</th></tr>
+  <tr><td><b>ดูแล</b></td><td>Prompt templates, พฤติกรรม agent, การเลือกโมเดล/provider, คุณภาพผลลัพธ์</td><td>Docker, database migrations, ค่าคอนฟิก, การ deploy</td></tr>
+  <tr><td><b>ไฟล์</b></td><td><code>src/backend/agent/**</code>, <code>src/backend/ai/**</code>, <code>src/lib/presentation/*prompt*</code>, <code>src/lib/model-picker.ts</code>, <code>src/app/api/presentation/**</code></td><td><code>Dockerfile</code>, <code>docker-compose.yml</code>, <code>prisma/migrations/**</code>, <code>prisma/schema.prisma</code>, <code>.env.example</code>, การตั้งค่า Vercel</td></tr>
+  <tr><td><b>วิธีทดสอบ</b></td><td>วัดคุณภาพด้วยชุดทดสอบที่มีจริง: <code>pnpm review:test</code> และ <code>pnpm review:bash</code> (Ollama ฟรี หรือ <code>--openrouter</code> เพื่อผลที่ทำซ้ำได้)</td><td><code>docker compose up --build</code> ต้องบูตแอปที่ใช้งานได้จาก checkout ใหม่; การแก้ schema ต้องมาเป็น SQL migration ผ่าน <code>pnpm db:migrate:dev</code></td></tr>
+  <tr><td><b>ขอบเขต PR</b></td><td>เฉพาะ prompt/agent</td><td>เฉพาะ infra</td></tr>
+</table>
+<ol>
+  <li>การแก้ schema เป็นงานของ Track DevOps เสมอ แม้ PR ฝั่ง prompt จะต้องใช้ — ให้แยก PR</li>
+  <li>การแก้ prompt ตัดสินด้วยผลชุดทดสอบ ไม่ใช่การสุ่มดูผลครั้งเดียวที่บังเอิญสวย</li>
+  <li>ทั้งสอง track แตก branch จาก <code>main</code> และ merge ผ่าน PR</li>
+</ol>
+</div>
+
+<div class="section">
+<h2>11. วิธีใช้งาน</h2>
+<ol>
+  <li><b>ล็อกอิน</b>ที่เว็บไซต์ (หรือ <code>pnpm dev</code> ในเครื่อง) ด้วย GitHub, Google หรือ Discord</li>
+  <li><b>สร้างเด็ค</b>จากแดชบอร์ด: พิมพ์หัวข้อในช่อง prompt — หรือลากไฟล์ PDF/Word/Excel/CSV/ข้อความมาเป็นข้อมูลต้นทาง — เลือกจำนวนสไลด์ ภาษา และธีม แล้วสั่งสร้าง ตรวจ/แก้โครงร่างก่อนสร้างสไลด์จริง</li>
+  <li><b>แก้ไข</b>ในตัวแก้ไข: เปลี่ยนธีม (ปุ่ม ⌄ ข้างชื่อเรื่องเปิดเมนูของเอกสาร ส่วน ☰ เปิดเมนูนำทางแอป) แก้ข้อความตรง ๆ หรือสั่งแชท agent</li>
+  <li><b>รีวิว</b>: กดปุ่ม <b>Review</b> ที่แถบบน จะได้คะแนน feedback และ claim audit ถ้าเด็คไม่ผ่าน กด <b>Auto-fix deck</b> — AI จะเขียนสไลด์ที่มีปัญหาใหม่แล้วตรวจซ้ำ กด <b>Undo</b> ได้ถ้าไม่ชอบผลลัพธ์ หมายเหตุ: เด็คที่เนื้อหาแต่งขึ้นทั้งหมดอาจยังไม่ผ่านหลัง Auto-fix — AI ลบ claim ปลอมได้ แต่สร้างข้อมูลจริงแทนให้ไม่ได้</li>
+  <li><b>ส่งงาน</b>: ส่งออก <code>.pptx</code> นำเสนอจากเบราว์เซอร์ หรือแชร์ลิงก์สาธารณะ</li>
+</ol>
+<div class="note">ถ้าแถบบนแสดง <b>"Backend issue detected"</b> แปลว่าเข้าถึงเซิร์ฟเวอร์ Ollama ไม่ได้ — ส่วนใหญ่เกิดจาก ngrok tunnel รีสตาร์ตแล้ว URL เปลี่ยน ให้อัปเดต <code>OLLAMA_BASE_URL</code> เป็น URL ใหม่แล้ว redeploy</div>
+</div>
+
+<div class="section">
+<h2>12. โครงสร้างโปรเจกต์</h2>
+<p>ดูรายละเอียดเต็มใน ARCHITECTURE.md แผนที่ย่อของ <code>src/</code>:</p>
+<pre><code>src/
+├── app/                      เส้นทาง (routes) ของ Next.js App Router
+│   ├── page.tsx              หน้า landing (ยังไม่ล็อกอิน) / redirect เข้าแดชบอร์ด
+│   ├── presentation/         แดชบอร์ด, ขั้นตอนสร้าง, หน้าระหว่างสร้าง, ตัวแก้ไข ([id]/)
+│   ├── share/                หน้าดูอย่างเดียวสำหรับลิงก์แชร์
+│   ├── api/                  route handlers (รวมถึง presentation/review-deck)
+│   └── _actions/             Server Actions → ส่งต่อไป src/backend/**
+├── components/notebook/      UI โครงร่างสไลด์, ธีม, ปลั๊กอินตัวแก้ไข
+├── components/presentation/  โครงแอป: แถบบน (เมนู/อวาตาร์/ปุ่มสลับธีม),
+│                             ปุ่มรีวิว, แผงแก้ไข, โหมดนำเสนอ
+├── backend/                  db.ts · auth.ts (NextAuth v5) · tenant.ts · rate-limit.ts
+│   ├── ai/reviewSlides.ts    เอนจินรีวิว + auto-fix
+│   ├── queue/                คิวรูปภาพ BullMQ (Pollinations/FAL)
+│   └── agent/                LangGraph agent + เครื่องมือแก้สไลด์
+└── lib/                      model-picker.ts · presentation/ (ธีม, prompts,
+                              pdf-extract.ts, office-extract.ts) · observability/</code></pre>
+</div>
+
+<div class="section">
+<h2>13. ปัญหาที่ทราบแล้ว</h2>
+<ul>
+  <li><b>การสร้างสไลด์อาจมีข้อผิดพลาดเป็นครั้งคราว</b> — เนื้อหาเด็คถูกเขียนสดโดยโมเดล AI บางครั้งอาจยังได้เลย์เอาต์เพี้ยนหรือสไลด์ไม่ครบ ข้อมูลไม่หาย: สั่งสร้างสไลด์ (หรือทั้งเด็ค) ใหม่แก้ได้เสมอ ต้นตอที่เคยระบุได้ — batch ที่ไม่รู้บริบทร่วมกันจนทำให้สไลด์หายหรือซ้ำ และการหยุดเงียบ ๆ หลัง batch ล้มเหลว — แก้ไปแล้วเมื่อ 21 ก.ค. 2026 สิ่งที่เหลืออยู่คือความไม่แน่นอนปกติของ AI ไม่ใช่บั๊กที่ทราบสาเหตุ</li>
+  <li><b>ระบบค้นหาเอกสาร/RAG มีโครงแต่ยังไม่ได้สร้าง</b> — ยังไม่มี vector search ต่อกับ agent ("คุยกับเอกสารที่อัปโหลด" ยังใช้ไม่ได้ ส่วนการแนบเอกสารเป็นข้อมูลต้นทางตอนสร้างเด็คใช้ได้จริง — คนละเส้นทางกัน)</li>
+  <li><b>ผู้ใช้ใหม่เริ่มที่ <code>role: USER</code></b> — โมเดลรูป FAL เสียเงินและการแก้ธีมระบบถูกซ่อนจนกว่าจะได้สิทธิ์แอดมิน (หัวข้อ 7) ฟีเจอร์หลักใช้ได้ครบที่ role USER</li>
+  <li><b>ประวัติการรีวิวยังไม่ถูกบันทึก</b> — ผลรีวิวแสดงใน dialog เท่านั้น ระบบเก็บประวัติเป็นฟีเจอร์ถัดไปที่ตกลงกันแล้ว</li>
+  <li><b>Ollama เซิร์ฟเวอร์เดียวรับงานทีละคิว</b> — การสั่งสร้างพร้อมกันหลายคนจะต่อแถวกัน AI Deck Review ตอนนี้สลับไปใช้โมเดล OpenRouter ฟรีอัตโนมัติเมื่อ Ollama tunnel ที่แชร์กันเข้าไม่ถึง (UI จะแจ้งว่ารันบนโมเดลสำรอง) — ส่วนการ<i>สร้างสไลด์</i>เองยังต้องสลับ model picker ไปที่ OpenRouter ด้วยมือหาก Ollama ล่ม</li>
+  <li><b>ไม่รองรับ .doc รุ่นเก่า (Word 97–2003)</b> เป็นไฟล์ต้นทาง (รองรับ .docx เท่านั้น); PDF ที่สแกนมาต้องมีข้อความที่เลือกได้</li>
+  <li>มีทั้งคอนฟิก Biome และ Prettier; Biome เป็นตัวหลัก</li>
+</ul>
+</div>
+
+<div class="section">
+<h2>14. การมีส่วนร่วมพัฒนา</h2>
+<h3>ขั้นตอน</h3>
+<ol>
+  <li>Fork, clone, <code>pnpm install</code>, แตก branch (<code>feature/ชื่อฟีเจอร์</code>)</li>
+  <li>แก้โค้ด; รัน <code>pnpm type</code> และ <code>pnpm check</code> ก่อน push</li>
+  <li>เปิด PR พร้อมชื่อและคำอธิบายที่ชัดเจน; ตอบ feedback จากผู้รีวิว</li>
+</ol>
+<h3>คำนำหน้า commit</h3>
+<p><code>feat:</code> ฟีเจอร์ใหม่ · <code>fix:</code> แก้บั๊ก · <code>docs:</code> เอกสาร · <code>style:</code> จัดรูปแบบ · <code>refactor:</code> ปรับโครงสร้าง · <code>chore:</code> งานเครื่องมือ</p>
+</div>
+
+<div class="section">
+<h2>15. License</h2>
+<p>MIT License ลิขสิทธิ์ดั้งเดิมเป็นของทีม ALLWEONE; fork นี้เป็นงานดัดแปลง (derivative work) จัดทำเพื่อการศึกษา</p>
+</div>
+
+</body>
+</html>

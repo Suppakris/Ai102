@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ai102 Project Manual (EN)</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", -apple-system, sans-serif; color: #1a2333; font-size: 10.5pt; line-height: 1.55; margin: 0; }
+  h1 { font-size: 30pt; margin: 0 0 4px; letter-spacing: -0.5px; }
+  h2 { font-size: 15pt; border-bottom: 2px solid #2563eb; padding-bottom: 5px; margin: 0 0 12px; page-break-after: avoid; }
+  h3 { font-size: 11.5pt; color: #1d4ed8; margin: 14px 0 6px; page-break-after: avoid; }
+  p { margin: 6px 0; }
+  ul, ol { margin: 6px 0; padding-left: 22px; }
+  li { margin: 3px 0; }
+  code { font-family: Consolas, monospace; font-size: 9pt; background: #eef2f9; border: 1px solid #dbe3f0; border-radius: 3px; padding: 0 3px; color: #b3366b; }
+  pre { font-family: Consolas, monospace; font-size: 9pt; background: #101725; color: #e6edf7; padding: 10px 12px; border-radius: 6px; overflow: hidden; white-space: pre-wrap; }
+  pre code { background: none; border: none; color: inherit; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 9.5pt; }
+  th { background: #2563eb; color: #fff; text-align: left; padding: 6px 8px; }
+  td { border-bottom: 1px solid #e3e9f2; padding: 6px 8px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f6f8fc; }
+  .section { page-break-before: always; }
+  .cover { padding-top: 55mm; }
+  .badge { display: inline-block; color: #2563eb; font-weight: 600; letter-spacing: 2.5px; font-size: 9pt; text-transform: uppercase; }
+  .subtitle { font-size: 12.5pt; color: #46536b; margin: 10px 0 26px; }
+  .kv { font-size: 10pt; }
+  .kv td:first-child { color: #64748b; width: 130px; border: none; background: none; }
+  .kv td { border: none; background: none !important; padding: 4px 8px 4px 0; }
+  .note { background: #eef6ff; border-left: 3px solid #2563eb; padding: 8px 12px; margin: 8px 0; }
+  .warn { background: #fff5f2; border-left: 3px solid #e05744; padding: 8px 12px; margin: 8px 0; }
+  .new { color: #067a55; font-weight: 700; font-size: 8.5pt; letter-spacing: 1px; }
+  .toc li { margin: 4.5px 0; }
+  .rule { height: 3px; background: linear-gradient(90deg, #2563eb, #06b6d4); border: none; margin: 14px 0 24px; width: 100%; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <span class="badge">Project Manual · V2.2 · 2026-07-21</span>
+  <h1>Ai102</h1>
+  <hr class="rule">
+  <p class="subtitle">A local-first AI presentation generator that drafts, designs, <b>reviews, and auto-fixes</b> slide decks — free to run on open models, with real OAuth sign-in.</p>
+  <table class="kv">
+    <tr><td>Repository</td><td>github.com/Suppakris/Ai102</td></tr>
+    <tr><td>Live deployment</td><td>ai102-psi.vercel.app</td></tr>
+    <tr><td>Based on</td><td>ALLWEONE's presentation-ai (fork, customized for coursework)</td></tr>
+    <tr><td>License</td><td>MIT</td></tr>
+    <tr><td>Framework</td><td>Next.js 16 · React 19 · TypeScript</td></tr>
+    <tr><td>Replaces</td><td>Manual V1.0 (2026-07-16) — see Section 2 for everything that changed</td></tr>
+  </table>
+</div>
+
+<div class="section">
+<h2>Table of Contents</h2>
+<ol class="toc">
+  <li>Project Overview</li>
+  <li>What Changed Since Manual V1.0</li>
+  <li>What's Different From Upstream</li>
+  <li>Features</li>
+  <li>Tech Stack</li>
+  <li>Getting Started</li>
+  <li>Environment Variables</li>
+  <li>Database Setup (SQL Migrations)</li>
+  <li>Running on Docker</li>
+  <li>Team Workflow</li>
+  <li>Usage Guide</li>
+  <li>Project Structure</li>
+  <li>Known Issues</li>
+  <li>Contributing</li>
+  <li>License</li>
+</ol>
+</div>
+
+<div class="section">
+<h2>1. Project Overview</h2>
+<p><b>Ai102</b> is a local-first AI presentation generator, a customized build derived from ALLWEONE's open-source presentation-ai. Text generation runs on a local (or tunneled) <b>Ollama</b> model by default — no cloud LLM subscription required — with OpenRouter available as an optional, admin-funded upgrade.</p>
+<p>The app takes a topic (or a source document: PDF, Word, Excel, CSV, or plain text), generates an editable outline, then produces a full slide deck with free AI-generated images, editable themes, rich text, charts, and PowerPoint export.</p>
+<p>The headline feature on top of generation is the <b>AI Deck Review</b>: an auditor model scores every deck on clarity, design, and content accuracy, fact-checks its claims, and — with one click — <b>auto-fixes</b> failing decks by rewriting the flagged slides (with undo).</p>
+<p>Sign-in is real OAuth (GitHub required; Google and Discord optional). All core features are free for every signed-in user.</p>
+</div>
+
+<div class="section">
+<h2>2. What Changed Since Manual V1.0</h2>
+<p>V1.0 (written 2026-07-16) documented an earlier state of the code and flagged three "documentation vs. code" discrepancies. All three are now resolved, and several major features landed after it was written. If you read V1.0, discard these claims:</p>
+<table>
+  <tr><th>Manual V1.0 said</th><th>Now (V2.0)</th></tr>
+  <tr><td>Auth is disabled; a demo-user stub makes everyone admin</td><td><b>Real OAuth</b> via Auth.js/NextAuth v5: GitHub required, Google/Discord optional. New sign-ins default to <code>role: USER</code>; admin is granted via the DB (Section 7).</td></tr>
+  <tr><td>OpenRouter path in Docker is dead code</td><td><b>Wired and functional.</b> Set <code>OPENROUTER_API_KEY</code> and a paid model group (6 preset cloud models) appears in the model picker for all users.</td></tr>
+  <tr><td>Image generation defaults to FAL (paid)</td><td><b>Free by default</b> via Pollinations.ai (no API key). FAL remains an optional admin-gated upgrade.</td></tr>
+  <tr><td>The slide audit agent is unbuilt (no API route)</td><td><b>Shipped as AI Deck Review</b>: <code>POST /api/presentation/review-deck</code>, a Review button in the editor, one-pass Auto-fix with undo, bilingual (EN/TH) feedback, plus test harnesses <code>pnpm review:test</code> and <code>pnpm review:bash</code>.</td></tr>
+  <tr><td>Only PDF can be attached as source material</td><td>PDF, <b>Word (.docx), Excel (.xlsx/.xls), CSV, and text/Markdown</b> — all parsed in the browser, never uploaded.</td></tr>
+  <tr><td>No marketing page; app drops straight into /presentation</td><td>A <b>landing page</b> greets signed-out visitors; signed-in users go straight to the dashboard. The app also gained a light/dark toggle, a navigation menu with sign-out, and an electric-blue/cyan visual identity.</td></tr>
+  <tr><td>Migrations: only <code>0_init</code> existed</td><td>Three migrations. <code>20260718150000_add_tenancy_and_agent_threads</code> closes a gap where multi-tenancy tables existed in the schema but not in migrations (fresh Docker DBs were missing tables).</td></tr>
+</table>
+<h3>Since V2.1 (2026-07-21)</h3>
+<p>A day of live bug-fixing closed out most of what V2.1's Known Issues section flagged. Highlights:</p>
+<ul>
+  <li>Uploading your own images into slides now works end-to-end (self-hosted storage, wired into the background/image editing panels) — no longer a known limitation.</li>
+  <li>Fixed the root causes of unreliable multi-slide generation: batches losing shared context (so a 12-slide outline could come back as ~6, deduplicated) and silent stalls after an early batch failure now retry once and surface a real error instead of quietly giving up.</li>
+  <li>Present mode: fixed exiting wiping/regenerating the deck, images not filling/centering the screen, animation glitches and page bounce, and a freeze when changing the presentation theme.</li>
+  <li>Fixed a Google sign-in failure for accounts that had already signed up via GitHub (account linking was previously refused).</li>
+  <li>AI Deck Review now automatically falls back to a free OpenRouter model when the shared Ollama tunnel is unreachable, flagged in the UI so you know a review ran on a backup model.</li>
+  <li>Editor stability: fixed freezing, selections jumping on their own, and Slate crashes during undo/redo on larger decks.</li>
+  <li>UI simplification: the right-edge insertion rail is back to 4 always-visible buttons (Text/Elements/Charts/Media embed); the redundant infographic data-editor dialog was removed in favor of the existing "Change template" flow.</li>
+</ul>
+</div>
+
+<div class="section">
+<h2>3. What's Different From Upstream</h2>
+<ul>
+  <li><b>Auth is real OAuth</b> (<code>src/backend/auth.ts</code>, Auth.js/NextAuth v5 + Prisma). GitHub is required; Google and Discord are optional — each provider's sign-in button renders only when its credentials are configured. All three are free. New sign-ins default to <code>role: USER</code>.
+    <div class="warn"><b>Test social sign-in only on the real deployed domain, never a Vercel PR preview URL.</b> OAuth apps support exactly one callback URL (production), so preview-URL sign-ins always fail with <code>error=Configuration</code>. Expected, not a bug.</div></li>
+  <li><b>Text generation defaults to Ollama, with OpenRouter as an optional paid upgrade</b> (<code>src/lib/model-picker.ts</code>). Requests resolve to a model served from <code>OLLAMA_BASE_URL</code>'s native API unless <code>OPENROUTER_API_KEY</code> is set, which unlocks 6 preset cloud models for all users (the key's owner pays per token).</li>
+  <li><b>Image generation is free by default</b> — Pollinations.ai (no API key) everywhere images are generated; FAL (Flux) is an optional admin-gated paid upgrade.</li>
+  <li><b>Backend logic lives under <code>src/backend/</code></b> — db, auth, tenants, rate limiting, the image queue, and the LangGraph agent. See ARCHITECTURE.md.</li>
+</ul>
+</div>
+
+<div class="section">
+<h2>4. Features</h2>
+<h3>Core Functionality</h3>
+<ul>
+  <li>AI outline generation, then full slide generation, on a local Ollama model</li>
+  <li>Use your own documents as source material: drop a <b>PDF, Word (.docx), Excel (.xlsx/.xls), CSV, or text/Markdown</b> file into the prompt box — parsed entirely in the browser (never uploaded), trimmed to the model's context budget</li>
+  <li>Editable outlines · real-time generation · auto-save</li>
+  <li>In-editor chat agent (LangGraph + Postgres memory): edit layout/background, replace/regenerate images, create/delete slides, switch themes, web search (needs <code>TAVILY_API_KEY</code>)</li>
+</ul>
+<h3>AI Deck Review &amp; Auto-fix <span class="new">HEADLINE FEATURE</span></h3>
+<ul>
+  <li>One-click <b>Review</b> in the editor header: scores 0–10 on clarity, design, content accuracy, with a pass / needs-revision verdict</li>
+  <li><b>Claim audit</b>: every verifiable factual claim is marked Supported / Unsupported / Unverifiable — the presentation's own prompt and outline are passed as source context, so claims that trace back to them are genuinely verified</li>
+  <li><b>Auto-fix</b>: a failing deck gets one corrective AI pass — unsupported claims removed or softened (never given invented backing), the rewrite is re-reviewed and applied to the editor, with one-click Undo. All-or-nothing: a rewrite that can't be parsed back into slides leaves the deck untouched</li>
+  <li>Feedback in the deck's own language (Thai decks get Thai feedback); sparse decks get clarifying questions instead of blind scores</li>
+  <li>Backend: <code>reviewSlides()</code> / <code>reviewAndRevise()</code> in <code>src/backend/ai/reviewSlides.ts</code>, served by <code>POST /api/presentation/review-deck</code> (session auth + rate limit), schema-enforced JSON output</li>
+  <li>Test harnesses: <code>pnpm review:test</code> and <code>pnpm review:bash</code> (adversarial decks)</li>
+</ul>
+<h3>Design &amp; Customization</h3>
+<ul><li>Built-in themes, custom theme creation, PPTX theme import; picking a theme no longer recolors the page chrome</li></ul>
+<h3>Presentation Tools</h3>
+<ul><li>Present from the app · public share links · PPTX export · charts/infographics/embeds · Plate rich-text editor · inline comments</li></ul>
+<h3>Images</h3>
+<ul><li>Pollinations.ai (free, default) · FAL Flux (optional paid) · Unsplash/Pixabay/Giphy stock · Google Custom Search</li></ul>
+</div>
+
+<div class="section">
+<h2>5. Tech Stack</h2>
+<table>
+  <tr><th>Category</th><th>Technologies</th></tr>
+  <tr><td>Framework</td><td>Next.js 16, React 19, TypeScript</td></tr>
+  <tr><td>Styling</td><td>Tailwind CSS v4 (electric-blue/cyan token palette, light + dark)</td></tr>
+  <tr><td>Database</td><td>PostgreSQL (Supabase in prod, Docker Postgres locally) via Prisma ORM + committed SQL migrations</td></tr>
+  <tr><td>Auth</td><td>Auth.js / NextAuth v5 — GitHub (required), Google + Discord (optional)</td></tr>
+  <tr><td>Text generation</td><td>Ollama (default, native API) or OpenRouter (optional paid), via LangChain + LangGraph</td></tr>
+  <tr><td>Image generation</td><td>Pollinations.ai (free default), FAL Flux (optional paid)</td></tr>
+  <tr><td>Queue</td><td>BullMQ + Redis (image generation moves off the web process when <code>REDIS_URL</code> is set)</td></tr>
+  <tr><td>UI / Editor</td><td>Radix UI · Plate Editor (platejs)</td></tr>
+  <tr><td>Lint/format</td><td>Biome (canonical)</td></tr>
+</table>
+</div>
+
+<div class="section">
+<h2>6. Getting Started</h2>
+<h3>Prerequisites</h3>
+<ul>
+  <li>pnpm (pinned to <code>pnpm@11.1.3</code>)</li>
+  <li>A PostgreSQL database (Supabase, Neon, or the Docker Postgres from Section 9)</li>
+  <li><b>Ollama</b> running locally or reachable via <code>OLLAMA_BASE_URL</code>, with a model pulled (e.g. <code>ollama pull qwen2.5:7b</code> — the review feature's reference model)</li>
+  <li>GitHub OAuth app credentials (free) for sign-in</li>
+</ul>
+<h3>Installation</h3>
+<pre><code>git clone https://github.com/Suppakris/Ai102.git
+cd Ai102
+pnpm install                  # postinstall runs prisma generate
+cp .env.example .env          # fill in DATABASE_URL + auth vars (Section 7)
+pnpm db:migrate:deploy        # apply SQL migrations (Section 8)
+ollama pull qwen2.5:7b
+pnpm dev</code></pre>
+<p>The app runs at <code>http://localhost:3000</code>. Signed-out visitors see the landing page; sign in with GitHub (or Google/Discord if configured) to reach the <code>/presentation</code> dashboard.</p>
+</div>
+
+<div class="section">
+<h2>7. Environment Variables</h2>
+<p><code>.env.example</code> is the source of truth. The notable ones:</p>
+<table>
+  <tr><th>Variable</th><th>Required?</th><th>Purpose</th></tr>
+  <tr><td><code>DATABASE_URL</code></td><td><b>Required</b></td><td>Postgres connection string. For Supabase use the <b>Transaction pooler</b> (port 6543) — serverless functions exhaust Session/Direct pooler connections fast.</td></tr>
+  <tr><td><code>NEXTAUTH_SECRET</code> / <code>NEXTAUTH_URL</code></td><td><b>Required</b></td><td>Auth.js session signing + canonical URL.</td></tr>
+  <tr><td><code>GITHUB_CLIENT_ID</code> / <code>GITHUB_CLIENT_SECRET</code></td><td><b>Required</b></td><td>GitHub OAuth app (free). The app won't boot in production without auth vars.</td></tr>
+  <tr><td><code>GOOGLE_CLIENT_ID</code> / <code>GOOGLE_CLIENT_SECRET</code></td><td>Optional</td><td>Adds a Google sign-in button. Remember to add the callback URL under <b>Authorized redirect URIs</b> in Google Cloud Console.</td></tr>
+  <tr><td><code>DISCORD_CLIENT_ID</code> / <code>DISCORD_CLIENT_SECRET</code></td><td>Optional</td><td>Adds a Discord sign-in button.</td></tr>
+  <tr><td><code>OLLAMA_BASE_URL</code></td><td>Optional</td><td>Remote/tunneled Ollama (e.g. ngrok) instead of localhost. <b>Note: ngrok URLs rotate on restart</b> — update this var (and redeploy) when the tunnel restarts.</td></tr>
+  <tr><td><code>OLLAMA_DEFAULT_MODEL</code></td><td>Optional</td><td>Default model. Set <code>qwen2.5:7b</code> in production — the small fallback produces degenerate reviews. Must be set wherever the app runs (e.g. Vercel), not just locally.</td></tr>
+  <tr><td><code>OLLAMA_NUM_CTX</code></td><td>Optional</td><td>Context window (default 8192). Ollama's own 2048 default truncates this app's prompts.</td></tr>
+  <tr><td><code>OPENROUTER_API_KEY</code></td><td>Optional</td><td>Unlocks 6 preset cloud models for all users; key owner pays per token.</td></tr>
+  <tr><td><code>FAL_API_KEY</code></td><td>Optional</td><td>Paid image upgrade (admin-gated). Images work free without it via Pollinations.ai.</td></tr>
+  <tr><td><code>REDIS_URL</code></td><td>Optional</td><td>Moves image generation onto the BullMQ worker; without it jobs run inline.</td></tr>
+  <tr><td><code>TAVILY_API_KEY</code></td><td>Optional</td><td>Web search for outline generation and the chat agent.</td></tr>
+  <tr><td><code>UPLOADTHING_TOKEN</code>, <code>UNSPLASH_ACCESS_KEY</code>, <code>GOOGLE_CUSTOM_SEARCH_API_KEY</code>+<code>SEARCH_ENGINE_CX</code></td><td>Optional</td><td>Image storage / stock photos / Google image search.</td></tr>
+</table>
+<h3>Admin access</h3>
+<p>New sign-ins default to <code>role: USER</code>. To grant admin (paid FAL models, editing system themes):</p>
+<pre><code>pnpm db:studio    # open the User table, set role = ADMIN
+-- or SQL:
+UPDATE "User" SET role = 'ADMIN' WHERE email = 'their@email.com';</code></pre>
+</div>
+
+<div class="section">
+<h2>8. Database Setup (SQL Migrations)</h2>
+<p>The schema is managed with committed SQL migrations in <code>prisma/migrations/</code>:</p>
+<pre><code>pnpm db:migrate:deploy   # apply all pending migrations
+pnpm db:migrate:dev      # after editing schema.prisma: generate + apply a new migration
+pnpm db:studio           # browse the DB</code></pre>
+<p>Commit each generated folder — the SQL file <i>is</i> the schema change. <code>pnpm db:push</code> exists for throwaway prototyping only; never use it on a shared database.</p>
+<p>Current migrations: <code>0_init</code> → <code>20260714110000_add_slide_audit</code> → <code>20260718150000_add_tenancy_and_agent_threads</code>.</p>
+<div class="warn"><b>Existing databases created with <code>db push</code></b> (including the production Supabase DB) already contain all tables. Baseline them once instead of re-applying — otherwise <code>migrate deploy</code> will try to create tables that already exist:
+<pre><code>pnpm exec prisma migrate resolve --applied 0_init
+pnpm exec prisma migrate resolve --applied 20260714110000_add_slide_audit
+pnpm exec prisma migrate resolve --applied 20260718150000_add_tenancy_and_agent_threads</code></pre>
+After baselining, <code>pnpm db:migrate:deploy</code> reports "No pending migrations" and future migrations apply normally.</div>
+<p>No seed step required — signing in creates the user record via the Prisma adapter.</p>
+</div>
+
+<div class="section">
+<h2>9. Running on Docker</h2>
+<p>The whole stack — front-end + back-end + Postgres + Redis + the image-generation worker — runs on Docker with nothing on the host except Docker itself:</p>
+<pre><code>docker compose up --build</code></pre>
+<p>Boot order is automatic: Postgres becomes healthy → a one-shot <code>migrate</code> container runs <code>prisma migrate deploy</code> → the app starts at <code>http://localhost:3000</code> alongside a separate BullMQ worker container consuming the Redis-backed image queue.</p>
+<h3>LLM access from inside the container</h3>
+<ul>
+  <li><b>Ollama on the host</b> (default): compose points <code>OLLAMA_BASE_URL</code> at <code>host.docker.internal:11434</code>.</li>
+  <li><b>OpenRouter</b>: put <code>OPENROUTER_API_KEY=sk-or-...</code> in a <code>.env</code> next to <code>docker-compose.yml</code>. (This path is now fully wired into the app — V1.0's "dead code" warning no longer applies.)</li>
+</ul>
+<h3>Auth inside Docker</h3>
+<p>Set real <code>GITHUB_CLIENT_ID</code>/<code>GITHUB_CLIENT_SECRET</code> (and optionally the Google/Discord pairs) in the same <code>.env</code>. With the placeholder defaults the stack boots and serves pages, but sign-in won't work.</p>
+<p>Postgres data persists in the <code>db-data</code> volume; <code>docker compose down -v</code> wipes it.</p>
+</div>
+
+<div class="section">
+<h2>10. Team Workflow</h2>
+<table>
+  <tr><th></th><th>Track 1 — Prompt Testing</th><th>Track 2 — DevOps</th></tr>
+  <tr><td><b>Owns</b></td><td>Prompt templates, agent behavior, model/provider selection, output quality</td><td>Docker, database migrations, environment config, deployment</td></tr>
+  <tr><td><b>Files</b></td><td><code>src/backend/agent/**</code>, <code>src/backend/ai/**</code>, <code>src/lib/presentation/*prompt*</code>, <code>src/lib/model-picker.ts</code>, <code>src/app/api/presentation/**</code></td><td><code>Dockerfile</code>, <code>docker-compose.yml</code>, <code>prisma/migrations/**</code>, <code>prisma/schema.prisma</code>, <code>.env.example</code>, Vercel settings</td></tr>
+  <tr><td><b>Test loop</b></td><td>Judge review/generation quality with the shipped harnesses: <code>pnpm review:test</code> and <code>pnpm review:bash</code> (local Ollama free, or <code>--openrouter</code> for reproducible cloud runs)</td><td><code>docker compose up --build</code> must boot a working app from a clean checkout; schema changes ship as SQL migrations via <code>pnpm db:migrate:dev</code></td></tr>
+  <tr><td><b>PR scope</b></td><td>Prompt/agent changes only</td><td>Infra changes only</td></tr>
+</table>
+<ol>
+  <li>A schema change is a DevOps-track change even if a prompt PR needs it — split it out.</li>
+  <li>Prompt changes are judged by harness results, not one lucky generation.</li>
+  <li>Both tracks branch from <code>main</code> and merge via PR.</li>
+</ol>
+</div>
+
+<div class="section">
+<h2>11. Usage Guide</h2>
+<ol>
+  <li><b>Sign in</b> at the deployed site (or <code>pnpm dev</code> locally) with GitHub, Google, or Discord.</li>
+  <li><b>Create a deck</b> from the dashboard: describe a topic in the prompt box — or drop in a PDF/Word/Excel/CSV/text file as source material — pick slide count, language, and theme, then generate. Review and edit the outline before rendering slides.</li>
+  <li><b>Edit</b> in the editor: change themes (the ⌄ next to the title opens the document menu; ☰ opens app navigation), edit text directly, or ask the chat agent for changes.</li>
+  <li><b>Review</b>: click <b>Review</b> in the header. You get scores, written feedback, and a claim audit. If the deck fails, click <b>Auto-fix deck</b> — the AI rewrites flagged slides and re-reviews; use <b>Undo</b> if you don't like the result. A deck built on fabricated claims may honestly stay "needs revision" — the AI removes fake claims but cannot invent real data.</li>
+  <li><b>Ship it</b>: export to <code>.pptx</code>, present from the browser, or share a public link.</li>
+</ol>
+<div class="note">If the header shows <b>"Backend issue detected"</b>, the Ollama server is unreachable — usually the ngrok tunnel restarted and <code>OLLAMA_BASE_URL</code> needs the new URL (then redeploy).</div>
+</div>
+
+<div class="section">
+<h2>12. Project Structure</h2>
+<p>See ARCHITECTURE.md for the full split. Quick map of <code>src/</code>:</p>
+<pre><code>src/
+├── app/                      Next.js App Router routes
+│   ├── page.tsx              landing page (signed-out) / redirect to dashboard
+│   ├── presentation/         dashboard, create flow, generation view, editor ([id]/)
+│   ├── share/                public read-only share view
+│   ├── api/                  route handlers (incl. presentation/review-deck)
+│   └── _actions/             Server Actions → delegate to src/backend/**
+├── components/notebook/      slide-outline UI, theming, editor plugins
+├── components/presentation/  app chrome: header (menu/avatar/toggle), review button,
+│                             edit panel, present mode
+├── backend/                  db.ts · auth.ts (NextAuth v5) · tenant.ts · rate-limit.ts
+│   ├── ai/reviewSlides.ts    review + auto-fix engine
+│   ├── queue/                BullMQ image queue (Pollinations/FAL)
+│   └── agent/                LangGraph editing agent + tools
+└── lib/                      model-picker.ts · presentation/ (themes, prompts,
+                              pdf-extract.ts, office-extract.ts) · observability/</code></pre>
+</div>
+
+<div class="section">
+<h2>13. Known Issues</h2>
+<ul>
+  <li><b>Slide generation can occasionally glitch</b> — deck content is written live by an AI model, so a run can still occasionally produce a broken layout or a half-filled slide. This is not data loss: regenerating the slide (or the whole deck) fixes it. The concrete causes we could name — batches losing shared context and dropping/duplicating slides, generation silently stopping after a failed batch — were fixed 2026-07-21; what remains is ordinary AI-generation variability, not a known defect.</li>
+  <li><b>Document/RAG search is scaffolded, not implemented</b> — no vector search is wired into the agent; "chat with your document" doesn't work yet. (Attaching documents as generation source material <i>does</i> work — that's a different, shipped path.)</li>
+  <li><b>New sign-ins default to <code>role: USER</code></b> — FAL paid models and system-theme editing stay hidden until admin is granted (Section 7). All core features work at USER.</li>
+  <li><b>Review history is not persisted</b> — reviews display in the dialog only; a stored history is the agreed next feature.</li>
+  <li><b>Shared-Ollama single-file line</b> — one Ollama server serializes concurrent generation requests; heavy simultaneous use queues up. AI Deck Review now automatically falls back to a free OpenRouter model when the shared Ollama tunnel is unreachable (flagged in the UI as having run on a backup model) — deck <i>generation</i> itself still needs the model picker switched to OpenRouter by hand if Ollama is down.</li>
+  <li><b>Legacy .doc (Word 97–2003) is not supported</b> as source material (modern .docx only); scanned PDFs need selectable text.</li>
+  <li>Both Biome and Prettier configs exist; Biome is canonical.</li>
+</ul>
+</div>
+
+<div class="section">
+<h2>14. Contributing</h2>
+<h3>Workflow</h3>
+<ol>
+  <li>Fork, clone, <code>pnpm install</code>, branch (<code>feature/your-feature-name</code>)</li>
+  <li>Make changes; run <code>pnpm type</code> and <code>pnpm check</code> before pushing</li>
+  <li>Open a PR with a clear title and description; address review feedback</li>
+</ol>
+<h3>Commit prefixes</h3>
+<p><code>feat:</code> new features · <code>fix:</code> bug fixes · <code>docs:</code> documentation · <code>style:</code> formatting · <code>refactor:</code> refactoring · <code>chore:</code> tooling</p>
+<h3>Standards</h3>
+<ul>
+  <li>Follow existing code style; meaningful names; comments only where the code can't speak</li>
+  <li>Keep functions single-purpose; maintain TypeScript type safety</li>
+</ul>
+</div>
+
+<div class="section">
+<h2>15. License</h2>
+<p>MIT License. Originally copyright ALLWEONE Team; this fork is a derivative work created for coursework purposes.</p>
+</div>
+
+</body>
+</html>
