@@ -8,7 +8,8 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
+import { useShallow } from "zustand/react/shallow";
 
 import { type PlateSlide } from "@/components/notebook/presentation/utils/parser";
 import { usePresentationState } from "@/states/presentation-state";
@@ -18,13 +19,17 @@ interface SlideWithId extends PlateSlide {
 }
 
 export function usePresentationSlides() {
-  // Subscribe to slide IDs only for rendering - prevents re-render when content changes
-  // shallow ensures array comparison is shallow (same values = no re-render)
-  const slideIds = usePresentationState((s) =>
-    s.slides.map((slide) => slide.id),
+  // Subscribe to slide IDs only for rendering - prevents re-render when
+  // content changes. useShallow does the array comparison the old comment
+  // here claimed but didn't actually wire up: without it, `.map(...)`
+  // returns a brand-new array on every store update (Object.is fails even
+  // when every id is identical), so this hook -- and SlidesContainer, its
+  // DndContext, and every SlideItem's key-based reconciliation -- was
+  // re-rendering on every keystroke in any slide's editor, not just when
+  // slides were actually added/removed/reordered.
+  const slideIds = usePresentationState(
+    useShallow((s) => s.slides.map((slide) => slide.id)),
   );
-  // Keep full slides reference for drag operations only
-  const slides = usePresentationState((s) => s.slides);
   const setSlides = usePresentationState((s) => s.setSlides);
   const setCurrentSlideId = usePresentationState((s) => s.setCurrentSlideId);
   const isPresenting = usePresentationState((s) => s.isPresenting);
@@ -44,10 +49,14 @@ export function usePresentationSlides() {
     }),
   );
 
-  // Memoize slide IDs for stable reference
-  const items = useMemo(() => slideIds, [slideIds]);
+  // slideIds is already stable (useShallow above) whenever ids don't
+  // change, so it doubles as the DnD `items` list directly.
+  const items = slideIds;
 
-  // Handle drag end - needs full slides for reordering
+  // Handle drag end - reads slides fresh from the store instead of
+  // subscribing to the full array reactively, so a content edit anywhere
+  // in the deck doesn't re-render this hook (and everything that calls
+  // it) on every keystroke just to keep a value only this callback needs.
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       if (isPresenting) return; // Prevent drag when presenting
@@ -55,12 +64,10 @@ export function usePresentationSlides() {
       const { active, over } = event;
 
       if (over && active.id !== over.id) {
-        const oldIndex = slides.findIndex(
-          (item: SlideWithId) => item.id === active.id,
-        );
-        const newIndex = slides.findIndex(
-          (item: SlideWithId) => item.id === over.id,
-        );
+        const slides = usePresentationState.getState()
+          .slides as SlideWithId[];
+        const oldIndex = slides.findIndex((item) => item.id === active.id);
+        const newIndex = slides.findIndex((item) => item.id === over.id);
         const newArray = arrayMove(slides, oldIndex, newIndex);
         setSlides([...newArray]);
         // Update current slide to the dragged slide's ID (not new position index)
@@ -69,7 +76,7 @@ export function usePresentationSlides() {
       // Clear reordering flag at end
       setIsReorderingSlides(false);
     },
-    [slides, isPresenting, setSlides, setCurrentSlideId, setIsReorderingSlides],
+    [isPresenting, setSlides, setCurrentSlideId, setIsReorderingSlides],
   );
 
   // Expose a start handler to set reordering flag (to be wired in DndContext)
@@ -100,7 +107,6 @@ export function usePresentationSlides() {
   return {
     items,
     slideIds,
-    slides, // Still exposed for components that need full slide data
     sensors,
     isPresenting,
     handleDragStart,
