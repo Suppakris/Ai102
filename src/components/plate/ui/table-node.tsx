@@ -19,8 +19,6 @@ import type * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { PopoverAnchor } from "@radix-ui/react-popover";
 import {
   ArrowDown,
-  ArrowLeft,
-  ArrowRight,
   ArrowUp,
   CombineIcon,
   EraserIcon,
@@ -368,24 +366,6 @@ function TableFloatingToolbar({
 
           {collapsed && (
             <ToolbarGroup>
-              <ToolbarButton
-                onClick={() => {
-                  tf.insert.tableColumn({ before: true });
-                }}
-                onMouseDown={(e) => e.preventDefault()}
-                tooltip="Insert column before"
-              >
-                <ArrowLeft />
-              </ToolbarButton>
-              <ToolbarButton
-                onClick={() => {
-                  tf.insert.tableColumn();
-                }}
-                onMouseDown={(e) => e.preventDefault()}
-                tooltip="Insert column after"
-              >
-                <ArrowRight />
-              </ToolbarButton>
               <ToolbarButton
                 onClick={() => {
                   tf.remove.tableColumn();
