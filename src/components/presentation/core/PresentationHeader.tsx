@@ -1,6 +1,6 @@
 "use client";
 
-import { Palette } from "lucide-react";
+import { ArrowLeft, Palette } from "lucide-react";
 import * as motion from "motion/react-client";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -107,6 +107,18 @@ export default function PresentationHeader({ title }: PresentationHeaderProps) {
           </Link>
         ) : (
           <AppMenu />
+        )}
+        {/* Explicit back-to-dashboard link on the edit page -- Dashboard
+            is also reachable via the hamburger menu, but that wasn't
+            discoverable enough on its own. */}
+        {isPresentationPage && !isPresenting && !isLoggedOut && (
+          <Link
+            href="/presentation"
+            className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <ArrowLeft className="size-4" />
+            <span className="sr-only">Back to dashboard</span>
+          </Link>
         )}
         {isLoggedOut && showPresentationTitle ? (
           <span className="truncate text-sm font-medium text-foreground sm:hidden">
