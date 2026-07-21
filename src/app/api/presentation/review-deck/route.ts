@@ -124,6 +124,7 @@ export async function POST(req: Request) {
         : reviewSlides(input, reviewOpts);
 
     let result: Awaited<ReturnType<typeof runReview>>;
+    let usedFallbackProvider = false;
     try {
       result = await runReview(opts);
     } catch (error) {
@@ -142,6 +143,7 @@ export async function POST(req: Request) {
           modelProvider: "openrouter",
           modelId: undefined,
         });
+        usedFallbackProvider = true;
       } else {
         throw error;
       }
@@ -149,8 +151,9 @@ export async function POST(req: Request) {
 
     span.event("allweone.api.review_completed", {
       "allweone.review.needs_revision": result.needs_revision,
+      "allweone.review.used_fallback_provider": usedFallbackProvider,
     });
-    return NextResponse.json(result);
+    return NextResponse.json({ ...result, usedFallbackProvider });
   } catch (error) {
     span.error(error);
     if (isUpstreamUnreachable(error)) {

@@ -44,6 +44,12 @@ interface ReviewResult {
   feedback: string;
   clarifying_questions: string[];
   needs_revision: boolean;
+  /**
+   * True when the shared Ollama server was unreachable and the route fell
+   * back to the free OpenRouter tier for this review. That model's scoring
+   * is less repeatable than Ollama's, worth flagging in the UI.
+   */
+  usedFallbackProvider?: boolean;
   /** Present only on revise:true responses (reviewAndRevise contract). */
   revision?: {
     applied: boolean;
@@ -420,6 +426,15 @@ export function ReviewButton() {
                   <Badge>Looks good</Badge>
                 )}
               </div>
+
+              {result.usedFallbackProvider && (
+                <p className="text-xs text-muted-foreground">
+                  The usual reviewer was offline, so this review ran on a
+                  backup model. Scores can vary a bit more between runs than
+                  usual — you can try Review again in a few minutes once the
+                  main reviewer is back.
+                </p>
+              )}
 
               <div className="flex gap-2">
                 <ScoreTile label="Clarity" value={result.score.clarity} />
