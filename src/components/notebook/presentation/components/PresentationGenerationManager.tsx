@@ -229,8 +229,12 @@ export function PresentationGenerationManager() {
   // merged back in on every RAF tick instead of being overwritten).
   const completedDeckSlidesRef = useRef<PlateSlide[]>([]);
   // Set by the presentation-generation onError handler so the batch loop
-  // stops requesting further batches after one fails.
+  // stops requesting further batches after one fails. Cleared before each
+  // retry attempt of a batch, so it reflects only the most recent attempt.
   const batchGenerationErroredRef = useRef<boolean>(false);
+  // Most recent batch generation error, kept so the user-facing toast (shown
+  // only once all retries for a batch are exhausted) can include its message.
+  const lastGenerationErrorRef = useRef<Error | null>(null);
   // How much of the current completion stream has been handed to the parser,
   // so each frame only appends what is new.
   const streamedLengthRef = useRef<number>(0);
@@ -752,13 +756,16 @@ export function PresentationGenerationManager() {
         });
       },
       onError: (error) => {
-        generationLogger.error("Presentation generation failed", error, {
+        // Deliberately no toast/resetGeneration here: this batch may still
+        // be retried by the caller (see the retry loop below). The
+        // user-facing error only fires once retries are exhausted, so a
+        // transient timeout on a slow/free model doesn't look like a
+        // permanent failure.
+        generationLogger.error("Presentation generation batch attempt failed", error, {
           presentationId: usePresentationState.getState().currentPresentationId,
         });
-        toast.error("Failed to generate presentation: " + error.message);
         batchGenerationErroredRef.current = true;
-        resetGeneration();
-        resetStreamingParser();
+        lastGenerationErrorRef.current = error;
 
         // Cancel any pending animation frame
         if (slidesRafIdRef.current !== null) {
@@ -958,47 +965,82 @@ export function PresentationGenerationManager() {
         templateCount: selectedSlideTemplates.length,
       });
 
+      const MAX_BATCH_ATTEMPTS = 2;
+
       void (async () => {
         for (const batch of batches) {
           if (batchGenerationErroredRef.current) {
             return;
           }
 
-          resetStreamingParser();
-          generationLogger.info("Presentation generation batch started", {
-            presentationId: currentPresentationId,
-            batchStartIndex: batch.startIndex,
-            batchSlideCount: batch.outline.length,
-          });
+          let batchCompletion: string | null | undefined = null;
 
-          const batchCompletion = await generatePresentation(
-            presentationInput ?? "",
-            {
-              body: {
-                title: currentPresentationTitle ?? presentationInput ?? "",
-                prompt: presentationInput ?? "",
-                outline: batch.outline,
-                searchResults: stateSearchResults,
-                language,
-                tone: tone,
-                modelId,
-                modelProvider,
-                textContent,
-                audience,
-                scenario,
-                imageSource,
-                templateContext,
-                outlineTemplateHints: sliceTemplateHintsForBatch(
-                  outlineTemplateHints,
-                  batch.startIndex,
-                  batch.outline.length,
-                ),
-                selectedTemplateCount: selectedSlideTemplates.length,
+          for (let attempt = 1; attempt <= MAX_BATCH_ATTEMPTS; attempt++) {
+            batchGenerationErroredRef.current = false;
+            resetStreamingParser();
+            generationLogger.info("Presentation generation batch started", {
+              presentationId: currentPresentationId,
+              batchStartIndex: batch.startIndex,
+              batchSlideCount: batch.outline.length,
+              attempt,
+            });
+
+            batchCompletion = await generatePresentation(
+              presentationInput ?? "",
+              {
+                body: {
+                  title: currentPresentationTitle ?? presentationInput ?? "",
+                  prompt: presentationInput ?? "",
+                  outline: batch.outline,
+                  searchResults: stateSearchResults,
+                  language,
+                  tone: tone,
+                  modelId,
+                  modelProvider,
+                  textContent,
+                  audience,
+                  scenario,
+                  imageSource,
+                  templateContext,
+                  outlineTemplateHints: sliceTemplateHintsForBatch(
+                    outlineTemplateHints,
+                    batch.startIndex,
+                    batch.outline.length,
+                  ),
+                  selectedTemplateCount: selectedSlideTemplates.length,
+                },
               },
-            },
-          );
+            );
+
+            if (!batchGenerationErroredRef.current && batchCompletion != null) {
+              break;
+            }
+
+            if (attempt < MAX_BATCH_ATTEMPTS) {
+              generationLogger.info("Retrying failed generation batch", {
+                presentationId: currentPresentationId,
+                batchStartIndex: batch.startIndex,
+                nextAttempt: attempt + 1,
+              });
+            }
+          }
 
           if (batchGenerationErroredRef.current || batchCompletion == null) {
+            const generatedSoFar = completedDeckSlidesRef.current.length;
+            toast.error(
+              `Generation stopped after ${generatedSoFar} of ${outline.length} slides` +
+                (lastGenerationErrorRef.current
+                  ? `: ${lastGenerationErrorRef.current.message}`
+                  : "") +
+                ". The slides generated so far were kept.",
+            );
+            resetGeneration();
+            resetStreamingParser();
+            // The batches that did succeed are only reflected in live state
+            // via the RAF streaming preview, which isn't itself persisted —
+            // without this, a reload after a failed generation can lose the
+            // slides the user was just told were "kept".
+            save();
             return;
           }
 
