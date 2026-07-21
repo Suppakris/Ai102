@@ -81,7 +81,11 @@ function shouldProxyPresentationImage(
     return false;
   }
 
-  if (input.imageSource === "search" || input.stockImageProvider === "google") {
+  if (
+    input.imageSource === "search" ||
+    input.imageSource === "generate" ||
+    input.stockImageProvider === "google"
+  ) {
     return true;
   }
 
@@ -142,8 +146,11 @@ export async function resolveExportImageSource(
       value: await blobToDataUrl(await response.blob()),
     };
   } catch (error) {
+    // Fall back to the original URL, not the proxied one -- if the proxy
+    // request itself failed, handing pptxgenjs the same broken proxied URL
+    // would just fail again with no chance of the direct fetch succeeding.
     console.warn("Failed to prepare proxied image for export:", error);
-    return { type: "path", value: proxiedUrl };
+    return { type: "path", value: url };
   }
 }
 
