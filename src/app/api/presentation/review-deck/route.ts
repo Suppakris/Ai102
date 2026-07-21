@@ -9,6 +9,7 @@ import {
 } from "@/backend/ai/reviewSlides";
 import { auth } from "@/backend/auth";
 import { checkRateLimit, rateLimitResponse } from "@/backend/rate-limit";
+import { env } from "@/env";
 import { logger } from "@/lib/observability/server/logger";
 
 type ReviewDeckRequest = {
@@ -112,14 +113,39 @@ export async function POST(req: Request) {
       slides: body.slides,
       source_context: body.source_context,
     };
-    const opts =
-      body.modelProvider || body.modelId
-        ? { modelProvider: body.modelProvider, modelId: body.modelId }
-        : undefined;
+    const requestedProvider = body.modelProvider || body.modelId;
+    const opts = requestedProvider
+      ? { modelProvider: body.modelProvider, modelId: body.modelId }
+      : undefined;
 
-    const result = body.revise
-      ? await reviewAndRevise(input, opts)
-      : await reviewSlides(input, opts);
+    const runReview = (reviewOpts: typeof opts) =>
+      body.revise
+        ? reviewAndRevise(input, reviewOpts)
+        : reviewSlides(input, reviewOpts);
+
+    let result: Awaited<ReturnType<typeof runReview>>;
+    try {
+      result = await runReview(opts);
+    } catch (error) {
+      // The shared Ollama server lives behind a tunnel that can go down at
+      // any time. Rather than fail the whole review, fall back to the free
+      // OpenRouter tier once, if the caller didn't already pick a provider
+      // and a key is configured — same free-model fallback already offered
+      // for deck generation.
+      if (
+        !requestedProvider &&
+        isUpstreamUnreachable(error) &&
+        env.OPENROUTER_API_KEY
+      ) {
+        span.event("allweone.api.review_fallback_to_openrouter", {});
+        result = await runReview({
+          modelProvider: "openrouter",
+          modelId: undefined,
+        });
+      } else {
+        throw error;
+      }
+    }
 
     span.event("allweone.api.review_completed", {
       "allweone.review.needs_revision": result.needs_revision,
