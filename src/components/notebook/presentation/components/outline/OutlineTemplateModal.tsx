@@ -3,6 +3,7 @@
 import { Check, ChevronRight, LayoutGrid, Menu, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,25 +29,31 @@ interface SelectableTemplateCardProps {
   template: TemplateDefinition;
   isSelected: boolean;
   onToggle: () => void;
-  disabled?: boolean;
+  atLimit?: boolean;
 }
 
 function SelectableTemplateCard({
   template,
   isSelected,
   onToggle,
-  disabled,
+  atLimit,
 }: SelectableTemplateCardProps) {
+  const dimmed = atLimit && !isSelected;
+
   return (
     <motion.button
+      // Deliberately NOT a native `disabled` button even when at the
+      // selection limit: onToggle still needs to fire so it can tell the
+      // user why the click did nothing (see handleTemplateToggle) instead
+      // of the click silently going nowhere, which read as the selection
+      // "sometimes sticking, sometimes not" for no visible reason.
       onClick={onToggle}
-      disabled={disabled}
       className={cn(
         "group relative flex flex-col gap-2 text-left",
-        disabled && !isSelected && "cursor-not-allowed opacity-50",
+        dimmed && "cursor-not-allowed opacity-50",
       )}
-      whileHover={!disabled ? { scale: 1.02 } : undefined}
-      whileTap={!disabled ? { scale: 0.98 } : undefined}
+      whileHover={!dimmed ? { scale: 1.02 } : undefined}
+      whileTap={!dimmed ? { scale: 0.98 } : undefined}
     >
       <div
         className={cn(
@@ -143,6 +150,11 @@ export function OutlineTemplateModal({
           );
         } else if (selectedSlideTemplates.length < numSlides) {
           setSelectedSlideTemplates([...selectedSlideTemplates, templateId]);
+        } else {
+          toast.info(
+            `You've already selected a layout for all ${numSlides} slides. Remove one first, or use "Clear all" to start over.`,
+          );
+          return;
         }
 
         void persistOutlineLayoutSelection();
@@ -199,7 +211,7 @@ export function OutlineTemplateModal({
           template={template}
           isSelected={isTemplateSelected(effectiveSelection, template)}
           onToggle={() => handleTemplateToggle(template.id)}
-          disabled={
+          atLimit={
             isAtLimit && !isTemplateSelected(effectiveSelection, template)
           }
         />
