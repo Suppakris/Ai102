@@ -7,7 +7,6 @@ import {
   Minus,
   Pencil,
   Plus,
-  Split,
   WandSparkles,
   type LucideIcon,
 } from "lucide-react";
@@ -102,12 +101,8 @@ function InfographicActionButton({
 }
 
 export function InfographicControls() {
-  const {
-    element,
-    handleNodePropertyUpdate,
-    isInfographicElement,
-    handleOpenInfographicEditor,
-  } = useToolbarContext();
+  const { element, handleNodePropertyUpdate, isInfographicElement } =
+    useToolbarContext();
 
   const [openPaletteDropdown, setOpenPaletteDropdown] = useState(false);
   const [openAIEditPopover, setOpenAIEditPopover] = useState(false);
@@ -252,17 +247,6 @@ export function InfographicControls() {
 
   return (
     <ToolbarGroup className="gap-1.5 px-0.5">
-      {/* Edit Infographic Button - Opens sidebar for template conversion */}
-      <ToolbarGroup>
-        <InfographicActionButton
-          icon={Split}
-          label="Change"
-          tooltip="Edit Infographic"
-          className="gap-1"
-          action={handleOpenInfographicEditor}
-        />
-        <Separator orientation="vertical" className="mx-0.5 h-5 bg-border/60" />
-      </ToolbarGroup>
       {/* Alignment Dropdown */}
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>

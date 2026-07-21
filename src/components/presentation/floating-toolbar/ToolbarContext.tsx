@@ -85,9 +85,6 @@ export interface ToolbarContextValue {
   // Chart-specific handler
   handleOpenChartEditor: () => void;
 
-  // Infographic-specific handler
-  handleOpenInfographicEditor: () => void;
-
   // Available options
   orientationOptions: readonly string[];
   sidednessOptions: readonly string[];
@@ -349,29 +346,6 @@ export function ToolbarProvider({ children }: { children: React.ReactNode }) {
     );
   }, [editor, element, openChartEditor, setPaletteDropTarget]);
 
-  // Infographic-specific handler
-  const openInfographicEditor = usePresentationState(
-    (s) => s.openInfographicEditor,
-  );
-
-  const handleOpenInfographicEditor = React.useCallback(() => {
-    if (!element?.id) return;
-
-    // Create a bound updateElement function that captures the current editor and element
-    const boundUpdateElement = (updateProps: Record<string, unknown>) => {
-      setPaletteDropTarget(null);
-      editor.tf.setNodes(
-        { ...updateProps, [PALETTE_DROP_MUTABLE_KEY]: false },
-        {
-          at: [],
-          match: (n) => n.id === element.id,
-        },
-      );
-    };
-
-    openInfographicEditor(boundUpdateElement);
-  }, [editor, element, openInfographicEditor, setPaletteDropTarget]);
-
   // Handlers
   const handleNodePropertyUpdate = React.useCallback(
     (
@@ -473,7 +447,6 @@ export function ToolbarProvider({ children }: { children: React.ReactNode }) {
     handleChartDataUpdate,
     handleSeriesChartTypesUpdate,
     handleOpenChartEditor,
-    handleOpenInfographicEditor,
   };
 
   return (

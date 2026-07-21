@@ -30,7 +30,6 @@ import { ChartEditorPanel } from "./sections/ChartEditorPanel";
 import { ChartPanel } from "./sections/ChartPanel";
 import { ElementsPanel } from "./sections/ElementsPanel";
 import { ImageEditorPanel } from "./sections/ImageEditorPanel";
-import { InfographicEditorPanel } from "./sections/InfographicEditorPanel";
 import { InfographicGenerationPanel } from "./sections/InfographicGenerationPanel";
 import { MediaEmbedPanel } from "./sections/MediaEmbedPanel";
 import { PresentationImageEditorPanel } from "./sections/PresentationImageEditorPanel";
@@ -89,7 +88,6 @@ const SELF_CONTAINED_PANELS: RightPanelType[] = [
   "theme",
   "imageEditor",
   "chartEditor",
-  "infographicEditor",
   "infographicGenerationEditor",
   "presentationImageEditor",
 ];
@@ -154,8 +152,6 @@ function PanelContent({
       return <ImageEditorPanel />;
     case "chartEditor":
       return <ChartEditorPanel />;
-    case "infographicEditor":
-      return <InfographicEditorPanel />;
     case "infographicGenerationEditor":
       return <InfographicGenerationPanel />;
     case "presentationImageEditor":

@@ -81,7 +81,6 @@ export type RightPanelType =
   | "globalSettings"
   | "imageEditor"
   | "chartEditor"
-  | "infographicEditor"
   | "infographicGenerationEditor"
   | "presentationImageEditor"
   | "layoutEditor"
@@ -407,10 +406,6 @@ interface PresentationState {
   closeChartEditor: () => void;
 
   // Infographic editor state for inline infographic element editing
-  openInfographicEditor: (
-    updateElementFn?: (props: Record<string, unknown>) => void,
-  ) => void;
-  closeInfographicEditor: () => void;
   openInfographicGenerationEditor: (
     updateElementFn?: (props: Record<string, unknown>) => void,
   ) => void;
@@ -849,22 +844,6 @@ export const usePresentationState = create<PresentationState>()(
         })),
 
       // Infographic editor state
-      openInfographicEditor: (updateElementFn) =>
-        set({
-          activeRightPanel: "infographicEditor",
-          boundUpdateElement: updateElementFn ?? null,
-        }),
-      closeInfographicEditor: () =>
-        set((state) => ({
-          activeRightPanel:
-            state.activeRightPanel === "infographicEditor"
-              ? null
-              : state.activeRightPanel,
-          boundUpdateElement:
-            state.activeRightPanel === "infographicEditor"
-              ? null
-              : state.boundUpdateElement,
-        })),
       openInfographicGenerationEditor: (updateElementFn) =>
         set({
           activeRightPanel: "infographicGenerationEditor",
