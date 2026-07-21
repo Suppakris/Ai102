@@ -1,6 +1,5 @@
 "use client";
 
-import { type InfographicOptions } from "@antv/infographic";
 import {
   AlignCenter,
   AlignLeft,
@@ -14,15 +13,12 @@ import {
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
-import { InfographicDataEditorDialog } from "@/components/notebook/presentation/editor/custom-elements/infographic-data-editor-dialog";
 import {
   getInfographicThemeColors,
   parseInfographicPalette,
   parseInfographicStylize,
   updateInfographicTheme,
 } from "@/components/notebook/presentation/editor/utils/infographic-utils";
-import { PALETTE_DROP_MUTABLE_KEY } from "@/components/notebook/presentation/editor/utils/paletteDrop";
-import { type PlateNode } from "@/components/notebook/presentation/utils/parser";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,7 +39,6 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useAntvInfographicTheme } from "@/hooks/presentation/infographic/useAntvInfographicTheme";
 import { cn } from "@/lib/utils";
-import { usePresentationState } from "@/states/presentation-state";
 import { EditWithAI } from "./EditWithAI";
 import { FLOATING_TOOLBAR_IGNORE_CLASS } from "./toolbar-interaction";
 import { useToolbarContext } from "./ToolbarContext";
@@ -108,7 +103,6 @@ function InfographicActionButton({
 
 export function InfographicControls() {
   const {
-    editor,
     element,
     handleNodePropertyUpdate,
     isInfographicElement,
@@ -117,9 +111,6 @@ export function InfographicControls() {
 
   const [openPaletteDropdown, setOpenPaletteDropdown] = useState(false);
   const [openAIEditPopover, setOpenAIEditPopover] = useState(false);
-  const [openDataEditor, setOpenDataEditor] = useState(false);
-  const currentSlideId = usePresentationState((state) => state.currentSlideId);
-  const updateSlide = usePresentationState((state) => state.updateSlide);
 
   const [customPalette, setCustomPalette] = useState<string[]>([
     "#5B8FF9",
@@ -257,31 +248,6 @@ export function InfographicControls() {
     [handleNodePropertyUpdate],
   );
 
-  const handleInfographicDataChange = useCallback(
-    (update: { data: Partial<InfographicOptions>; syntax: string }) => {
-      if (!element) return;
-
-      editor.tf.setNodes(
-        {
-          data: update.data,
-          syntax: update.syntax,
-          [PALETTE_DROP_MUTABLE_KEY]: false,
-        },
-        {
-          at: [],
-          match: (node) => node.id === element.id,
-        },
-      );
-
-      if (currentSlideId) {
-        updateSlide(currentSlideId, {
-          content: editor.children as PlateNode[],
-        });
-      }
-    },
-    [currentSlideId, editor, element, updateSlide],
-  );
-
   if (!isInfographicElement) return null;
 
   return (
@@ -294,14 +260,6 @@ export function InfographicControls() {
           tooltip="Edit Infographic"
           className="gap-1"
           action={handleOpenInfographicEditor}
-        />
-        <Separator orientation="vertical" className="mx-0.5 h-5 bg-border/60" />
-        <InfographicActionButton
-          icon={Pencil}
-          label="Edit"
-          tooltip="Edit Infographic"
-          className="gap-1"
-          action={() => setOpenDataEditor(true)}
         />
         <Separator orientation="vertical" className="mx-0.5 h-5 bg-border/60" />
       </ToolbarGroup>
@@ -521,18 +479,6 @@ export function InfographicControls() {
           />
         </PopoverContent>
       </Popover>
-
-      <InfographicDataEditorDialog
-        open={openDataEditor}
-        onOpenChange={setOpenDataEditor}
-        syntax={currentSyntax}
-        data={
-          (element as { data?: Partial<InfographicOptions> } | undefined)?.data
-        }
-        isDark={isDark}
-        themeColors={themeColors}
-        onApply={handleInfographicDataChange}
-      />
     </ToolbarGroup>
   );
 }
