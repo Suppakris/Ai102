@@ -5,7 +5,6 @@ import { KEYS, type TElement, type TText } from "platejs";
 
 import {
   ANTV_INFOGRAPHIC,
-  AREA_CHART_ELEMENT,
   ARROW_LIST,
   ARROW_LIST_ITEM,
   BAR_CHART_ELEMENT,
@@ -13,49 +12,30 @@ import {
   BEFORE_AFTER_SIDE,
   BOX_GROUP,
   BOX_ITEM,
-  BOX_PLOT_CHART_ELEMENT,
-  BUBBLE_CHART_ELEMENT,
   BULLET_GROUP,
   BULLET_ITEM,
   BUTTON_ELEMENT,
-  CANDLESTICK_CHART_ELEMENT,
   CIRCULAR_GRID_GROUP,
   CIRCULAR_GRID_ITEM,
   COMPARE_GROUP,
   COMPARE_SIDE,
-  COMPOSED_CHART_ELEMENT,
   CONNECTED_CIRCLES_GROUP,
   CONNECTED_CIRCLES_ITEM,
   CONS_ITEM,
   CONTRIBUTOR_ELEMENT,
   CYCLE_GROUP,
   CYCLE_ITEM,
-  DEFAULT_CHART_DATA,
-  DONUT_CHART_ELEMENT,
-  FUNNEL_CHART_ELEMENT,
-  HEATMAP_CHART_ELEMENT,
-  HISTOGRAM_CHART_ELEMENT,
   ICON_LIST,
   ICON_LIST_ITEM,
   LABEL_ELEMENT,
   LINE_CHART_ELEMENT,
-  LINEAR_GAUGE_ELEMENT,
   PIE_CHART_ELEMENT,
   PRESENTATION_TITLE_ELEMENT,
   PROS_CONS_GROUP,
   PROS_ITEM,
-  PYRAMID_CHART_ELEMENT,
   PYRAMID_GROUP,
   PYRAMID_ITEM,
   QUOTE_ELEMENT,
-  RADAR_CHART_ELEMENT,
-  RADIAL_BAR_CHART_ELEMENT,
-  RADIAL_COLUMN_CHART_ELEMENT,
-  RADIAL_GAUGE_ELEMENT,
-  RANGE_AREA_CHART_ELEMENT,
-  RANGE_BAR_CHART_ELEMENT,
-  SANKEY_CHART_ELEMENT,
-  SCATTER_CHART_ELEMENT,
   SEQUENCE_ARROW_GROUP,
   SEQUENCE_ARROW_ITEM,
   SLOPE_GROUP,
@@ -68,11 +48,8 @@ import {
   STATS_ITEM,
   STEPS_GROUP,
   STEPS_ITEM,
-  SUNBURST_CHART_ELEMENT,
   TIMELINE_GROUP,
   TIMELINE_ITEM,
-  TREEMAP_CHART_ELEMENT,
-  WATERFALL_CHART_ELEMENT,
 } from "@/components/notebook/presentation/editor/lib";
 import { CALLOUT_VARIANTS } from "@/components/plate/ui/callout-variants";
 
@@ -279,17 +256,6 @@ export const chartItems: PaletteItem[] = [
       { label: "Government", value: 4 },
     ]),
   },
-  // Donut Chart - dedicated donut type
-  {
-    key: "chart-donut",
-    label: "Donut Chart",
-    node: createChartNode(DONUT_CHART_ELEMENT, [
-      { label: "Completed", value: 65 },
-      { label: "In Progress", value: 20 },
-      { label: "Pending", value: 10 },
-      { label: "Cancelled", value: 5 },
-    ]),
-  },
   // Bar Chart - with more data points
   {
     key: "chart-bar",
@@ -323,263 +289,6 @@ export const chartItems: PaletteItem[] = [
       { name: "Nov", value: 450 },
       { name: "Dec", value: 520 },
     ]),
-  },
-  // Area Chart - with gradient fill
-  {
-    key: "chart-area",
-    label: "Area Chart",
-    node: createChartNode(AREA_CHART_ELEMENT, [
-      { name: "Week 1", value: 1200 },
-      { name: "Week 2", value: 1900 },
-      { name: "Week 3", value: 1700 },
-      { name: "Week 4", value: 2300 },
-      { name: "Week 5", value: 2900 },
-      { name: "Week 6", value: 3100 },
-      { name: "Week 7", value: 2800 },
-      { name: "Week 8", value: 3500 },
-    ]),
-  },
-  // Scatter Chart - with X/Y coordinates
-  {
-    key: "chart-scatter",
-    label: "Scatter Chart",
-    node: createChartNode(SCATTER_CHART_ELEMENT, [
-      { x: 10, y: 30 },
-      { x: 25, y: 45 },
-      { x: 35, y: 20 },
-      { x: 45, y: 55 },
-      { x: 55, y: 40 },
-      { x: 65, y: 70 },
-      { x: 75, y: 50 },
-      { x: 85, y: 85 },
-      { x: 95, y: 60 },
-      { x: 40, y: 35 },
-      { x: 60, y: 48 },
-      { x: 80, y: 72 },
-    ]),
-  },
-  // Bubble Chart - 3D scatter with z-axis for size
-  {
-    key: "chart-bubble",
-    label: "Bubble Chart",
-    node: createChartNode(BUBBLE_CHART_ELEMENT, [
-      { x: 10, y: 30, z: 200 },
-      { x: 25, y: 45, z: 350 },
-      { x: 35, y: 20, z: 150 },
-      { x: 45, y: 55, z: 400 },
-      { x: 55, y: 40, z: 280 },
-      { x: 65, y: 70, z: 520 },
-      { x: 75, y: 50, z: 180 },
-      { x: 85, y: 85, z: 600 },
-    ]),
-  },
-  // Radar Chart - skills/attributes comparison
-  {
-    key: "chart-radar",
-    label: "Radar Chart",
-    node: createChartNode(RADAR_CHART_ELEMENT, [
-      { name: "Speed", value: 85 },
-      { name: "Reliability", value: 90 },
-      { name: "Usability", value: 78 },
-      { name: "Performance", value: 92 },
-      { name: "Security", value: 88 },
-      { name: "Scalability", value: 75 },
-    ]),
-  },
-  // Radial Bar Chart - progress indicators
-  {
-    key: "chart-radial-bar",
-    label: "Radial Bar",
-    node: createChartNode(RADIAL_BAR_CHART_ELEMENT, [
-      { label: "Marketing", value: 85 },
-      { label: "Sales", value: 72 },
-      { label: "Engineering", value: 94 },
-      { label: "Design", value: 68 },
-      { label: "Support", value: 81 },
-    ]),
-  },
-  // Radial Column - circular columns
-  {
-    key: "chart-radial-column",
-    label: "Radial Column",
-    node: createChartNode(RADIAL_COLUMN_CHART_ELEMENT, [
-      { label: "Jan", value: 45 },
-      { label: "Feb", value: 52 },
-      { label: "Mar", value: 48 },
-      { label: "Apr", value: 61 },
-      { label: "May", value: 55 },
-      { label: "Jun", value: 67 },
-    ]),
-  },
-  // Composed Chart - multi-series with bar, line, area
-  {
-    key: "chart-composed",
-    label: "Composed Chart",
-    node: createChartNode(COMPOSED_CHART_ELEMENT, [
-      { label: "Jan", revenue: 4500, expenses: 3200, profit: 1300 },
-      { label: "Feb", revenue: 5200, expenses: 3400, profit: 1800 },
-      { label: "Mar", revenue: 4800, expenses: 3100, profit: 1700 },
-      { label: "Apr", revenue: 6100, expenses: 3800, profit: 2300 },
-      { label: "May", revenue: 5900, expenses: 3500, profit: 2400 },
-      { label: "Jun", revenue: 6800, expenses: 4000, profit: 2800 },
-    ]),
-  },
-  // Treemap Chart - hierarchical data
-  {
-    key: "chart-treemap",
-    label: "Treemap",
-    node: createChartNode(TREEMAP_CHART_ELEMENT, [
-      { label: "North America", value: 45000 },
-      { label: "Europe", value: 32000 },
-      { label: "Asia Pacific", value: 28000 },
-      { label: "Latin America", value: 12000 },
-      { label: "Middle East", value: 8000 },
-      { label: "Africa", value: 5000 },
-    ]),
-  },
-  // Histogram - frequency distribution
-  {
-    key: "chart-histogram",
-    label: "Histogram",
-    node: createChartNode(HISTOGRAM_CHART_ELEMENT, [
-      { label: "15-25", value: 3 },
-      { label: "25-35", value: 7 },
-      { label: "35-45", value: 15 },
-      { label: "45-55", value: 25 },
-      { label: "55-65", value: 20 },
-      { label: "65-75", value: 12 },
-      { label: "75-85", value: 5 },
-    ]),
-  },
-  // Heatmap - matrix data
-  {
-    key: "chart-heatmap",
-    label: "Heatmap",
-    node: createChartNode(HEATMAP_CHART_ELEMENT, [
-      { x: "Mon", y: "Morning", value: 75 },
-      { x: "Mon", y: "Afternoon", value: 85 },
-      { x: "Mon", y: "Evening", value: 45 },
-      { x: "Tue", y: "Morning", value: 65 },
-      { x: "Tue", y: "Afternoon", value: 92 },
-      { x: "Tue", y: "Evening", value: 55 },
-      { x: "Wed", y: "Morning", value: 80 },
-      { x: "Wed", y: "Afternoon", value: 78 },
-      { x: "Wed", y: "Evening", value: 40 },
-    ]),
-  },
-  // Range Bar - value ranges
-  {
-    key: "chart-range-bar",
-    label: "Range Bar",
-    node: createChartNode(RANGE_BAR_CHART_ELEMENT, [
-      { category: "Project A", low: 10, high: 45 },
-      { category: "Project B", low: 20, high: 65 },
-      { category: "Project C", low: 15, high: 55 },
-      { category: "Project D", low: 30, high: 80 },
-      { category: "Project E", low: 5, high: 35 },
-    ]),
-  },
-  // Range Area - area with ranges
-  {
-    key: "chart-range-area",
-    label: "Range Area",
-    node: createChartNode(RANGE_AREA_CHART_ELEMENT, [
-      { date: "Jan", low: 20, high: 45 },
-      { date: "Feb", low: 25, high: 52 },
-      { date: "Mar", low: 22, high: 48 },
-      { date: "Apr", low: 28, high: 58 },
-      { date: "May", low: 32, high: 65 },
-      { date: "Jun", low: 35, high: 70 },
-    ]),
-  },
-  // Waterfall - cumulative effects
-  {
-    key: "chart-waterfall",
-    label: "Waterfall",
-    node: createChartNode(WATERFALL_CHART_ELEMENT, [
-      { category: "Start", amount: 100 },
-      { category: "Revenue", amount: 50 },
-      { category: "Costs", amount: -30 },
-      { category: "Marketing", amount: -15 },
-      { category: "Tax", amount: -10 },
-      { category: "Net", amount: 95 },
-    ]),
-  },
-  // Box Plot - statistical distribution
-  {
-    key: "chart-box-plot",
-    label: "Box Plot",
-    node: createChartNode(BOX_PLOT_CHART_ELEMENT, [
-      { category: "Q1", min: 10, q1: 25, median: 35, q3: 48, max: 65 },
-      { category: "Q2", min: 15, q1: 30, median: 42, q3: 55, max: 72 },
-      { category: "Q3", min: 12, q1: 28, median: 38, q3: 52, max: 68 },
-      { category: "Q4", min: 18, q1: 35, median: 48, q3: 62, max: 78 },
-    ]),
-  },
-  // Candlestick - financial OHLC
-  {
-    key: "chart-candlestick",
-    label: "Candlestick",
-    node: createChartNode(CANDLESTICK_CHART_ELEMENT, [
-      { date: "Mon", open: 100, high: 115, low: 95, close: 110 },
-      { date: "Tue", open: 110, high: 125, low: 105, close: 120 },
-      { date: "Wed", open: 120, high: 130, low: 112, close: 115 },
-      { date: "Thu", open: 115, high: 128, low: 108, close: 125 },
-      { date: "Fri", open: 125, high: 140, low: 118, close: 135 },
-    ]),
-  },
-  // Sunburst - hierarchical radial
-  {
-    key: "chart-sunburst",
-    label: "Sunburst",
-    node: createChartNode(SUNBURST_CHART_ELEMENT, DEFAULT_CHART_DATA.hierarchy),
-  },
-  // Sankey - flow visualization
-  {
-    key: "chart-sankey",
-    label: "Sankey",
-    node: createChartNode(SANKEY_CHART_ELEMENT, [
-      { from: "Website", to: "Signup", size: 100 },
-      { from: "Referral", to: "Signup", size: 40 },
-      { from: "Signup", to: "Trial", size: 80 },
-      { from: "Trial", to: "Paid", size: 50 },
-      { from: "Trial", to: "Churn", size: 30 },
-    ]),
-  },
-  // Funnel - pipeline visualization
-  {
-    key: "chart-funnel",
-    label: "Funnel",
-    node: createChartNode(FUNNEL_CHART_ELEMENT, [
-      { label: "Visitors", value: 10000 },
-      { label: "Prospects", value: 5000 },
-      { label: "Leads", value: 2500 },
-      { label: "Opportunities", value: 1000 },
-      { label: "Customers", value: 500 },
-    ]),
-  },
-  // Pyramid Chart - triangular visualization
-  {
-    key: "chart-pyramid",
-    label: "Pyramid Chart",
-    node: createChartNode(PYRAMID_CHART_ELEMENT, [
-      { label: "Executive", value: 5 },
-      { label: "Management", value: 20 },
-      { label: "Specialists", value: 50 },
-      { label: "Staff", value: 100 },
-    ]),
-  },
-  // Radial Gauge - circular gauge
-  {
-    key: "chart-radial-gauge",
-    label: "Radial Gauge",
-    node: createChartNode(RADIAL_GAUGE_ELEMENT, 75),
-  },
-  // Linear Gauge - linear gauge
-  {
-    key: "chart-linear-gauge",
-    label: "Linear Gauge",
-    node: createChartNode(LINEAR_GAUGE_ELEMENT, 65),
   },
 ];
 

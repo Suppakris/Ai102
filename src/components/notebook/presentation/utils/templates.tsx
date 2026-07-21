@@ -17,7 +17,6 @@ import {
 import { nanoid } from "nanoid";
 
 import {
-  AREA_CHART_ELEMENT,
   ARROW_LIST,
   ARROW_LIST_ITEM,
   BAR_CHART_ELEMENT,
@@ -25,51 +24,30 @@ import {
   BEFORE_AFTER_SIDE,
   BOX_GROUP,
   BOX_ITEM,
-  BOX_PLOT_CHART_ELEMENT,
-  BUBBLE_CHART_ELEMENT,
   BULLET_GROUP,
   BULLET_ITEM,
-  CANDLESTICK_CHART_ELEMENT,
-  CHORD_CHART_ELEMENT,
   CIRCULAR_GRID_GROUP,
   CIRCULAR_GRID_ITEM,
   COLUMN_GROUP,
   COLUMN_ITEM,
   COMPARE_GROUP,
   COMPARE_SIDE,
-  COMPOSED_CHART_ELEMENT,
-  CONE_FUNNEL_CHART_ELEMENT,
   CONNECTED_CIRCLES_GROUP,
   CONNECTED_CIRCLES_ITEM,
   CONS_ITEM,
   CYCLE_GROUP,
   CYCLE_ITEM,
-  FUNNEL_CHART_ELEMENT,
   getDefaultChartDataForType,
-  HEATMAP_CHART_ELEMENT,
-  HISTOGRAM_CHART_ELEMENT,
   ICON_LIST,
   ICON_LIST_ITEM,
   LINE_CHART_ELEMENT,
-  LINEAR_GAUGE_ELEMENT,
-  NIGHTINGALE_CHART_ELEMENT,
-  OHLC_CHART_ELEMENT,
   PIE_CHART_ELEMENT,
   PRESENTATION_TITLE_ELEMENT,
   PROS_CONS_GROUP,
   PROS_ITEM,
-  PYRAMID_CHART_ELEMENT,
   PYRAMID_GROUP,
   PYRAMID_ITEM,
   QUOTE_ELEMENT,
-  RADAR_CHART_ELEMENT,
-  RADIAL_BAR_CHART_ELEMENT,
-  RADIAL_COLUMN_CHART_ELEMENT,
-  RADIAL_GAUGE_ELEMENT,
-  RANGE_AREA_CHART_ELEMENT,
-  RANGE_BAR_CHART_ELEMENT,
-  SANKEY_CHART_ELEMENT,
-  SCATTER_CHART_ELEMENT,
   SEQUENCE_ARROW_GROUP,
   SEQUENCE_ARROW_ITEM,
   SLOPE_GROUP,
@@ -82,11 +60,8 @@ import {
   STATS_ITEM,
   STEPS_GROUP,
   STEPS_ITEM,
-  SUNBURST_CHART_ELEMENT,
   TIMELINE_GROUP,
   TIMELINE_ITEM,
-  TREEMAP_CHART_ELEMENT,
-  WATERFALL_CHART_ELEMENT,
 } from "../editor/lib";
 import { type PlateSlide } from "./parser";
 import * as Previews from "./template-previews";
@@ -1046,265 +1021,6 @@ export const TEMPLATE_DEFINITIONS: TemplateDefinition[] = [
     preview: <Previews.PieChartPreview />,
     template: { content: createChartContent(PIE_CHART_ELEMENT, "Pie Chart") },
   },
-  {
-    id: "donut-chart",
-    name: "Donut chart",
-    categoryId: "charts",
-    preview: <Previews.DonutChartPreview />,
-    template: {
-      content: createChartContent(PIE_CHART_ELEMENT, "Donut Chart", "donut"),
-    },
-  },
-  // New chart templates
-  {
-    id: "area-chart",
-    name: "Area chart",
-    categoryId: "charts",
-    preview: <Previews.AreaChartPreview />,
-    template: { content: createChartContent(AREA_CHART_ELEMENT, "Area Chart") },
-  },
-  {
-    id: "scatter-chart",
-    name: "Scatter chart",
-    categoryId: "charts",
-    preview: <Previews.ScatterChartPreview />,
-    template: {
-      content: createChartContent(SCATTER_CHART_ELEMENT, "Scatter Chart"),
-    },
-  },
-  {
-    id: "bubble-chart",
-    name: "Bubble chart",
-    categoryId: "charts",
-    preview: <Previews.BubbleChartPreview />,
-    template: {
-      content: createChartContent(BUBBLE_CHART_ELEMENT, "Bubble Chart"),
-    },
-  },
-  {
-    id: "histogram-chart",
-    name: "Histogram",
-    categoryId: "charts",
-    preview: <Previews.HistogramChartPreview />,
-    template: {
-      content: createChartContent(HISTOGRAM_CHART_ELEMENT, "Histogram Chart"),
-    },
-  },
-  {
-    id: "range-bar-chart",
-    name: "Range Bar",
-    categoryId: "charts",
-    preview: <Previews.RangeBarChartPreview />,
-    template: {
-      content: createChartContent(RANGE_BAR_CHART_ELEMENT, "Range Bar Chart"),
-    },
-  },
-  {
-    id: "range-area-chart",
-    name: "Range Area",
-    categoryId: "charts",
-    preview: <Previews.RangeAreaChartPreview />,
-    template: {
-      content: createChartContent(RANGE_AREA_CHART_ELEMENT, "Range Area Chart"),
-    },
-  },
-  {
-    id: "waterfall-chart",
-    name: "Waterfall",
-    categoryId: "charts",
-    preview: <Previews.WaterfallChartPreview />,
-    template: {
-      content: createChartContent(WATERFALL_CHART_ELEMENT, "Waterfall Chart"),
-    },
-  },
-  {
-    id: "box-plot-chart",
-    name: "Box Plot",
-    categoryId: "charts",
-    preview: <Previews.BoxPlotChartPreview />,
-    template: {
-      content: createChartContent(BOX_PLOT_CHART_ELEMENT, "Box Plot Chart"),
-    },
-  },
-  {
-    id: "candlestick-chart",
-    name: "Candlestick",
-    categoryId: "charts",
-    preview: <Previews.CandlestickChartPreview />,
-    template: {
-      content: createChartContent(
-        CANDLESTICK_CHART_ELEMENT,
-        "Candlestick Chart",
-      ),
-    },
-  },
-  {
-    id: "ohlc-chart",
-    name: "OHLC",
-    categoryId: "charts",
-    preview: <Previews.OHLCChartPreview />,
-    template: {
-      content: createChartContent(OHLC_CHART_ELEMENT, "OHLC Chart"),
-    },
-  },
-  {
-    id: "radar-line-chart",
-    name: "Radar Line",
-    categoryId: "charts",
-    preview: <Previews.RadarLineChartPreview />,
-    template: {
-      content: createChartContent(RADAR_CHART_ELEMENT, "Radar Chart"),
-    },
-  },
-  {
-    id: "radar-area-chart",
-    name: "Radar Area",
-    categoryId: "charts",
-    preview: <Previews.RadarAreaChartPreview />,
-    template: {
-      content: createChartContent(
-        RADAR_CHART_ELEMENT,
-        "Radar Chart",
-        "outline",
-      ),
-    },
-  },
-  {
-    id: "nightingale-chart",
-    name: "Nightingale",
-    categoryId: "charts",
-    preview: <Previews.NightingaleChartPreview />,
-    template: {
-      content: createChartContent(
-        NIGHTINGALE_CHART_ELEMENT,
-        "Nightingale Chart",
-      ),
-    },
-  },
-  {
-    id: "radial-column-chart",
-    name: "Radial Column",
-    categoryId: "charts",
-    preview: <Previews.RadialColumnChartPreview />,
-    template: {
-      content: createChartContent(
-        RADIAL_COLUMN_CHART_ELEMENT,
-        "Radial Column Chart",
-      ),
-    },
-  },
-  {
-    id: "radial-bar-chart",
-    name: "Radial Bar",
-    categoryId: "charts",
-    preview: <Previews.RadialBarChartPreview />,
-    template: {
-      content: createChartContent(RADIAL_BAR_CHART_ELEMENT, "Radial Bar Chart"),
-    },
-  },
-  {
-    id: "sunburst-chart",
-    name: "Sunburst",
-    categoryId: "charts",
-    preview: <Previews.SunburstChartPreview />,
-    template: {
-      content: createChartContent(SUNBURST_CHART_ELEMENT, "Sunburst Chart"),
-    },
-  },
-  {
-    id: "treemap-chart",
-    name: "Treemap",
-    categoryId: "charts",
-    preview: <Previews.TreemapChartPreview />,
-    template: {
-      content: createChartContent(TREEMAP_CHART_ELEMENT, "Treemap Chart"),
-    },
-  },
-  {
-    id: "heatmap-chart",
-    name: "Heatmap",
-    categoryId: "charts",
-    preview: <Previews.HeatmapChartPreview />,
-    template: {
-      content: createChartContent(HEATMAP_CHART_ELEMENT, "Heatmap Chart"),
-    },
-  },
-  {
-    id: "sankey-chart",
-    name: "Sankey",
-    categoryId: "charts",
-    preview: <Previews.SankeyChartPreview />,
-    template: {
-      content: createChartContent(SANKEY_CHART_ELEMENT, "Sankey Chart"),
-    },
-  },
-  {
-    id: "chord-chart",
-    name: "Chord",
-    categoryId: "charts",
-    preview: <Previews.ChordChartPreview />,
-    template: {
-      content: createChartContent(CHORD_CHART_ELEMENT, "Chord Chart"),
-    },
-  },
-  {
-    id: "funnel-chart",
-    name: "Funnel",
-    categoryId: "charts",
-    preview: <Previews.FunnelChartPreview />,
-    template: {
-      content: createChartContent(FUNNEL_CHART_ELEMENT, "Funnel Chart"),
-    },
-  },
-  {
-    id: "cone-funnel-chart",
-    name: "Cone Funnel",
-    categoryId: "charts",
-    preview: <Previews.ConeFunnelChartPreview />,
-    template: {
-      content: createChartContent(
-        CONE_FUNNEL_CHART_ELEMENT,
-        "Cone Funnel Chart",
-      ),
-    },
-  },
-  {
-    id: "pyramid-chart",
-    name: "Pyramid Chart",
-    categoryId: "charts",
-    preview: <Previews.PyramidChartPreview2 />,
-    template: {
-      content: createChartContent(PYRAMID_CHART_ELEMENT, "Pyramid Chart"),
-    },
-  },
-  {
-    id: "radial-gauge-chart",
-    name: "Radial Gauge",
-    categoryId: "charts",
-    preview: <Previews.RadialGaugeChartPreview />,
-    template: {
-      content: createChartContent(RADIAL_GAUGE_ELEMENT, "Radial Gauge"),
-    },
-  },
-  {
-    id: "linear-gauge-chart",
-    name: "Linear Gauge",
-    categoryId: "charts",
-    preview: <Previews.LinearGaugeChartPreview />,
-    template: {
-      content: createChartContent(LINEAR_GAUGE_ELEMENT, "Linear Gauge"),
-    },
-  },
-  {
-    id: "combination-chart",
-    name: "Combination",
-    categoryId: "charts",
-    preview: <Previews.CombinationChartPreview />,
-    template: {
-      content: createChartContent(COMPOSED_CHART_ELEMENT, "Combination Chart"),
-    },
-  },
-
   {
     id: "comparison",
     name: "Comparison",

@@ -540,17 +540,17 @@ Use icons only as search hints:
 Use charts only for real numeric comparisons, trends, shares, distributions, or correlations:
 - Use STATS for headline metrics.
 - Use TABLE for exact row/column comparison.
-- Use CHART for visual data.
+- Use CHART for visual data. Only three chart types are supported: charttype="bar", charttype="pie", and charttype="line". Never use any other charttype value (no scatter, bubble, area, radar, gauge, funnel, sankey, heatmap, treemap, waterfall, candlestick, OHLC, box plot, or similar).
 - Put chart data directly inside <CHART> as a markdown table. The markdown header row defines field names once.
-- For most charts: <CHART charttype="bar">
+- For bar or line charts: <CHART charttype="bar">
 | label | value |
 | --- | --- |
 | Q1 | 24 |
 | Q2 | 31 |
 </CHART>.
-- For multi-series charts, add more columns: label, revenue, profit.
-- For scatter or bubble charts, use x, y, and optional z columns.
-- For specialized charts, use renderer field names as table headers: range charts need category/low/high; waterfall needs category/amount; OHLC and candlestick need date/open/high/low/close; box plots need category/min/q1/median/q3/max; heatmaps need x/y/value; sankey/chord need from/to/size.
+- For multi-series bar or line charts, add more columns: label, revenue, profit.
+- For pie charts, use label and value columns, where each row is one slice.
+- If the data would naturally suit a chart type other than bar/pie/line (e.g. a trend over time with two axes, a distribution, a flow), pick whichever of bar, pie, or line is the closest reasonable fit instead.
 
 Use infographics when the slide asks for an infographic, diagram, process map, framework, hierarchy, lifecycle, matrix, relationship map, funnel, or cause-and-effect flow:
 - Write the infographic prompt as a complete visual brief with exact labels, entities, values, sequence, relationships, orientation, and takeaway.
