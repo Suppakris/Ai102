@@ -111,7 +111,7 @@ export default function Timeline({
 }: PlateElementProps<TTimelineGroupElement>) {
   const orientation = element.orientation ?? "vertical";
   const sidedness = element.sidedness ?? "single";
-  const alignment = element.alignment ?? "center";
+  const alignment = element.alignment ?? "left";
   const showLine = element.showLine ?? true;
   const itemCount = Math.max(element.children.length, 1);
   const timelineColor = getPresentationAccentColor(

@@ -25,6 +25,7 @@ import {
   ICON_LIST,
   isChartType,
   isLayoutChildType,
+  TIMELINE_GROUP,
   handleLayoutChange as layoutChange,
   handleNodePropertyUpdate as nodePropertyUpdate,
   supportsAlignment,
@@ -231,7 +232,12 @@ export function ToolbarProvider({ children }: { children: React.ReactNode }) {
   const supportsNumberedControl = supportsNumbered(elementType);
   const supportsShowLineControl = supportsShowLine(elementType);
   const supportsColumnSizeControl = supportsColumnSize(elementType);
-  const supportsAlignmentControl = supportsAlignment(elementType);
+  // Timeline alignment only affects layout in "single" sidedness — the
+  // "double" (alternating) layout ignores it entirely, which made the
+  // align buttons look broken (clicking them did nothing visible).
+  const supportsAlignmentControl =
+    supportsAlignment(elementType) &&
+    !(elementType === TIMELINE_GROUP && currentSidedness === "double");
   const supportsVariantControl = supportsVariant(elementType);
 
   // Get available options
