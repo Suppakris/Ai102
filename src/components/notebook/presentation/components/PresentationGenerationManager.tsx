@@ -919,7 +919,23 @@ export function PresentationGenerationManager() {
         imageSource,
         selectedSlideTemplates,
         outlineTemplateOverrides,
+        activeGenerationPresentationId,
       } = usePresentationState.getState();
+
+      // Defense-in-depth against a stale trigger: this flag is meant to be
+      // consumed once, immediately, by startPresentationGeneration()'s
+      // caller. If it's ever still true for a presentation other than the
+      // one it was started for (e.g. a leftover from before this effect
+      // last ran), starting generation here would silently wipe the
+      // currently open deck's slides instead of the one that was actually
+      // being generated.
+      if (
+        activeGenerationPresentationId !== null &&
+        activeGenerationPresentationId !== currentPresentationId
+      ) {
+        setShouldStartPresentationGeneration(false);
+        return;
+      }
 
       if (!hasGeneratedOutline(outline)) {
         setShouldStartPresentationGeneration(false);

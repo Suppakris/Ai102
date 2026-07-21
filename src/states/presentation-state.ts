@@ -1439,10 +1439,15 @@ export const usePresentationState = create<PresentationState>()(
         searchResults: state.searchResults,
         selectedChunks: state.selectedChunks,
         selectedSlideTemplates: state.selectedSlideTemplates,
-        shouldStartImageSlideGeneration: state.shouldStartImageSlideGeneration,
-        shouldStartOutlineGeneration: state.shouldStartOutlineGeneration,
-        shouldStartPresentationGeneration:
-          state.shouldStartPresentationGeneration,
+        // shouldStartOutlineGeneration/shouldStartPresentationGeneration/
+        // shouldStartImageSlideGeneration are deliberately NOT persisted.
+        // They are one-shot triggers consumed by PresentationGenerationManager
+        // the moment they're set; if a tab closes mid-generation before that
+        // consumption flips them back to false, a persisted `true` would
+        // silently re-fire generation (wiping slides) the next time any
+        // presentation loads. See presentation-state.ts's own generation
+        // effects, which never expect these flags to already be true on
+        // mount.
         stockImageProvider: state.stockImageProvider,
         textContent: state.textContent,
         theme: state.theme,

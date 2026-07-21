@@ -20,6 +20,9 @@ export function PresentButton() {
   const resetPresentingScaleLocks = usePresentationState(
     (s) => s.resetPresentingScaleLocks,
   );
+  const setShouldStartPresentationGeneration = usePresentationState(
+    (s) => s.setShouldStartPresentationGeneration,
+  );
   const isGeneratingPresentation = usePresentationState(
     (s) => s.isGeneratingPresentation,
   );
@@ -62,6 +65,10 @@ export function PresentButton() {
           setIsPresenting(false);
           setIsPresentingLoading(false);
           resetPresentingScaleLocks();
+          // Defense-in-depth: a stray shouldStartPresentationGeneration
+          // trigger left set from before entering present mode would wipe
+          // and regenerate the deck as soon as it's next observed.
+          setShouldStartPresentationGeneration(false);
           setIsExiting(false);
           return;
         }

@@ -69,6 +69,12 @@ export function PresentModeHeader({
                 usePresentationState.getState().setIsPresenting(false);
                 usePresentationState.getState().setIsPresentingLoading(false);
                 usePresentationState.getState().resetPresentingScaleLocks();
+                // Defense-in-depth: a stray shouldStartPresentationGeneration
+                // trigger left set from before entering present mode would
+                // wipe and regenerate the deck as soon as it's next observed.
+                usePresentationState
+                  .getState()
+                  .setShouldStartPresentationGeneration(false);
 
                 if (document.fullscreenElement) {
                   await document.exitFullscreen().catch(() => undefined);
