@@ -27,10 +27,8 @@ import {
   CYCLE_ITEM,
   ICON_LIST,
   ICON_LIST_ITEM,
-  LABEL_ELEMENT,
   LINE_CHART_ELEMENT,
   PIE_CHART_ELEMENT,
-  PRESENTATION_TITLE_ELEMENT,
   PROS_CONS_GROUP,
   PROS_ITEM,
   PYRAMID_GROUP,
@@ -71,11 +69,6 @@ const h3 = (content: string): TElement =>
 
 const h4 = (content: string): TElement =>
   ({ type: "h4", children: [text(content)] }) as unknown as TElement;
-
-const heading = (
-  type: "h1" | "h2" | "h3" | "h4" | "h5" | "h6",
-  content: string,
-): TElement => ({ type, children: [text(content)] }) as unknown as TElement;
 
 const codeBlock = (code: string, language = "tsx"): TElement => {
   const lines = code
@@ -293,90 +286,6 @@ export const chartItems: PaletteItem[] = [
 ];
 
 export const basicBlockItems: PaletteItem[] = [
-  {
-    category: "Text",
-    key: "title",
-    label: "Title",
-    description: "! Title",
-    node: {
-      type: PRESENTATION_TITLE_ELEMENT,
-      alignment: "left",
-      variant: "title",
-      children: [text("Title")],
-    } as unknown as TElement,
-  },
-  {
-    category: "Text",
-    key: "heading-1",
-    label: "Heading 1",
-    description: "# Heading 1",
-    node: heading("h1", "Heading 1"),
-  },
-  {
-    category: "Text",
-    key: "heading-2",
-    label: "Heading 2",
-    description: "## Heading 2",
-    node: heading("h2", "Heading 2"),
-  },
-  {
-    category: "Text",
-    key: "heading-3",
-    label: "Heading 3",
-    description: "### Heading 3",
-    node: heading("h3", "Heading 3"),
-  },
-  {
-    category: "Text",
-    key: "heading-4",
-    label: "Heading 4",
-    description: "#### Heading 4",
-    node: heading("h4", "Heading 4"),
-  },
-  {
-    category: "Text",
-    key: "paragraph",
-    label: "Text",
-    description: "Paragraph",
-    node: paragraph([text("Add a paragraph here.")]),
-  },
-  {
-    category: "Text",
-    key: "blockquote",
-    label: "Blockquote",
-    description: "> Quote",
-    node: simple.blockquote("Add a quote here."),
-  },
-  {
-    category: "Text",
-    key: "label",
-    label: "Label",
-    description: "Label",
-    node: {
-      type: LABEL_ELEMENT,
-      alignment: "left",
-      children: [text("Label")],
-    } as unknown as TElement,
-  },
-  {
-    category: "Tables",
-    key: "table-2x2",
-    label: "2x2 table",
-    description: "/table",
-    node: blankTable(2, 2),
-  },
-  {
-    category: "Tables",
-    key: "table-3x3",
-    label: "3x3 table",
-    node: blankTable(3, 3),
-  },
-  {
-    category: "Tables",
-    key: "table-4x4",
-    label: "4x4 table",
-    node: blankTable(4, 4),
-  },
   {
     category: "Lists",
     key: "bulleted-list",
@@ -975,6 +884,23 @@ export const paletteItems: PaletteItem[] = [
         body: ["Add your content here.", "Add more points."],
       },
     ]),
+  },
+
+  {
+    key: "table-2x2",
+    label: "2x2 table",
+    description: "/table",
+    node: blankTable(2, 2),
+  },
+  {
+    key: "table-3x3",
+    label: "3x3 table",
+    node: blankTable(3, 3),
+  },
+  {
+    key: "table-4x4",
+    label: "4x4 table",
+    node: blankTable(4, 4),
   },
 
   ...statsItems,

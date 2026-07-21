@@ -9,19 +9,13 @@ import {
   CircleUserRound,
   FileText,
   GripVertical,
-  Heading1Icon,
-  Heading2Icon,
-  Heading3Icon,
   Info,
   List,
   ListChecks,
   ListOrdered,
   MousePointerClick,
-  Quote,
   Sigma,
-  TableIcon,
   TableOfContentsIcon,
-  Tag,
   ToggleLeft,
   Type,
   type LucideIcon,
@@ -60,17 +54,6 @@ type PalettePanelSource = "basicBlocks" | "elements";
 type PalettePanelAppearance = "basicBlocks" | "default";
 
 const BASIC_BLOCK_ICON_MAP: Record<string, LucideIcon> = {
-  title: Type,
-  "heading-1": Heading1Icon,
-  "heading-2": Heading2Icon,
-  "heading-3": Heading3Icon,
-  "heading-4": Type,
-  paragraph: Type,
-  blockquote: Quote,
-  label: Tag,
-  "table-2x2": TableIcon,
-  "table-3x3": TableIcon,
-  "table-4x4": TableIcon,
   "bulleted-list": List,
   "numbered-list": ListOrdered,
   "todo-list": ListChecks,
@@ -125,7 +108,9 @@ function getElementFilterValue(item: PaletteItem): string {
   }
   if (
     [
-      "table",
+      "table-2x2",
+      "table-3x3",
+      "table-4x4",
       "stats-plain",
       "stats-circle",
       "stats-star",
