@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -70,26 +70,6 @@ export function PresentModeHeader({
 
   return createPortal(
     <>
-      {/* Always-visible back button: the full header below only reveals on
-          mouse-move-to-top, which is undiscoverable (and unusable on touch),
-          so present mode otherwise has no persistent way back to editing. */}
-      {isPresenting && (
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Back to editor"
-          disabled={isExiting}
-          onClick={exitPresentation}
-          className="fixed top-4 left-4 z-2147483647 rounded-full bg-black/50 text-white hover:bg-black/70"
-        >
-          {isExiting ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <ArrowLeft className="size-4" />
-          )}
-        </Button>
-      )}
-
       <div
         className={`fixed top-0 right-0 left-0 z-2147483647 transition-all duration-300 ${
           showHeader ? "translate-y-0" : "-translate-y-full"
