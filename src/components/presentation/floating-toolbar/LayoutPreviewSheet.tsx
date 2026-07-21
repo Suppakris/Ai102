@@ -17,7 +17,6 @@ import {
   CONNECTED_CIRCLES_GROUP,
   CYCLE_GROUP,
   getAvailableConversionOptions,
-  getOrientationOptions,
   handleLayoutChange,
   ICON_LIST,
   PARENT_CHILD_RELATIONSHIP,
@@ -30,7 +29,6 @@ import {
   STAIRCASE_GROUP,
   STATS_GROUP,
   STEPS_GROUP,
-  supportsOrientation,
   TIMELINE_GROUP,
 } from "@/components/notebook/presentation/editor/lib";
 import StaticPresentationEditor from "@/components/notebook/presentation/editor/presentation-editor-static";
@@ -299,75 +297,30 @@ function createVariation({
   };
 }
 
+// The layout panel used to fan every element's orientation/variant options
+// out into a separate thumbnail card each (e.g. a Timeline offered 6+ cards
+// for vertical/horizontal x single/double x numbered/lined combos). Users
+// found the resulting wall of near-identical cards confusing, so each
+// element/conversion candidate now shows exactly one basic card.
 function createCapabilityPropertySets(
-  elementType: string,
+  _elementType: string,
   baseProperties: Record<string, unknown>,
 ) {
-  const propertySets: Record<string, unknown>[] = [baseProperties];
-
-  const appendOptions = (key: string, values: readonly unknown[]) => {
-    if (values.length === 0) return;
-
-    const nextPropertySets = propertySets.flatMap((propertySet) =>
-      values.map((value) => ({ ...propertySet, [key]: value })),
-    );
-
-    propertySets.splice(0, propertySets.length, ...nextPropertySets);
-  };
-
-  if (supportsOrientation(elementType)) {
-    if (elementType !== BOX_GROUP || baseProperties.boxType === "alternating") {
-      appendOptions("orientation", getOrientationOptions(elementType));
-    }
-  }
-
-  if (elementType === PYRAMID_GROUP || elementType === STAIRCASE_GROUP) {
-    appendOptions("variant", ["default", "inside"]);
-  }
-
-  return propertySets;
+  return [baseProperties];
 }
 
 function createTimelinePreviewData(
   previewElement: Record<string, unknown>,
 ): LayoutVariation[] {
   const blockName = getBlockName(TIMELINE_GROUP);
+  // Only the basic variant — see createCapabilityPropertySets for why the
+  // rest of the format-variant combos were dropped.
   const timelineVariants: Record<string, unknown>[] = [
     {
       orientation: "vertical",
       sidedness: "single",
       numbered: true,
       showLine: true,
-    },
-    {
-      orientation: "vertical",
-      sidedness: "double",
-      numbered: true,
-      showLine: true,
-    },
-    {
-      orientation: "horizontal",
-      sidedness: "single",
-      numbered: true,
-      showLine: true,
-    },
-    {
-      orientation: "horizontal",
-      sidedness: "double",
-      numbered: true,
-      showLine: true,
-    },
-    {
-      orientation: "vertical",
-      sidedness: "single",
-      numbered: false,
-      showLine: true,
-    },
-    {
-      orientation: "vertical",
-      sidedness: "single",
-      numbered: false,
-      showLine: false,
     },
   ];
 
