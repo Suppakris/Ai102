@@ -96,12 +96,21 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     GitHubProvider({
       clientId: env.GITHUB_CLIENT_ID,
       clientSecret: env.GITHUB_CLIENT_SECRET,
+      allowDangerousEmailAccountLinking: true,
     }),
     ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
       ? [
           GoogleProvider({
             clientId: env.GOOGLE_CLIENT_ID,
             clientSecret: env.GOOGLE_CLIENT_SECRET,
+            // Without this, signing in with Google fails with
+            // OAuthAccountNotLinked whenever a user already has an account
+            // under the same email via another provider (e.g. they signed up
+            // with GitHub first) -- NextAuth's default is to refuse to link
+            // automatically. Safe here because Google (like GitHub/Discord
+            // below) only returns verified emails, so this can't be used to
+            // take over an account via an unverified address.
+            allowDangerousEmailAccountLinking: true,
           }),
         ]
       : []),
@@ -110,6 +119,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           DiscordProvider({
             clientId: env.DISCORD_CLIENT_ID,
             clientSecret: env.DISCORD_CLIENT_SECRET,
+            allowDangerousEmailAccountLinking: true,
           }),
         ]
       : []),
