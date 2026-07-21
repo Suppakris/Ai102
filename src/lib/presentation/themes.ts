@@ -1530,6 +1530,22 @@ export const themes: { [key in ThemeName]: ThemeProperties } = {
 
 // ============ CSS Variable Setter ============
 
+// Every deck theme font is a bare Google Font name (e.g. "Playfair
+// Display") with no fallback -- and those fonts are display/serif faces
+// with Latin-only glyph coverage. With no other family in the CSS value,
+// non-Latin text (Thai, etc.) rendered blank/tofu instead of falling back
+// to a font that actually has the glyphs. Appending generic fallbacks
+// keeps the chosen font for Latin text while letting the browser fall
+// through to a system font with broader Unicode coverage for everything
+// else.
+function buildFontStack(fontName: string): string {
+  const quotedFontName = fontName.includes(" ")
+    ? `"${fontName}"`
+    : fontName;
+
+  return `${quotedFontName}, "Noto Sans Thai", ui-sans-serif, system-ui, sans-serif`;
+}
+
 export function setThemeVariables(
   theme: ThemeProperties,
   element: HTMLElement = document.documentElement,
@@ -1547,8 +1563,14 @@ export function setThemeVariables(
     "--presentation-card-background",
     colors.cardBackground,
   );
-  element.style.setProperty("--presentation-heading-font", theme.fonts.heading);
-  element.style.setProperty("--presentation-body-font", theme.fonts.body);
+  element.style.setProperty(
+    "--presentation-heading-font",
+    buildFontStack(theme.fonts.heading),
+  );
+  element.style.setProperty(
+    "--presentation-body-font",
+    buildFontStack(theme.fonts.body),
+  );
   element.style.setProperty(
     "--presentation-card-border-radius",
     borderRadius.card,

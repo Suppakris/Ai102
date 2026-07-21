@@ -129,6 +129,7 @@ export default function Page() {
       <ThemeBackground
         themeOverride={createTheme}
         themeModeOverride={themeMode}
+        lockAppBackground
       >
         <div className="flex h-[calc(100vh-8rem)] flex-col items-center justify-center">
           <div className="relative">
