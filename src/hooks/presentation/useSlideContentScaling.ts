@@ -174,44 +174,11 @@ export function useSlideContentScaling(
         fontSize = 16;
       }
     } else {
-      // Cache the container element to avoid repeated DOM queries
-      if (!containerRef.current && !containerRefOverride) {
-        containerRef.current = document.querySelector(".presentation-slides");
-      }
-
-      const presentationContainer =
-        containerRefOverride?.current ?? containerRef.current;
-
-      // Calculate the maximum scale that fits the available space
-      let maxScale = 1;
-
-      if (presentationContainer) {
-        const containerWidth = presentationContainer.clientWidth;
-
-        // Account for the max-w-[90%] wrapper and its padding/margin
-        const effectiveWidth = containerWidth * 0.9; // 90% of container
-        // Maximum scale is the ratio of available space to slide width
-        maxScale = effectiveWidth / slideWidth;
-      } else {
-        // Fallback: use viewport with padding to account for sidebar and panels
-        const viewportWidth = window.innerWidth;
-        const sidebarAndPadding = 350; // Conservative estimate for sidebar + right panel
-        const availableWidth = viewportWidth - sidebarAndPadding;
-        maxScale = availableWidth / slideWidth;
-      }
-
-      // Apply zoom level, but clamp it to maxScale to prevent overflow
-      // If zoomLevel would cause overflow, gradually reduce it
-      const desiredScale = zoomLevel;
-
-      if (desiredScale <= maxScale) {
-        // There's enough space for the desired zoom level
-        scale = desiredScale;
-      } else {
-        // Not enough space - clamp to maxScale
-        // This means on smaller screens, zoom is automatically reduced
-        scale = maxScale;
-      }
+      // Apply the user's chosen zoom level directly. The container scrolls
+      // horizontally (see `.presentation-slides`) so zooming in beyond the
+      // available width is fine; it used to be silently clamped back down
+      // to whatever already fit, which made the zoom control a no-op.
+      scale = zoomLevel;
 
       // Keep base font size in edit mode (don't scale text)
       fontSize = 16;

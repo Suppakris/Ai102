@@ -210,7 +210,7 @@ export default function PresentationPage({
               ref={handleViewportRef}
               onScroll={handleViewportScroll}
               className={cn(
-                "presentation-slides flex w-full min-w-0 overflow-x-hidden overflow-y-auto",
+                "presentation-slides flex w-full min-w-0 overflow-x-auto overflow-y-auto",
                 isPresenting && "fixed inset-0 pb-0",
               )}
             >
