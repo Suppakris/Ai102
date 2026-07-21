@@ -49,11 +49,17 @@ function isReviewDeckRequest(value: unknown): value is ReviewDeckRequest {
 /**
  * The Ollama backend lives behind a tunnel that can go down at any time; a
  * connection-level failure means "backend offline", not a bug in this route.
+ *
+ * A dead ngrok tunnel doesn't fail the connection at all -- ngrok itself
+ * answers with a normal HTTP response whose body is an "endpoint offline"
+ * HTML/text page (ERR_NGROK_3200). The Ollama client happily parses that as
+ * a response, not a network error, so it surfaces as a generic ResponseError
+ * with the ngrok message inside it rather than ECONNREFUSED/fetch failed.
  */
 function isUpstreamUnreachable(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   const text = [error.message, String(error.cause ?? "")].join(" ");
-  return /fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ECONNRESET|UND_ERR|socket hang up/i.test(
+  return /fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ECONNRESET|UND_ERR|socket hang up|ERR_NGROK|endpoint .* is offline/i.test(
     text,
   );
 }
