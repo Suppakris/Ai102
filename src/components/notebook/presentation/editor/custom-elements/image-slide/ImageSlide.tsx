@@ -37,6 +37,7 @@ interface ImageSlideProps {
 
 export default function ImageSlide({ image, slideId }: ImageSlideProps) {
   const slides = usePresentationState((s) => s.slides);
+  const isPresenting = usePresentationState((s) => s.isPresenting);
   const setSlides = usePresentationState((s) => s.setSlides);
   const setCurrentSlide = usePresentationState((s) => s.setCurrentSlideId);
   const openImageEditor = usePresentationState((s) => s.openImageEditor);
@@ -219,7 +220,13 @@ export default function ImageSlide({ image, slideId }: ImageSlideProps) {
   return (
     <div
       ref={dropRef as unknown as React.Ref<HTMLDivElement>}
-      className="relative aspect-video w-full"
+      className={cn(
+        "relative w-full",
+        // Present mode already sizes/centers the slide to the viewport; a
+        // fixed 16:9 box here fights that on any non-16:9 viewport, leaving
+        // the image smaller than the screen and not vertically centered.
+        isPresenting ? "h-full" : "aspect-video",
+      )}
     >
       <ContextMenu>
         <ContextMenuTrigger asChild>
