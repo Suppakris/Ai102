@@ -291,10 +291,40 @@ function normalizePresentationSlide(slide: unknown): PlateSlide {
   } as PlateSlide;
 }
 
-export function normalizePresentationSlides(slides: unknown): PlateSlide[] {
+/**
+ * @param previousSlides When provided, a slide whose normalized form is
+ * deep-equal to its previous version (matched by id) keeps the PREVIOUS
+ * object reference instead of the freshly built one. Without this, every
+ * call replaced every slide's identity even when only one slide actually
+ * changed -- e.g. `setSlides` is used for undo/redo, and a single-slide
+ * undo would otherwise give all N slides a new `content` reference at
+ * once, forcing every mounted Plate/Slate editor to resync (a real DOM
+ * rebuild) in the same frame regardless of whether its own slide changed.
+ * That caused visible freezing and, when the user's cursor/native browser
+ * selection pointed into one of the untouched editors while its DOM got
+ * rebuilt out from under it, an unrecoverable "Cannot resolve a Slate
+ * point from DOM point" crash.
+ */
+export function normalizePresentationSlides(
+  slides: unknown,
+  previousSlides: PlateSlide[] = [],
+): PlateSlide[] {
   if (!Array.isArray(slides)) {
     return [];
   }
 
-  return slides.map(normalizePresentationSlide);
+  const previousById = new Map(
+    previousSlides.map((slide) => [slide.id, slide]),
+  );
+
+  return slides.map((slide) => {
+    const normalized = normalizePresentationSlide(slide);
+    const previous = previousById.get(normalized.id);
+
+    if (previous && JSON.stringify(previous) === JSON.stringify(normalized)) {
+      return previous;
+    }
+
+    return normalized;
+  });
 }

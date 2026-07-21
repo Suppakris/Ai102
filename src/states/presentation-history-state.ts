@@ -10,6 +10,13 @@ import { usePresentationState } from "./presentation-state";
 const MAX_HISTORY_SIZE = 50;
 // Rate limit: minimum ms between history pushes for same slide
 const RATE_LIMIT_MS = 300;
+// How long after an undo/redo to swallow the editor-sync echo pushes. A
+// "full" restore can legitimately resync more than one slide's editor at
+// once (each with its own debounced onChange, maxWait 200ms) -- a one-shot
+// flag consumed by whichever editor echoes first left every other echo to
+// leak through as a real, duplicate history entry. A time window instead
+// of a one-shot flag blocks all of them.
+const RESTORE_GRACE_MS = 400;
 
 /**
  * Represents a snapshot of a change in the presentation state.
@@ -51,8 +58,11 @@ interface PresentationHistoryState {
   lastPushTime: number;
   lastPushedSlideId: string | null;
 
-  // Block pushes during restore (undo/redo)
+  // Block pushes during restore (undo/redo). true/false for external
+  // callers that just want a "is a restore in flight" flag; internally
+  // pushSnapshot uses restoringUntil for the actual time-windowed guard.
   isRestoring: boolean;
+  restoringUntil: number;
 
   // Actions
   pushSnapshot: (
@@ -85,6 +95,7 @@ export const usePresentationHistoryState = create<PresentationHistoryState>(
     lastPushTime: 0,
     lastPushedSlideId: null,
     isRestoring: false,
+    restoringUntil: 0,
 
     pushSnapshot: (
       changedSlideId?: string,
@@ -92,12 +103,15 @@ export const usePresentationHistoryState = create<PresentationHistoryState>(
     ) => {
       const state = get();
 
-      // Block first push after restore (this is the editor sync), then reset flag
+      // Block every editor-sync echo that lands within the grace window
+      // after a restore, not just the first one -- a "full" restore can
+      // resync more than one slide's editor, and each fires its own
+      // debounced onChange independently.
+      if (Date.now() < state.restoringUntil) {
+        return;
+      }
       if (state.isRestoring) {
         set({ isRestoring: false });
-        // However, if this is a 'slide' update (user edit), we might want to capture it if it's not a restore artifact?
-        // But preventing loops is priority.
-        return;
       }
 
       const { slides, theme, customThemeData } =
@@ -249,6 +263,7 @@ export const usePresentationHistoryState = create<PresentationHistoryState>(
         canUndo: newPast.length > 0,
         canRedo: true,
         isRestoring: true,
+        restoringUntil: Date.now() + RESTORE_GRACE_MS,
       });
 
       const { slides, updateSlide, setSlides, setTheme } =
@@ -300,6 +315,7 @@ export const usePresentationHistoryState = create<PresentationHistoryState>(
         canUndo: true,
         canRedo: newFuture.length > 0,
         isRestoring: true,
+        restoringUntil: Date.now() + RESTORE_GRACE_MS,
       });
 
       const { slides, updateSlide, setSlides, setTheme } =
@@ -332,6 +348,7 @@ export const usePresentationHistoryState = create<PresentationHistoryState>(
         lastPushTime: 0,
         lastPushedSlideId: null,
         isRestoring: false,
+        restoringUntil: 0,
       });
     },
 
@@ -356,6 +373,7 @@ export const usePresentationHistoryState = create<PresentationHistoryState>(
         lastPushTime: Date.now(),
         lastPushedSlideId: null,
         isRestoring: false,
+        restoringUntil: 0,
       });
     },
   }),

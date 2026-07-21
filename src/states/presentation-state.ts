@@ -746,6 +746,7 @@ export const usePresentationState = create<PresentationState>()(
         set((state) => ({
           slides: normalizePresentationSlides(
             typeof slides === "function" ? slides(state.slides) : slides,
+            state.slides,
           ),
         }));
 
