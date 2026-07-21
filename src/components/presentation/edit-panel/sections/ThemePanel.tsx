@@ -115,7 +115,7 @@ export function ThemePanel() {
         likeCount: item.likeCount ?? 0,
         isLiked: item.isLiked ?? false,
         canLike: false,
-        showFavoriteButton: false,
+        showFavoriteButton: true,
         isUserTheme: true,
       })),
     [userThemes],
