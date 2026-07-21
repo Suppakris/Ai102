@@ -553,7 +553,21 @@ export class SlideParser {
   private lastInputLength = 0;
   private sectionIdMap = new Map<string, string>();
   private latestContent = "";
-  private sectionCounter = 0;
+  private sectionCounter: number;
+  private readonly initialSectionCounter: number;
+
+  // Batched generation parses each batch's output with its own SlideParser
+  // instance. Without a per-batch counter offset, every batch's first slide
+  // would get position prefix "pos-0-", and if two batches happen to
+  // generate a slide with the same heading text (very plausible for a
+  // small model producing generic "Introduction"/"Conclusion" slides with
+  // no cross-batch context), they'd collide on the exact same deterministic
+  // ID -- causing two different slides to share one ID app-wide (duplicate
+  // React keys, and the slide panel highlighting both as "active" at once).
+  constructor(initialSectionCounter = 0) {
+    this.sectionCounter = initialSectionCounter;
+    this.initialSectionCounter = initialSectionCounter;
+  }
 
   /**
    * Parse a chunk of XML data
@@ -660,7 +674,7 @@ export class SlideParser {
     this.parsedSlides = [];
     this.lastInputLength = 0;
     this.latestContent = "";
-    this.sectionCounter = 0;
+    this.sectionCounter = this.initialSectionCounter;
   }
 
   /**

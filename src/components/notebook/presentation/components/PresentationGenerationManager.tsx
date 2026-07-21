@@ -1008,6 +1008,8 @@ export function PresentationGenerationManager() {
                   title: currentPresentationTitle ?? presentationInput ?? "",
                   prompt: presentationInput ?? "",
                   outline: batch.outline,
+                  fullOutline: batches.length > 1 ? outline : undefined,
+                  batchStartIndex: batch.startIndex,
                   searchResults: stateSearchResults,
                   language,
                   tone: tone,
@@ -1063,7 +1065,7 @@ export function PresentationGenerationManager() {
           // Parse this batch's final text directly instead of relying on
           // streamingParserRef's RAF-driven state, which may not have
           // caught up yet at the exact moment this promise resolves.
-          const batchParser = new SlideParser();
+          const batchParser = new SlideParser(batch.startIndex);
           batchParser.parseChunk(stripXmlCodeBlock(batchCompletion));
           batchParser.finalize();
           completedDeckSlidesRef.current = [

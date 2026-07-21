@@ -5,7 +5,9 @@ import { LAYOUT_REFERENCE } from "@/lib/presentation/layout-catalog";
 
 export type PresentationGenerationPromptInput = {
   audience?: string;
+  batchStartIndex?: number;
   currentDate: string;
+  fullOutline?: string[];
   imageSearchResults?: PresentationImageSearchResult[];
   imageSource?: "automatic" | "ai" | "stock" | "gif";
   language: string;
@@ -589,7 +591,7 @@ function buildSelectedDocumentRules(
 function buildUserContext(input: PresentationGenerationPromptInput): string {
   const sections = [
     formatRequestContext(input),
-    formatOutlineContext(input.outline),
+    formatOutlineContext(input),
     formatResearchContext(input.searchResults),
     shouldUseImageLibrary(input)
       ? formatImageLibrary(input.imageSearchResults)
@@ -620,11 +622,54 @@ ${lines.join("\n")}
 # End of background info. Generate original slides about the topic above.`;
 }
 
-function formatOutlineContext(outline: string[]): string {
-  return `## Outline
+function formatOutlineContext(input: PresentationGenerationPromptInput): string {
+  const { outline, fullOutline, batchStartIndex = 0 } = input;
+
+  // Batched generation sends only a slice of the outline per request, so a
+  // model with no other context writes each slice as its own standalone
+  // mini-deck -- generic "Introduction"/"Conclusion" slides on every batch,
+  // which then collide as near-duplicates across the assembled deck. When
+  // the caller also has the full outline, show it (marking which items are
+  // this call's to write) so the model can place its slides in context
+  // instead of re-introducing/re-concluding the topic every batch.
+  if (!fullOutline || fullOutline.length <= outline.length) {
+    return `## Outline
 
 \`\`\`md
 ${formatOutlineForPrompt(outline)}
+\`\`\``;
+  }
+
+  const isFirstBatch = batchStartIndex === 0;
+  const isLastBatch = batchStartIndex + outline.length >= fullOutline.length;
+  const assignedText = fullOutline
+    .map((item, index) => {
+      const isAssigned =
+        index >= batchStartIndex && index < batchStartIndex + outline.length;
+      const label = isAssigned
+        ? "YOUR SLIDE -- write this one now"
+        : "already written separately -- context only, do not write this slide";
+      return `Slide ${index + 1} (${label}):\n${item.trim()}`;
+    })
+    .join("\n\n---\n\n");
+
+  const positionGuidance = [
+    !isFirstBatch &&
+      "This is not the start of the deck -- do not write an opening/introduction slide.",
+    !isLastBatch &&
+      "This is not the end of the deck -- do not write a closing/conclusion/summary slide.",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return `## Full deck outline (${fullOutline.length} slides total -- you are writing only slides ${
+    batchStartIndex + 1
+  }-${batchStartIndex + outline.length} in this request)
+
+Use the full outline to see what the rest of the deck already covers so your slides don't repeat it. ${positionGuidance}
+
+\`\`\`md
+${assignedText}
 \`\`\``;
 }
 
