@@ -10,6 +10,7 @@ export function LoadingState() {
   return (
     <ThemeBackground
       themeOverride={resolvedTheme === "dark" ? "ebony" : "mystique"}
+      lockAppBackground
     >
       <div className="flex h-[calc(100vh-8rem)] flex-col items-center justify-center">
         <div className="relative">

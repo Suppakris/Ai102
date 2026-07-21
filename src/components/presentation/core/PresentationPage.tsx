@@ -197,7 +197,7 @@ export default function PresentationPage({
   const showEditPanels = !effectiveReadOnly && !isPresenting;
 
   return (
-    <ThemeBackground className="flex h-full w-full">
+    <ThemeBackground className="flex h-full w-full" lockAppBackground>
       <TouchAwareDndProvider>
         <PlateController>
           {themeData && <ThemeFontLoader themeData={themeData} />}
