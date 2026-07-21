@@ -78,6 +78,18 @@ function resolveCompleteCustomThemeData(
   return parsedCompletedTheme.success ? parsedCompletedTheme.data : null;
 }
 
+// Every mounted slide calls this with the *same* `customThemeData`/`theme`
+// references (they come from the same store selection) whenever a theme
+// changes, which used to mean N slides each re-running the Zod validation
+// chain synchronously in one commit — the visible freeze on theme change.
+// A single-entry, reference-equality cache collapses that back down to one
+// real computation per distinct theme selection.
+let lastResolveArgs: {
+  customThemeData: unknown;
+  theme: string | null | undefined;
+} | null = null;
+let lastResolveResult: ThemeProperties | null = null;
+
 export function resolvePresentationThemeData({
   customThemeData,
   theme,
@@ -85,19 +97,27 @@ export function resolvePresentationThemeData({
   customThemeData: unknown;
   theme: string | null | undefined;
 }): ThemeProperties | null {
+  if (
+    lastResolveArgs &&
+    lastResolveArgs.customThemeData === customThemeData &&
+    lastResolveArgs.theme === theme
+  ) {
+    return lastResolveResult;
+  }
+
+  let result: ThemeProperties | null = null;
   if (customThemeData) {
-    const resolved = resolveCompleteCustomThemeData(customThemeData);
-    if (resolved) {
-      return resolved;
-    }
+    result = resolveCompleteCustomThemeData(customThemeData);
     // Custom data failed validation — fall through to built-in lookup
   }
 
-  if (isBuiltInPresentationTheme(theme)) {
-    return themes[theme];
+  if (!result && isBuiltInPresentationTheme(theme)) {
+    result = themes[theme];
   }
 
-  return null;
+  lastResolveArgs = { customThemeData, theme };
+  lastResolveResult = result;
+  return result;
 }
 
 export function getPersistablePresentationTheme({
