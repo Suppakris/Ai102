@@ -10,11 +10,13 @@ import { type RootImage } from "../../../utils/parser";
 interface ImageSlideStaticProps {
   image: RootImage;
   slideId: string;
+  isPresenting?: boolean;
 }
 
 export default function ImageSlideStatic({
   image,
   slideId,
+  isPresenting = false,
 }: ImageSlideStaticProps) {
   const rootImageGeneration = usePresentationState(
     (s) => s.rootImageGeneration,
@@ -35,7 +37,11 @@ export default function ImageSlideStatic({
   return (
     <div
       className={cn(
-        "flex aspect-video w-full items-center justify-center",
+        "flex w-full items-center justify-center",
+        // Present mode already sizes/centers the slide to the viewport; a
+        // fixed 16:9 box here fights that on any non-16:9 viewport, leaving
+        // the image at edit-mode size instead of filling the screen.
+        isPresenting ? "h-full" : "aspect-video",
         "relative overflow-hidden",
       )}
       data-slide-id={slideId}

@@ -89,6 +89,7 @@ export function PresentationRoot({
             <ImageSlideStatic
               image={initialContent.rootImage}
               slideId={initialContent.id}
+              isPresenting={isPresenting}
             />
           ) : (
             <ImageSlide
