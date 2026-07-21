@@ -39,10 +39,20 @@ export function SlideWrapper({
   const isReorderingSlides = usePresentationState((s) => s.isReorderingSlides);
   const currentSlideId = usePresentationState((s) => s.currentSlideId);
   const isFirstSlide = usePresentationState((s) => s.slides[0]?.id === id);
-  const presentModeSlideOffset = usePresentationState((s) => {
-    const slideIndex = s.slides.findIndex((slide) => slide.id === id);
-    const currentSlideIndex = s.slides.findIndex(
-      (slide) => slide.id === s.currentSlideId,
+  // All slides stay mounted while presenting (just translated off-screen),
+  // so every SlideWrapper subscribes here. The offset used to be computed
+  // with two array.findIndex calls *inside* the zustand selector, which
+  // zustand re-runs on every single store update regardless of relevance --
+  // an O(slide count) cost paid by every mounted slide on every update
+  // (scale-lock toggles, zoom, etc), not just ones where slide order or the
+  // current slide actually changed. Selecting the cheap primitives and
+  // deriving the offset in a memo means the findIndex work only reruns when
+  // its actual inputs change.
+  const slides = usePresentationState((s) => s.slides);
+  const presentModeSlideOffset = useMemo(() => {
+    const slideIndex = slides.findIndex((slide) => slide.id === id);
+    const currentSlideIndex = slides.findIndex(
+      (slide) => slide.id === currentSlideId,
     );
 
     if (slideIndex < 0 || currentSlideIndex < 0) {
@@ -50,7 +60,7 @@ export function SlideWrapper({
     }
 
     return slideIndex - currentSlideIndex;
-  });
+  }, [slides, currentSlideId, id]);
   // setSlides no longer needed after extracting operations
   // Select only this slide's data so other slides don't re-render on unrelated changes
   const currentSlide = usePresentationState((s) =>

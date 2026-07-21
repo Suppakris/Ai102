@@ -1136,13 +1136,21 @@ export const usePresentationState = create<PresentationState>()(
         })),
       setIsPresentingLoading: (isLoading) =>
         set({ isPresentingLoading: isLoading }),
-      setPresentingScaleLock: (slideId, locked) =>
+      setPresentingScaleLock: (slideId, locked) => {
+        // No-op guard: without this, every SlideWrapper effect that fires
+        // this on a value that hasn't actually changed still spreads a
+        // brand-new object into presentingScaleLocks, which re-renders
+        // every subscriber (all mounted slides, plus the loading gate) even
+        // though nothing observable changed -- a real contributor to
+        // present-mode jank right after entering.
+        if (get().presentingScaleLocks[slideId] === locked) return;
         set((state) => ({
           presentingScaleLocks: {
             ...state.presentingScaleLocks,
             [slideId]: locked,
           },
-        })),
+        }));
+      },
       resetPresentingScaleLocks: () => set({ presentingScaleLocks: {} }),
       setCurrentSlideId: (id) => set({ currentSlideId: id }),
       nextSlide: () => {
