@@ -22,11 +22,11 @@ Shared item pattern:
 Most visual components contain repeated items shaped as <DIV icon="optional"><H3>Label</H3><P>Short supporting text</P></DIV>. The wrapper tag changes the visual treatment. Only add icon="..." when the wrapper supports icons.
 
 Columns:
-Use <COLUMNS> when the slide needs balanced lanes or a container that can hold mixed nested content. Columns may contain headings, paragraphs, quotes, callouts, code blocks, item-level <IMG query="..." />, charts, infographics, or other supported elements when that improves clarity.
-<COLUMNS><DIV><H3>Market</H3><P>Demand is rising.</P></DIV><DIV><IMG query="team planning" /><H3>Execution</H3><P>Delivery capacity is ready.</P></DIV></COLUMNS>
+Use <COLUMNS> when the slide needs balanced lanes or a container that can hold mixed nested content. Give each column a self-contained element -- a stat, a quote, a callout, an icon item, an image, a chart, or an infographic -- instead of plain paragraph text. A short <H3> or <LABEL> lane title is fine, but do not fill a column with <P> body text; if a lane genuinely needs a sentence of support, attach it to the element itself (e.g. inside a <STATS> or <QUOTE> item) rather than as a bare paragraph.
+<COLUMNS><DIV><STATS statstype="plain"><DIV stat="42%"><H3>Market</H3><P>Demand growth this quarter.</P></DIV></STATS></DIV><DIV><IMG query="team planning" /><H3>Execution</H3></DIV></COLUMNS>
 
 Text and content blocks:
-Use these like normal content components anywhere plain text, headings, or paragraphs would fit, including inside COLUMNS. Use <TITLE> only for the first slide, a newly created title slide, or an introduction slide.
+Use these like normal content components anywhere plain text, headings, or paragraphs would fit. Use <TITLE> only for the first slide, a newly created title slide, or an introduction slide. Avoid bare <P> paragraphs inside <COLUMNS> specifically -- see the Columns guidance above.
 - <TITLE alignment="left|center|right">Main message</TITLE>
 - <LABEL alignment="left|center|right">Category</LABEL>
 - Quote family: <QUOTE variant="sidequote|large|sidequote-icon" author="Name">Memorable sentence.</QUOTE>. Use sidequote for the simple block quote treatment.
