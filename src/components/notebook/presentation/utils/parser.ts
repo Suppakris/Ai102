@@ -892,7 +892,13 @@ export class SlideParser {
     const plateElements: PlateNode[] = [];
     let rootImage: RootImage | undefined;
 
-    for (const child of sectionNode.children) {
+    for (let i = 0; i < sectionNode.children.length; ) {
+      const child = sectionNode.children[i];
+      if (!child) {
+        i += 1;
+        continue;
+      }
+
       if (isTextNode(child)) {
         rootImage ??= this.createRootImageFromTagContent(
           child.text,
@@ -905,10 +911,14 @@ export class SlideParser {
           layoutType,
         );
         plateElements.push(...infographicElements);
+        i += 1;
         continue;
       }
 
-      if (!isElementNode(child)) continue;
+      if (!isElementNode(child)) {
+        i += 1;
+        continue;
+      }
 
       if (child.tag.toUpperCase() === "IMG") {
         rootImage ??= this.parseRootImageFromNode(child, layoutType);
@@ -918,31 +928,47 @@ export class SlideParser {
             layoutType,
           );
         }
+        i += 1;
         continue;
       }
 
       if (child.tag.toUpperCase() === "DIV") {
-        for (const divChild of child.children) {
-          if (!isElementNode(divChild)) continue;
-          const processedElement = this.processTopLevelNode(
-            divChild,
-            slideId,
-            layoutType,
-          );
-          if (processedElement) {
-            plateElements.push(processedElement);
-          }
-        }
-      } else {
-        const processedElement = this.processTopLevelNode(
-          child,
-          slideId,
-          layoutType,
+        plateElements.push(
+          ...this.processTopLevelNodes(child.children, slideId, layoutType),
         );
-        if (processedElement) {
-          plateElements.push(processedElement);
-        }
+        i += 1;
+        continue;
       }
+
+      // Group consecutive top-level <LI> siblings into one list, the same
+      // way processNodes does for nested content -- otherwise each bullet
+      // paragraph (which serializes to a top-level LI when it isn't wrapped
+      // in BULLETS/DIV) falls through processTopLevelNode's default branch
+      // and is silently dropped.
+      if (child.tag.toUpperCase() === "LI") {
+        const liNodes: XMLNode[] = [];
+        let j = i;
+        while (j < sectionNode.children.length) {
+          const candidate = sectionNode.children[j];
+          if (!candidate || !isElementNode(candidate)) break;
+          if (candidate.tag.toUpperCase() !== "LI") break;
+          liNodes.push(candidate);
+          j += 1;
+        }
+        plateElements.push(...this.createListItemsFromLiNodes(liNodes));
+        i = j;
+        continue;
+      }
+
+      const processedElement = this.processTopLevelNode(
+        child,
+        slideId,
+        layoutType,
+      );
+      if (processedElement) {
+        plateElements.push(processedElement);
+      }
+      i += 1;
     }
 
     return {
@@ -1319,6 +1345,49 @@ export class SlideParser {
         return infographic ? [infographic] : [];
       },
     );
+  }
+
+  /**
+   * Process a list of top-level-equivalent nodes (SECTION's direct children,
+   * or a DIV's children being unwrapped as if top-level), grouping
+   * consecutive <LI> siblings into a single list instead of dropping or
+   * fragmenting them.
+   */
+  private processTopLevelNodes(
+    nodes: Array<XMLNode | XMLTextNode>,
+    slideId: string,
+    layoutType?: LayoutType,
+  ): PlateNode[] {
+    const results: PlateNode[] = [];
+
+    for (let i = 0; i < nodes.length; ) {
+      const node = nodes[i];
+      if (!node || !isElementNode(node)) {
+        i += 1;
+        continue;
+      }
+
+      if (node.tag.toUpperCase() === "LI") {
+        const liNodes: XMLNode[] = [];
+        let j = i;
+        while (j < nodes.length) {
+          const candidate = nodes[j];
+          if (!candidate || !isElementNode(candidate)) break;
+          if (candidate.tag.toUpperCase() !== "LI") break;
+          liNodes.push(candidate);
+          j += 1;
+        }
+        results.push(...this.createListItemsFromLiNodes(liNodes));
+        i = j;
+        continue;
+      }
+
+      const processed = this.processTopLevelNode(node, slideId, layoutType);
+      if (processed) results.push(processed);
+      i += 1;
+    }
+
+    return results;
   }
 
   /**
